@@ -1,0 +1,100 @@
+import { extractedRecipeSchema, type ExtractedRecipe } from "@/lib/ai/schema";
+import { SYSTEM_PROMPT, JSON_INSTRUCTIONS } from "@/lib/ai/prompt";
+import { env } from "@/lib/env";
+
+const MODELS_URL = "https://openrouter.ai/api/v1/models";
+const CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
+const MODELS_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const NEGATIVE_CACHE_TTL_MS = 10 * 60 * 1000;
+
+export class OpenRouterAuthError extends Error {}
+
+interface OpenRouterModel {
+  id: string;
+  pricing: { prompt: string; completion: string };
+  context_length: number;
+  created: number;
+}
+
+// ponytail: cache in memoria a livello di modulo, non sopravvive a un riavvio del container —
+// upgrade a una tabella/KV solo se servirà persistenza tra restart (non il caso qui)
+let cachedModels: string[] | null = null;
+let cachedAt = 0;
+const negativeCache = new Map<string, number>();
+
+export function rankFreeModels(models: OpenRouterModel[]): string[] {
+  return models
+    .filter((m) => m.pricing.prompt === "0" && m.pricing.completion === "0")
+    .sort((a, b) => b.context_length - a.context_length || b.created - a.created)
+    .map((m) => m.id);
+}
+
+export async function getFreeModelIds(): Promise<string[]> {
+  if (cachedModels && Date.now() - cachedAt < MODELS_CACHE_TTL_MS) {
+    return cachedModels;
+  }
+
+  const res = await fetch(MODELS_URL);
+  if (!res.ok) throw new Error(`OpenRouter /models: HTTP ${res.status}`);
+  const body = (await res.json()) as { data: OpenRouterModel[] };
+
+  cachedModels = rankFreeModels(body.data);
+  cachedAt = Date.now();
+  return cachedModels;
+}
+
+export function isRecentlyFailed(modelId: string): boolean {
+  const failedAt = negativeCache.get(modelId);
+  return failedAt !== undefined && Date.now() - failedAt < NEGATIVE_CACHE_TTL_MS;
+}
+
+export function markFailed(modelId: string): void {
+  negativeCache.set(modelId, Date.now());
+}
+
+function parseJsonResponse(content: string): ExtractedRecipe {
+  const stripped = content
+    .trim()
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "");
+
+  const parsed = JSON.parse(stripped);
+  const result = extractedRecipeSchema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`OpenRouter: risposta non conforme allo schema (${result.error.message})`);
+  }
+  return result.data;
+}
+
+export async function callOpenRouter(text: string, modelId: string): Promise<ExtractedRecipe> {
+  const res = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: modelId,
+      messages: [
+        { role: "system", content: `${SYSTEM_PROMPT}\n\n${JSON_INSTRUCTIONS}` },
+        { role: "user", content: text },
+      ],
+    }),
+    signal: AbortSignal.timeout(20000),
+  });
+
+  if (res.status === 401) {
+    throw new OpenRouterAuthError("OpenRouter: chiave API non valida");
+  }
+  if (!res.ok) {
+    throw new Error(`OpenRouter ${modelId}: HTTP ${res.status}`);
+  }
+
+  const body = await res.json();
+  const content: string | undefined = body?.choices?.[0]?.message?.content;
+  if (!content) {
+    throw new Error(`OpenRouter ${modelId}: risposta vuota`);
+  }
+
+  return parseJsonResponse(content);
+}

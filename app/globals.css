@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fdf8f3;
+  --foreground: #292524;
+  --surface: #ffffff;
+  --border: #e7e0d6;
+  --muted-foreground: #78716c;
+  --primary: #c2410c;
+  --primary-hover: #9a3412;
+  --destructive: #dc2626;
+  --destructive-hover: #b91c1c;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-destructive: var(--destructive);
+  --color-destructive-hover: var(--destructive-hover);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1c1917;
+    --foreground: #f5f0e8;
+    --surface: #262220;
+    --border: #3f3a36;
+    --muted-foreground: #a8a29e;
+    --primary: #ea580c;
+    --primary-hover: #f97316;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+@media print {
+  @page {
+    margin: 1.5cm;
+  }
+
+  body {
+    background: #fff;
+    color: #000;
+  }
+}
