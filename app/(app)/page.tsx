@@ -52,15 +52,18 @@ export default async function HomePage({
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-lg font-semibold text-foreground">Le tue ricette</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Le tue ricette</h1>
+          <p className="page-description">La tua raccolta, pronta per il prossimo pasto.</p>
+        </div>
         <Link href="/recipes/new" className={buttonClasses("primary", "sm")}>
           <Plus className="h-4 w-4" aria-hidden="true" /> Nuova
         </Link>
       </div>
 
-      <div className="mt-3 flex gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {SORTS.map((s) => (
           <Link
             key={s.value}
@@ -73,14 +76,14 @@ export default async function HomePage({
       </div>
 
       {recipes.length === 0 ? (
-        <div className="mt-4">
+          <div>
           <EmptyState
             title="Nessuna ricetta ancora"
             description='Aggiungine una dalla tab "Importa" o crea una ricetta manualmente.'
           />
         </div>
       ) : (
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3">
           {recipes.map((recipe) => (
             <RecipeCard key={recipe.id} recipe={recipe} />
           ))}

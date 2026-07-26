@@ -9,6 +9,8 @@ const translationSchema = z.object({
   description: z.string().nullable(),
   ingredientNames: z.array(z.string()),
   stepInstructions: z.array(z.string()),
+  equipment: z.array(z.string()),
+  tags: z.array(z.string()),
 });
 
 export type TranslationInput = {
@@ -16,6 +18,8 @@ export type TranslationInput = {
   description: string | null;
   ingredientNames: string[];
   stepInstructions: string[];
+  equipment: string[];
+  tags: string[];
 };
 
 export type TranslationResult = { result: z.infer<typeof translationSchema>; provider: string };

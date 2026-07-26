@@ -14,8 +14,8 @@ type Props = {
 };
 
 const variantClasses: Record<Variant, string> = {
-  center: "max-w-sm w-[calc(100%-2rem)] rounded-xl",
-  sheet: "fixed inset-x-0 bottom-0 top-auto m-0 w-full max-h-[85vh] rounded-t-xl overflow-y-auto",
+  center: "w-[calc(100%-2rem)] max-w-sm rounded-xl",
+  sheet: "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85vh] w-full overflow-y-auto rounded-t-xl sm:inset-auto sm:bottom-6 sm:max-w-lg sm:rounded-xl",
 };
 
 export const Modal = forwardRef<ModalHandle, Props>(
@@ -33,10 +33,10 @@ export const Modal = forwardRef<ModalHandle, Props>(
         ref={dialogRef}
         onCancel={onCancel}
         aria-labelledby={titleId}
-        className={`border border-border bg-surface p-5 text-foreground shadow-sm backdrop:bg-black/40 ${variantClasses[variant]}`}
+        className={`dialog-surface border border-border bg-surface p-5 text-foreground shadow-md backdrop:bg-black/40 ${variantClasses[variant]}`}
       >
         {title && (
-          <p id={titleId} className="mb-3 font-medium">
+          <p id={titleId} className="mb-3 font-display text-lg font-semibold">
             {title}
           </p>
         )}

@@ -13,8 +13,13 @@ export default async function ShoppingListPage({
   ]);
 
   return (
-    <div className="p-4">
-      <h1 className="mb-4 font-display text-lg font-semibold text-foreground">Spesa e dispensa</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Spesa e dispensa</h1>
+          <p className="page-description">Organizza cosa comprare e ciò che hai già a casa.</p>
+        </div>
+      </div>
       <ShoppingPantryTabs
         shoppingItems={shoppingItems}
         pantryItems={pantryItems}

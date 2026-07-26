@@ -29,7 +29,7 @@ export function Tabs({ tabs, value, onChange, ...rest }: Props) {
   }
 
   return (
-    <div ref={listRef} role="tablist" className="flex gap-2" onKeyDown={onKeyDown} {...rest}>
+    <div ref={listRef} role="tablist" className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" onKeyDown={onKeyDown} {...rest}>
       {tabs.map((tab) => {
         const selected = tab.value === value;
         return (

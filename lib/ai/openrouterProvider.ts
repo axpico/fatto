@@ -1,4 +1,4 @@
-import type { z } from "zod";
+import { z } from "zod";
 import { env } from "@/lib/env";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
@@ -13,6 +13,7 @@ interface OpenRouterModel {
   pricing: { prompt: string; completion: string };
   context_length: number;
   created: number;
+  supported_parameters?: string[];
 }
 
 // ponytail: cache in memoria a livello di modulo, non sopravvive a un riavvio del container —
@@ -24,6 +25,7 @@ const negativeCache = new Map<string, number>();
 export function rankFreeModels(models: OpenRouterModel[]): string[] {
   return models
     .filter((m) => m.pricing.prompt === "0" && m.pricing.completion === "0")
+    .filter((m) => m.supported_parameters?.includes("structured_outputs"))
     .sort((a, b) => b.context_length - a.context_length || b.created - a.created)
     .map((m) => m.id);
 }
@@ -84,6 +86,12 @@ export async function callOpenRouter<T>(
         { role: "system", content: `${systemPrompt}\n\n${jsonInstructions}` },
         { role: "user", content: text },
       ],
+      // niente strict: true — lo schema può avere minItems (es. tags.min(1)), non supportato in
+      // strict mode. Resta comunque un forte suggerimento; safeParse sotto è l'enforcement vero
+      response_format: {
+        type: "json_schema",
+        json_schema: { name: "response", schema: z.toJSONSchema(schema) },
+      },
     }),
     signal: AbortSignal.timeout(20000),
   });

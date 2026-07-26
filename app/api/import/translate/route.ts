@@ -46,6 +46,8 @@ export async function POST(request: Request) {
         description: recipe.description || null,
         ingredientNames: recipe.ingredients.map((i) => i.name),
         stepInstructions: recipe.steps.map((s) => s.instruction),
+        equipment: recipe.equipment,
+        tags: recipe.tags,
       },
       targetLanguage,
     );
@@ -62,6 +64,8 @@ export async function POST(request: Request) {
         ...step,
         instruction: result.stepInstructions[i] ?? step.instruction,
       })),
+      equipment: recipe.equipment.map((item, i) => result.equipment[i] ?? item),
+      tags: recipe.tags.map((tag, i) => result.tags[i] ?? tag),
       provider,
     });
   } catch (err) {

@@ -215,24 +215,39 @@ export default function ImportPage() {
 
   if (extracted || manual) {
     return (
-      <div>
-        <h1 className="px-4 pt-4 font-display text-lg font-semibold text-foreground">Rivedi e salva</h1>
-        <p className="px-4 text-sm text-muted-foreground">
+      <div className="page-shell max-w-3xl pb-0">
+        <div className="rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
+          <div className="flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
+              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Ultimo passaggio</p>
+              <h1 className="page-title">Rivedi e salva</h1>
+        <p className="page-description">
           Controlla i dati estratti prima di salvare: l&apos;AI può sbagliare.
-        </p>
+              </p>
+            </div>
+          </div>
+        </div>
         {provider?.startsWith("openrouter") && (
-          <div className="mx-4 mt-2 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>Estratto con un modello di fallback gratuito: rivedi i dati con particolare attenzione.</p>
           </div>
         )}
         {extracted && (
-          <Card className="mx-4 mt-3 flex items-end gap-2 p-3">
+          <Card className="mt-4 border-primary/20 bg-accent/30 p-4">
+            <div className="mb-3">
+              <p className="font-medium text-foreground">Vuoi tradurla?</p>
+              <p className="mt-0.5 text-sm text-muted-foreground">Puoi tradurre tutto il contenuto prima di apportare le ultime modifiche.</p>
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
             <Select
               label="Traduci in"
               value={targetLanguage}
               onChange={(e) => setTargetLanguage(e.target.value)}
-              className="flex-1"
+              className="min-w-44 flex-1"
             >
               {LANGUAGES.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -243,19 +258,26 @@ export default function ImportPage() {
             <Button type="button" variant="secondary" disabled={translating} onClick={translate}>
               {translating ? <Spinner /> : "Traduci"}
             </Button>
+            </div>
           </Card>
         )}
         {error && (
-          <p className="mx-4 mt-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
+          <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
         )}
-        <RecipeForm key={formKey} initialData={extracted ?? undefined} />
+        <div className="mt-6">
+          <RecipeForm key={formKey} initialData={extracted ?? undefined} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="font-display text-lg font-semibold text-foreground">Importa ricetta</h1>
+    <div className="page-shell max-w-3xl space-y-6">
+      <div className="rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Aggiungi una ricetta</p>
+        <h1 className="page-title">Importa ricetta</h1>
+        <p className="page-description">Estrai una ricetta da un link, un file o un Reel, quindi rivedila prima di salvarla.</p>
+      </div>
 
       {error && (
         <div className="space-y-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -266,13 +288,18 @@ export default function ImportPage() {
         </div>
       )}
 
-      <Tabs tabs={IMPORT_TABS} value={activeTab} onChange={setActiveTab} aria-label="Metodo di importazione" />
+      <div className="rounded-xl border border-border bg-surface p-2 shadow-sm">
+        <Tabs tabs={IMPORT_TABS} value={activeTab} onChange={setActiveTab} aria-label="Metodo di importazione" />
+      </div>
 
       <div role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden={activeTab !== "link"}>
-        <Card className="p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <Link2 className="h-4 w-4" aria-hidden="true" />
-            <span>Incolla il link di una ricetta online</span>
+        <Card className="p-5 sm:p-6">
+          <div className="mb-5 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Link2 className="h-5 w-5" aria-hidden="true" /></span>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-foreground">Da un link</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla l&apos;URL di una ricetta online e noi estrarremo i dettagli.</p>
+            </div>
           </div>
           <form onSubmit={importFromUrl} className="space-y-3">
             <Input
@@ -297,10 +324,13 @@ export default function ImportPage() {
       </div>
 
       <div role="tabpanel" id="panel-file" aria-labelledby="tab-file" hidden={activeTab !== "file"}>
-        <Card className="p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <ImageIcon className="h-4 w-4" aria-hidden="true" />
-            <span>Carica uno screenshot o un PDF della ricetta</span>
+        <Card className="p-5 sm:p-6">
+          <div className="mb-5 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><ImageIcon className="h-5 w-5" aria-hidden="true" /></span>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-foreground">Da un file</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Carica uno screenshot o un PDF: leggeremo il testo della ricetta per te.</p>
+            </div>
           </div>
           <label
             htmlFor="import-file"
@@ -342,10 +372,13 @@ export default function ImportPage() {
       </div>
 
       <div role="tabpanel" id="panel-reel" aria-labelledby="tab-reel" hidden={activeTab !== "reel"}>
-        <Card className="p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
-            <Video className="h-4 w-4" aria-hidden="true" />
-            <span>Incolla il link di un Reel Instagram</span>
+        <Card className="p-5 sm:p-6">
+          <div className="mb-5 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Video className="h-5 w-5" aria-hidden="true" /></span>
+            <div>
+              <h2 className="font-display text-xl font-semibold text-foreground">Da un Reel</h2>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video.</p>
+            </div>
           </div>
           <form onSubmit={importFromReel} className="space-y-3">
             <Input

@@ -88,13 +88,13 @@ export function CookLogSection({
   }
 
   return (
-    <section className="mt-6">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-semibold text-foreground">
+    <section className="mt-10 border-t border-border pt-8">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-xl font-semibold text-foreground">
           Storico {logs.length > 0 && <span className="text-muted-foreground">· cucinata {logs.length} volte</span>}
         </h2>
         <Button type="button" size="sm" onClick={markCooked} disabled={marking}>
-          Segna come cucinata
+          {marking ? "Aggiornamento..." : "Segna come cucinata"}
         </Button>
       </div>
 
@@ -103,7 +103,7 @@ export function CookLogSection({
       ) : (
         <ul className="space-y-3">
           {logs.map((log) => (
-            <Card key={log.id} className="p-3">
+            <Card key={log.id} className="p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-muted-foreground">
                   {formatDate(log.cookedAt)} · {log.user.name}
@@ -119,7 +119,7 @@ export function CookLogSection({
                   <X className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
-              <div className="mt-1">
+              <div className="mt-3">
                 <StarRating value={log.rating} onChange={(rating) => patchLog(log.id, { rating })} />
               </div>
               <textarea
@@ -127,7 +127,7 @@ export function CookLogSection({
                 defaultValue={log.notes ?? ""}
                 onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
                 rows={1}
-                className={`mt-2 w-full text-sm ${inputClasses}`}
+                className={`mt-3 w-full text-sm ${inputClasses}`}
               />
             </Card>
           ))}

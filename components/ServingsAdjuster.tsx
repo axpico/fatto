@@ -42,9 +42,13 @@ export function ServingsAdjuster({
   }
 
   return (
-    <div>
-      <div className="mb-3 flex items-center gap-2">
-        <label className="text-sm font-medium text-foreground">Porzioni</label>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-surface-secondary p-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Porzioni</p>
+          <p className="text-xs text-muted-foreground">Le quantità si aggiornano automaticamente.</p>
+        </div>
+        <div className="flex items-center gap-2">
         <Button
           type="button"
           variant="secondary"
@@ -60,7 +64,7 @@ export function ServingsAdjuster({
           min={1}
           value={servings}
           onChange={(e) => setServings(Math.max(1, Number(e.target.value) || 1))}
-          className={`w-16 py-1.5 text-center ${inputClasses}`}
+          className={`h-9 w-14 py-1 text-center font-semibold tabular-nums ${inputClasses}`}
         />
         <Button
           type="button"
@@ -72,31 +76,24 @@ export function ServingsAdjuster({
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
+        </div>
       </div>
 
-      <ul>
+      <ul className="space-y-2" aria-label={`Ingredienti per ${servings} porzioni`}>
         {ingredients.map((ing) => {
           const scaled = scaleQuantity(ing.quantity, baseServings, servings);
           const checked = checkedIds.has(ing.id);
           return (
-            <li key={ing.id} className="border-b border-border py-2 last:border-0">
-              <label className="flex cursor-pointer items-start gap-2">
-                <Checkbox checked={checked} onChange={() => toggleChecked(ing.id)} className="mt-1" />
-                <span
-                  className={`w-16 shrink-0 text-right font-medium tabular-nums ${
-                    checked ? "text-muted-foreground" : "text-foreground"
-                  }`}
-                >
-                  {scaled !== null ? `${formatQuantity(scaled)} ${ing.unit ?? ""}` : ""}
-                </span>
-                <span
-                  className={`flex-1 ${checked ? "text-muted-foreground line-through" : "text-foreground"} ${
-                    ing.optional ? "italic" : ""
-                  }`}
-                >
-                  {ing.name}
-                </span>
-                <span className="flex shrink-0 flex-wrap justify-end gap-1">
+            <li key={ing.id}>
+              <label className={`flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-3 transition-[background-color,border-color,box-shadow] duration-200 ${
+                checked ? "border-border bg-surface-secondary/70" : "border-border bg-surface hover:border-border-strong hover:shadow-sm"
+              }`}>
+                <Checkbox checked={checked} onChange={() => toggleChecked(ing.id)} className="mt-0.5 h-5 w-5 shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <span className={`block font-medium leading-6 ${checked ? "text-muted-foreground line-through" : "text-foreground"} ${ing.optional ? "italic" : ""}`}>
+                    {ing.name}
+                  </span>
+                  <span className="mt-1 flex flex-wrap gap-1.5">
                   {ing.optional && (
                     <Badge variant="neutral" size="sm">
                       facoltativo
@@ -107,7 +104,13 @@ export function ServingsAdjuster({
                       <Check className="h-3 w-3" aria-hidden="true" /> in dispensa
                     </Badge>
                   )}
+                  </span>
                 </span>
+                {scaled !== null && (
+                  <span className={`shrink-0 rounded-md bg-surface-secondary px-2 py-1 text-sm font-semibold tabular-nums ${checked ? "text-muted-foreground" : "text-foreground"}`}>
+                    {formatQuantity(scaled)} <span className="text-xs font-medium text-muted-foreground">{ing.unit ?? ""}</span>
+                  </span>
+                )}
               </label>
             </li>
           );

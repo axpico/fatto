@@ -1,12 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { rankFreeModels } from "./openrouterProvider";
 
-function model(id: string, free: boolean, contextLength: number, created: number) {
+function model(
+  id: string,
+  free: boolean,
+  contextLength: number,
+  created: number,
+  supportedParameters: string[] = ["structured_outputs"],
+) {
   return {
     id,
     pricing: { prompt: free ? "0" : "0.000001", completion: free ? "0" : "0.000002" },
     context_length: contextLength,
     created,
+    supported_parameters: supportedParameters,
   };
 }
 
@@ -23,5 +30,10 @@ describe("rankFreeModels", () => {
       model("free/small-new", true, 8000, 200),
     ];
     expect(rankFreeModels(models)).toEqual(["free/big", "free/small-new", "free/small-old"]);
+  });
+
+  it("drops models without structured_outputs support", () => {
+    const models = [model("free/a", true, 8000, 1), model("free/b", true, 8000, 2, [])];
+    expect(rankFreeModels(models)).toEqual(["free/a"]);
   });
 });

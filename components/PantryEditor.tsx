@@ -57,7 +57,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
 
   return (
     <div>
-      <form onSubmit={addManual} className="mb-4 flex gap-2">
+      <form onSubmit={addManual} className="panel mb-4 flex flex-wrap gap-2 p-3">
         <input
           type="text"
           placeholder="Aggiungi alla dispensa"
@@ -83,7 +83,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
           onChange={(e) => setUnit(e.target.value)}
           className={`w-16 ${inputClasses}`}
         />
-        <Button type="submit" size="sm" aria-label="Aggiungi alla dispensa">
+        <Button type="submit" size="sm" aria-label="Aggiungi alla dispensa" className="min-w-10">
           <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>
@@ -94,11 +94,11 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
           description="Aggiungi una voce a mano, oppure spunta un articolo nella lista della spesa: viene aggiunto qui automaticamente."
         />
       ) : (
-        <ul className="space-y-1.5">
+        <ul className="space-y-2">
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface-sunken px-3 py-2"
+              className="list-row flex items-center gap-2"
             >
               <span className="flex-1 text-foreground">{item.name}</span>
               <input

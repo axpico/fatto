@@ -71,10 +71,10 @@ export function MealPlanCalendar({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 lg:grid-cols-2">
       {weekDates.map((date) => (
-        <Card key={date} className="p-3">
-          <h3 className="mb-2 text-sm font-semibold capitalize text-foreground">{formatDay(date)}</h3>
+        <Card key={date} className="p-4">
+          <h3 className="mb-3 font-display text-base font-semibold capitalize text-foreground">{formatDay(date)}</h3>
           <div className="space-y-2">
             {SLOTS.map((slot) => {
               const key = cellKey(date, slot.value);
@@ -124,7 +124,7 @@ export function MealPlanCalendar({
                     <button
                       type="button"
                       onClick={() => setAddingCell(key)}
-                      className="text-xs text-muted-foreground hover:text-primary"
+                      className="min-h-8 rounded-md px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-primary"
                     >
                       + aggiungi
                     </button>

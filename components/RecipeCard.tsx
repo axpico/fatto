@@ -16,22 +16,22 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
   const totalTime = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
 
   return (
-    <Link href={`/recipes/${recipe.id}`} className="block">
-      <Card className="flex gap-3 p-3 transition-colors hover:border-primary/40">
+    <Link href={`/recipes/${recipe.id}`} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+      <Card className="flex gap-4 p-3.5 transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md">
         {recipe.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={`/api/uploads/${recipe.photoUrl}`}
             alt={recipe.title}
-            className="h-20 w-20 shrink-0 rounded-lg object-cover shadow-sm"
+            className="h-20 w-20 shrink-0 rounded-md object-cover"
           />
         ) : (
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-md bg-surface-secondary text-muted-foreground">
             <UtensilsCrossed className="h-6 w-6" aria-hidden="true" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-display font-medium text-foreground">{recipe.title}</h3>
+          <h3 className="truncate font-display text-lg font-semibold text-foreground">{recipe.title}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {totalTime > 0 && (
               <span className="inline-flex items-center gap-1">

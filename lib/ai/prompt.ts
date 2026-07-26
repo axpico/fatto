@@ -4,7 +4,9 @@ determinabile, usa null — non inventare quantità, tempi o porzioni. Mantieni 
 di ingredienti e passaggi. "optional" per un ingrediente o passaggio è true SOLO se il testo lo
 indica esplicitamente (es. "facoltativo", "per guarnire", "opzionale") — altrimenti false. I
 valori di "nutrition" sono null a meno che non siano esplicitamente riportati nel testo: non
-stimarli né calcolarli.`;
+stimarli né calcolarli. "tags" non deve mai essere un array vuoto: usa le categorie esplicite nel
+testo, altrimenti inferiscine almeno una plausibile da tipo di piatto, ingrediente principale o
+cucina (es. "dolce", "primo", "vegetariano").`;
 
 // ponytail: descrizione JSON a mano invece di zod-to-json-schema — schema piccolo e stabile,
 // serve solo ai modelli OpenRouter che non supportano structured output nativo come Anthropic
@@ -25,18 +27,19 @@ prima o dopo, nessun blocco di codice markdown), con esattamente questa forma:
   "steps": [{ "instruction": string, "timer_minutes": number | null, "optional": boolean }]
 }
 "description" è un breve riassunto se presente nel testo originale (altrimenti null). "tags" sono
-categorie/etichette pertinenti già presenti nel testo (es. tipo di piatto, cucina) — usa un array
-vuoto se non ce ne sono, non inventarle. "equipment" sono utensili/attrezzature citati nel testo
+categorie/etichette pertinenti (tipo di piatto, cucina, ingrediente principale): usa quelle
+esplicite nel testo, altrimenti inferiscine almeno una plausibile (es. "dolce", "primo",
+"vegetariano") — non deve mai essere un array vuoto. "equipment" sono utensili/attrezzature citati nel testo
 (es. "padella larga", "planetaria") — array vuoto se non presenti, non inventarli. "nutrition" è
 null se il testo non riporta valori nutrizionali espliciti.`;
 
 export function translationSystemPrompt(targetLanguage: string): string {
   return `Sei un traduttore. Ricevi un oggetto JSON con i campi testuali di una ricetta (title,
-description, ingredientNames, stepInstructions). Traduci OGNI stringa in ${targetLanguage},
-mantenendo esattamente lo stesso numero di elementi negli array e lo stesso ordine (non
-aggiungere, rimuovere o riordinare elementi). Non introdurre quantità o unità di misura nel testo
-tradotto: traduci solo il significato, senza inventare numeri che non erano già presenti nella
-stringa originale.`;
+description, ingredientNames, stepInstructions, equipment, tags). Traduci OGNI stringa in
+${targetLanguage}, mantenendo esattamente lo stesso numero di elementi negli array e lo stesso
+ordine (non aggiungere, rimuovere o riordinare elementi). Non introdurre quantità o unità di
+misura nel testo tradotto: traduci solo il significato, senza inventare numeri che non erano già
+presenti nella stringa originale.`;
 }
 
 export const TRANSLATION_JSON_INSTRUCTIONS = `Rispondi ESCLUSIVAMENTE con un oggetto JSON valido
@@ -45,5 +48,7 @@ export const TRANSLATION_JSON_INSTRUCTIONS = `Rispondi ESCLUSIVAMENTE con un ogg
   "title": string,
   "description": string | null,
   "ingredientNames": string[],
-  "stepInstructions": string[]
+  "stepInstructions": string[],
+  "equipment": string[],
+  "tags": string[]
 }`;

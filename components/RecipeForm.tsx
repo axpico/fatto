@@ -195,7 +195,7 @@ export function RecipeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 pb-24">
+    <form onSubmit={handleSubmit} className="space-y-5 pb-24">
       {error && (
         <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
       )}
@@ -362,6 +362,7 @@ export function RecipeForm({
                   id={`nutrition-${key}`}
                   type="number"
                   min={0}
+                  step="any"
                   value={form.nutrition[key] ?? ""}
                   onChange={(e) => setNutrition(key, e.target.value ? Number(e.target.value) : null)}
                 />
@@ -376,8 +377,8 @@ export function RecipeForm({
         </Card>
       )}
 
-      <div className="fixed inset-x-0 bottom-16 z-10 border-t border-border bg-surface/95 p-3 backdrop-blur">
-        <div className="mx-auto w-full max-w-2xl">
+      <div className="fixed inset-x-0 bottom-16 z-10 border-t border-border bg-surface/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0">
+        <div className="mx-auto w-full max-w-5xl">
           <Button type="submit" size="lg" disabled={saving} className="w-full">
             {saving ? "Salvataggio..." : "Salva ricetta"}
           </Button>

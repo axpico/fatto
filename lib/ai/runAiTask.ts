@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { z } from "zod";
 import { callAnthropic } from "@/lib/ai/anthropicProvider";
 import {
@@ -19,13 +20,30 @@ export type AiTaskOptions<T> = {
   schema: z.ZodType<T>;
 };
 
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // il contenuto di una ricetta non cambia, limita solo la staleness
+// ponytail: Map in memoria mai ripulita, cresce fino al riavvio del container — accettabile per
+// un deploy single-container come questo (stesso compromesso già accettato in openrouterProvider.ts)
+const resultCache = new Map<string, { result: unknown; provider: string; cachedAt: number }>();
+
+function cacheKey(input: string, opts: AiTaskOptions<unknown>): string {
+  return createHash("sha256").update(opts.systemPrompt + opts.jsonInstructions + input).digest("hex");
+}
+
 /** Orchestratore condiviso: prova Anthropic, poi in sequenza i modelli gratuiti OpenRouter.
  * Usato sia dall'estrazione ricette che dalla traduzione — stesso fallback, prompt/schema diversi. */
 export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promise<{ result: T; provider: string }> {
+  const key = cacheKey(input, opts);
+  const cached = resultCache.get(key);
+  if (cached && Date.now() - cached.cachedAt < CACHE_TTL_MS) {
+    console.log(`[ai] cache hit (${cached.provider})`);
+    return { result: cached.result as T, provider: cached.provider };
+  }
+
   if (env.ANTHROPIC_API_KEY) {
     try {
       const result = await callAnthropic(input, opts.systemPrompt, opts.schema);
       console.log("[ai] servito da anthropic");
+      resultCache.set(key, { result, provider: "anthropic", cachedAt: Date.now() });
       return { result, provider: "anthropic" };
     } catch (err) {
       console.error("[ai] anthropic fallito:", err);
@@ -43,6 +61,7 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
     try {
       const result = await callOpenRouter(input, modelId, opts.systemPrompt, opts.jsonInstructions, opts.schema);
       console.log(`[ai] servito da openrouter:${modelId}`);
+      resultCache.set(key, { result, provider: `openrouter:${modelId}`, cachedAt: Date.now() });
       return { result, provider: `openrouter:${modelId}` };
     } catch (err) {
       if (err instanceof OpenRouterAuthError) {

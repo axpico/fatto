@@ -18,8 +18,13 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
   if (!recipe) notFound();
 
   return (
-    <div>
-      <h1 className="px-4 pt-4 font-display text-lg font-semibold text-foreground">Modifica ricetta</h1>
+    <div className="page-shell pb-0">
+      <div className="page-header mb-2">
+        <div>
+          <h1 className="page-title">Modifica ricetta</h1>
+          <p className="page-description">Aggiorna i dettagli e salva quando hai finito.</p>
+        </div>
+      </div>
       <RecipeForm
         recipeId={recipe.id}
         initialData={{

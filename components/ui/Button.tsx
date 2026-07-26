@@ -4,20 +4,20 @@ type Variant = "primary" | "secondary" | "destructive" | "ghost";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-white hover:bg-primary-hover",
+  primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow-md",
   secondary:
-    "border border-border bg-surface text-foreground hover:bg-background",
-  destructive: "border border-destructive/30 text-destructive hover:bg-destructive/10",
-  ghost: "text-muted-foreground hover:text-foreground",
+    "border border-border bg-surface text-foreground shadow-sm hover:border-border-strong hover:bg-surface-secondary",
+  destructive: "border border-destructive/30 bg-surface text-destructive hover:bg-destructive/10",
+  ghost: "text-muted-foreground hover:bg-surface-secondary hover:text-foreground",
 };
 
 const sizes: Record<Size, string> = {
-  sm: "px-3 py-1.5 text-sm",
-  md: "px-4 py-2 text-sm",
-  lg: "px-4 py-3 text-base",
+  sm: "min-h-9 px-3 text-sm",
+  md: "px-4 text-sm",
+  lg: "min-h-12 px-5 text-base",
 };
 
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", className = "") {

@@ -7,6 +7,7 @@ import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
 import { CookLogSection } from "@/components/CookLogSection";
 import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
 
 const NUTRITION_FIELDS: { key: "caloriesKcal" | "proteinG" | "carbsG" | "fatG" | "fiberG" | "sugarG" | "saturatedFatG" | "sodiumMg"; label: string; unit: string }[] = [
@@ -45,9 +46,9 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   );
 
   return (
-    <div className="p-4">
+    <div className="page-shell">
       {recipe.photoUrl ? (
-        <div className="relative mb-4 h-64 w-full overflow-hidden rounded-xl">
+        <div className="relative mb-6 h-72 w-full overflow-hidden rounded-xl shadow-md sm:h-96">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/uploads/${recipe.photoUrl}`}
@@ -57,16 +58,16 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
             loading="eager"
             className="h-full w-full object-cover"
           />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-            <h1 className="font-display text-2xl font-semibold text-white">{recipe.title}</h1>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
+            <h1 className="max-w-3xl font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">{recipe.title}</h1>
           </div>
         </div>
       ) : (
-        <h1 className="mb-4 font-display text-xl font-semibold text-foreground">{recipe.title}</h1>
+        <h1 className="mb-5 max-w-3xl font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{recipe.title}</h1>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "sm")}>
+      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm">
+        <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "md")}>
           <ChefHat className="h-4 w-4" aria-hidden="true" /> Cucina
         </Link>
         <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "sm")}>
@@ -75,20 +76,20 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "sm")}>
           <Pencil className="h-4 w-4" aria-hidden="true" /> Modifica
         </Link>
-        <div className="ml-auto">
+        <div className="ml-auto pl-1">
           <DeleteRecipeButton recipeId={recipe.id} />
         </div>
       </div>
 
-      {recipe.description && <p className="mt-2 text-muted-foreground">{recipe.description}</p>}
+      {recipe.description && <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">{recipe.description}</p>}
 
-      <div className="mt-2 flex flex-wrap gap-2">
+      <div className="mt-3 flex flex-wrap gap-2">
         {recipe.tags.map((tag) => (
           <Badge key={tag.id}>{tag.name}</Badge>
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+      <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
         {recipe.prepTimeMinutes != null && (
           <span className="inline-flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Prep: {recipe.prepTimeMinutes} min
@@ -122,8 +123,8 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       </div>
 
       {recipe.equipment.length > 0 && (
-        <section className="mt-6">
-          <h2 className="mb-2 font-semibold text-foreground">Attrezzatura</h2>
+        <section className="mt-8">
+          <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Attrezzatura</h2>
           <div className="flex flex-wrap gap-2">
             {recipe.equipment.map((item) => (
               <Badge key={item}>{item}</Badge>
@@ -132,22 +133,24 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         </section>
       )}
 
-      <section className="mt-6">
-        <h2 className="mb-2 font-semibold text-foreground">Ingredienti</h2>
-        <ServingsAdjuster
-          baseServings={recipe.servingsBase}
-          ingredients={recipe.ingredients}
-          inPantry={[...inPantry]}
-        />
+      <section className="mt-10">
+        <Card className="p-4 sm:p-5">
+          <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Ingredienti</h2>
+          <ServingsAdjuster
+            baseServings={recipe.servingsBase}
+            ingredients={recipe.ingredients}
+            inPantry={[...inPantry]}
+          />
+        </Card>
       </section>
 
-      <section className="mt-6">
-        <h2 className="mb-2 font-semibold text-foreground">Passaggi</h2>
-        <ol className="space-y-2">
+      <section className="mt-10">
+        <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Passaggi</h2>
+        <ol className="space-y-3">
           {recipe.steps.map((step) => (
-            <li key={step.id} className="flex gap-2 text-foreground">
-              <span className="font-medium text-muted-foreground">{step.sortOrder + 1}.</span>
-              <span>
+            <li key={step.id} className="flex gap-3 rounded-lg border border-border bg-surface px-4 py-4 text-foreground shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-sm font-semibold text-muted-foreground">{step.sortOrder + 1}</span>
+              <span className="min-w-0 flex-1 leading-7">
                 {step.instruction}
                 {step.optional && (
                   <Badge variant="neutral" size="sm" className="ml-2">
@@ -166,14 +169,14 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       </section>
 
       {recipe.nutrition && (
-        <section className="mt-6">
-          <h2 className="mb-2 font-semibold text-foreground">Valori nutrizionali (per porzione)</h2>
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+        <section className="mt-10">
+          <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Valori nutrizionali <span className="font-sans text-sm font-normal text-muted-foreground">per porzione</span></h2>
+          <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
             {NUTRITION_FIELDS.map(({ key, label, unit }) => {
               const value = recipe.nutrition![key];
               if (value == null) return null;
               return (
-                <div key={key} className="flex justify-between gap-2">
+                <div key={key} className="flex justify-between gap-2 rounded-md bg-surface-secondary px-3 py-2">
                   <dt className="text-muted-foreground">{label}</dt>
                   <dd className="font-medium text-foreground">
                     {value}
@@ -187,16 +190,16 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       )}
 
       {recipe.images.length > 0 && (
-        <section className="mt-6">
-          <h2 className="mb-2 font-semibold text-foreground">Galleria</h2>
-          <div className="flex gap-2 overflow-x-auto pb-1">
+        <section className="mt-10">
+          <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Galleria</h2>
+          <div className="flex gap-3 overflow-x-auto pb-2">
             {recipe.images.map((img, idx) => (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 key={img.id}
                 src={`/api/uploads/${img.filename}`}
                 alt={`Foto ${recipe.title} ${idx + 1}`}
-                className="h-24 w-24 shrink-0 rounded-lg object-cover"
+                className="h-28 w-28 shrink-0 rounded-lg object-cover shadow-sm transition-transform duration-200 hover:scale-[1.02]"
               />
             ))}
           </div>

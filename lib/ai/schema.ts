@@ -16,7 +16,7 @@ const nutritionSchema = z
 export const extractedRecipeSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
-  tags: z.array(z.string()),
+  tags: z.array(z.string()).min(1),
   equipment: z.array(z.string()),
   nutrition: nutritionSchema,
   servings: z.number().nullable(),

@@ -10,8 +10,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, Props>(
     );
     if (!label) return textarea;
     return (
-      <div>
-        <label htmlFor={id} className="mb-1 block text-sm font-medium">
+      <div className="space-y-1.5">
+        <label htmlFor={id} className="block text-sm font-medium text-foreground">
           {label}
         </label>
         {textarea}

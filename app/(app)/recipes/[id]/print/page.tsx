@@ -30,7 +30,7 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
   if (!recipe) notFound();
 
   return (
-    <div className="mx-auto max-w-2xl bg-surface p-6 text-foreground print:p-0">
+    <div className="mx-auto min-h-screen max-w-3xl bg-surface p-5 text-foreground sm:my-8 sm:rounded-xl sm:border sm:border-border sm:p-8 sm:shadow-sm print:my-0 print:max-w-none print:p-0">
       <PrintButton />
 
       {recipe.photoUrl && (
@@ -42,10 +42,10 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
         />
       )}
 
-      <h1 className="text-2xl font-bold">{recipe.title}</h1>
-      {recipe.description && <p className="mt-1 text-muted-foreground">{recipe.description}</p>}
+      <h1 className="font-display text-3xl font-semibold tracking-tight">{recipe.title}</h1>
+      {recipe.description && <p className="mt-2 max-w-2xl leading-7 text-muted-foreground">{recipe.description}</p>}
 
-      <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
+      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
         <span>Porzioni: {recipe.servingsBase}</span>
         {recipe.prepTimeMinutes != null && <span>Prep: {recipe.prepTimeMinutes} min</span>}
         {recipe.cookTimeMinutes != null && <span>Cottura: {recipe.cookTimeMinutes} min</span>}
@@ -57,11 +57,11 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
         </p>
       )}
 
-      <hr className="my-4 border-border" />
+      <hr className="my-6 border-border" />
 
       {recipe.equipment.length > 0 && (
         <section className="break-inside-avoid">
-          <h2 className="text-lg font-semibold">Attrezzatura</h2>
+          <h2 className="font-display text-xl font-semibold">Attrezzatura</h2>
           <div className="mt-2 flex flex-wrap gap-2">
             {recipe.equipment.map((item) => (
               <Badge key={item}>{item}</Badge>
@@ -70,7 +70,7 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
         </section>
       )}
 
-      <h2 className="mt-6 text-lg font-semibold">Ingredienti</h2>
+      <h2 className="mt-8 font-display text-xl font-semibold">Ingredienti</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         {recipe.ingredients.map((ing) => (
           <li key={ing.id} className="break-inside-avoid">
@@ -85,7 +85,7 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
         ))}
       </ul>
 
-      <h2 className="mt-6 text-lg font-semibold">Passaggi</h2>
+      <h2 className="mt-8 font-display text-xl font-semibold">Passaggi</h2>
       <ol className="mt-2 list-decimal space-y-2 pl-5">
         {recipe.steps.map((step) => (
           <li key={step.id} className="break-inside-avoid">
@@ -98,7 +98,7 @@ export default async function PrintRecipePage({ params }: { params: Promise<{ id
 
       {recipe.nutrition && (
         <section className="mt-6 break-inside-avoid">
-          <h2 className="text-lg font-semibold">Valori nutrizionali (per porzione)</h2>
+          <h2 className="font-display text-xl font-semibold">Valori nutrizionali (per porzione)</h2>
           <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {NUTRITION_FIELDS.map(({ key, label, unit }) => {
               const value = recipe.nutrition![key];

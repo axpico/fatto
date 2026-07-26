@@ -46,9 +46,12 @@ export default async function PlanPage({
   const nextWeek = toISODate(addDays(monday, 7));
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="font-display text-lg font-semibold text-foreground">Piano settimanale</h1>
+    <div className="page-shell">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Piano settimanale</h1>
+          <p className="page-description">Decidi i pasti della settimana, poi crea la lista in un tocco.</p>
+        </div>
         <div className="flex gap-2">
           <Link href={`/plan?week=${prevWeek}`} className={buttonClasses("secondary", "sm")}>
             <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Prima

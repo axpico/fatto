@@ -32,13 +32,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-16 z-20 flex flex-col items-center gap-2 px-4 print:hidden">
+      <div className="pointer-events-none fixed inset-x-0 bottom-16 z-40 flex flex-col items-center gap-2 px-4 print:hidden md:bottom-6">
         {toasts.map((t) => (
           <div
             key={t.id}
             role={t.variant === "error" ? "alert" : "status"}
             aria-live={t.variant === "error" ? "assertive" : "polite"}
-            className={`pointer-events-auto flex w-full max-w-sm items-center gap-2 rounded-xl border px-4 py-2.5 text-sm shadow-sm ${
+            className={`pointer-events-auto flex w-full max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-md ${
               t.variant === "error"
                 ? "border-destructive/30 bg-surface text-destructive"
                 : "border-border bg-surface text-foreground"

@@ -36,10 +36,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <Card className="w-full max-w-sm p-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <h1 className="text-xl font-semibold text-foreground">Recipe Book</h1>
+    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-8">
+      <Card className="w-full max-w-sm p-6 shadow-md sm:p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div>
+            <p className="font-display text-2xl font-semibold tracking-tight text-foreground">Fatto</p>
+            <p className="mt-1 text-sm text-muted-foreground">Accedi al tuo ricettario personale.</p>
+          </div>
 
           {error && (
             <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>

@@ -2,8 +2,13 @@ import { RecipeForm } from "@/components/RecipeForm";
 
 export default function NewRecipePage() {
   return (
-    <div>
-      <h1 className="px-4 pt-4 text-lg font-semibold text-foreground">Nuova ricetta</h1>
+    <div className="page-shell pb-0">
+      <div className="page-header mb-2">
+        <div>
+          <h1 className="page-title">Nuova ricetta</h1>
+          <p className="page-description">Aggiungi i dettagli essenziali, poi completa il resto quando vuoi.</p>
+        </div>
+      </div>
       <RecipeForm />
     </div>
   );

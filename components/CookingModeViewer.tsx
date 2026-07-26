@@ -325,7 +325,7 @@ export function CookingModeViewer({
               type="button"
               onClick={() => ingredientsModalRef.current?.open()}
               aria-label="Mostra ingredienti"
-              className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <List className="h-6 w-6" aria-hidden="true" />
             </button>
@@ -335,7 +335,7 @@ export function CookingModeViewer({
               type="button"
               onClick={voice.toggle}
               aria-label={voice.listening ? "Disattiva comandi vocali" : "Attiva comandi vocali"}
-              className={`rounded-full p-2 ${voice.listening ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              className={`flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${voice.listening ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"}`}
             >
               {voice.listening ? (
                 <Mic className="h-6 w-6" aria-hidden="true" />
@@ -348,7 +348,7 @@ export function CookingModeViewer({
             type="button"
             onClick={() => router.push(`/recipes/${recipeId}`)}
             aria-label="Chiudi modalità cottura"
-            className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
             <X className="h-6 w-6" aria-hidden="true" />
           </button>

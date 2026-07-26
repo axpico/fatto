@@ -1,27 +1,45 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fdf8f3;
+  --background: #fbf8f4;
   --foreground: #292524;
   --surface: #ffffff;
-  --surface-sunken: #f6efe4;
-  --border: #e7e0d6;
+  --surface-secondary: #f6f0e8;
+  --surface-sunken: #f2ebe2;
+  --border: #e7ded3;
+  --border-strong: #d8cbbb;
   --muted-foreground: #78716c;
-  --primary: #c2410c;
-  --primary-hover: #9a3412;
+  --primary: #b84d1b;
+  --primary-hover: #963b12;
+  --primary-foreground: #fffaf5;
+  --accent: #f7e6d7;
+  --success: #39805e;
+  --warning: #a36416;
   --destructive: #dc2626;
   --destructive-hover: #b91c1c;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --shadow-sm: 0 1px 2px rgb(69 47 31 / 0.04), 0 1px 3px rgb(69 47 31 / 0.05);
+  --shadow-md: 0 10px 24px rgb(69 47 31 / 0.07);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-secondary: var(--surface-secondary);
   --color-surface-sunken: var(--surface-sunken);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-muted-foreground: var(--muted-foreground);
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-destructive-hover: var(--destructive-hover);
   --font-sans: var(--font-geist-sans);
@@ -34,8 +52,10 @@
     --background: #1c1917;
     --foreground: #f5f0e8;
     --surface: #262220;
+    --surface-secondary: #302a26;
     --surface-sunken: #211d1a;
-    --border: #3f3a36;
+    --border: #443d37;
+    --border-strong: #5d534b;
     --muted-foreground: #a8a29e;
     --primary: #ea580c;
     --primary-hover: #f97316;
@@ -45,6 +65,31 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  text-rendering: optimizeLegibility;
+}
+
+@keyframes enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(10px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@layer components {
+  .page-shell { @apply mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8; animation: enter 220ms ease-out both; }
+  .page-header { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
+  .page-title { @apply font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl; }
+  .page-description { @apply mt-1 max-w-2xl text-sm leading-6 text-muted-foreground; }
+  .panel { @apply rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5; }
+  .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md; }
+  .dialog-surface { animation: dialog-enter 180ms ease-out both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
 @media print {
