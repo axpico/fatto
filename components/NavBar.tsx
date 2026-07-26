@@ -12,11 +12,14 @@ const TABS = [
   { href: "/shopping-list", label: "Spesa", icon: ShoppingCart },
 ] as const;
 
-export function NavBar() {
+export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
   const pathname = usePathname();
 
   return (
-    <nav className="print:hidden fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface/95 backdrop-blur">
+    <nav
+      aria-label={ariaLabel}
+      className="print:hidden fixed inset-x-0 bottom-0 z-10 border-t border-border bg-surface/95 backdrop-blur"
+    >
       <ul className="flex justify-around">
         {TABS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
@@ -25,6 +28,7 @@ export function NavBar() {
             <li key={tab.href} className="flex-1">
               <Link
                 href={tab.href}
+                aria-current={active ? "page" : undefined}
                 className={`flex flex-col items-center gap-0.5 py-2 text-xs ${
                   active ? "text-primary" : "text-muted-foreground hover:text-primary"
                 }`}

@@ -2,8 +2,29 @@ import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { htmlToText } from "@/lib/ai/htmlToText";
 import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
+import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
+import { saveUpload } from "@/lib/uploads";
 
 const bodySchema = z.object({ url: z.string().url() });
+
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
+
+// ponytail: la foto di copertina è un bonus best-effort, qualsiasi fallimento qui viene ignorato
+// silenziosamente — non deve mai far fallire l'intero import
+async function fetchCoverImage(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) return null;
+    const contentType = res.headers.get("content-type") ?? "";
+    if (!contentType.startsWith("image/")) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.byteLength > MAX_IMAGE_BYTES) return null;
+    const file = new File([buf], "cover.jpg", { type: contentType });
+    return await saveUpload(file);
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: Request) {
   const { unauthorized } = await requireApiUser();
@@ -27,9 +48,17 @@ export async function POST(request: Request) {
     );
   }
 
+  const jsonLd = extractJsonLdRecipe(html);
+
   try {
-    const recipe = await extractRecipe(htmlToText(html));
-    return Response.json(recipe);
+    const { recipe, provider } = await extractRecipe(htmlToText(html));
+    const photoUrl = jsonLd?.imageUrl ? await fetchCoverImage(jsonLd.imageUrl) : null;
+    return Response.json({
+      ...recipe,
+      nutrition: jsonLd?.nutrition ?? recipe.nutrition,
+      photoUrl,
+      provider,
+    });
   } catch (err) {
     if (err instanceof AiExtractionError) {
       return Response.json({ error: err.message }, { status: 422 });

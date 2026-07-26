@@ -6,21 +6,37 @@ function toNumberOrNull(value: FormDataEntryValue | null) {
   return Number.isNaN(n) ? null : n;
 }
 
-export function parseRecipeFormData(
-  formData: FormData,
-): { data: RecipeInput; photo: File | null } | { error: string } {
+export function parseRecipeFormData(formData: FormData):
+  | {
+      data: RecipeInput;
+      photo: File | null;
+      existingPhotoUrl: string | null;
+      galleryPhotos: File[];
+      galleryExisting: string[];
+    }
+  | { error: string } {
   const photoEntry = formData.get("photo");
   const photo = photoEntry instanceof File && photoEntry.size > 0 ? photoEntry : null;
+  const existingPhotoUrl = (formData.get("existingPhotoUrl") as string) || null;
+  const galleryPhotos = formData
+    .getAll("galleryPhotos")
+    .filter((f): f is File => f instanceof File && f.size > 0);
 
   let ingredients: unknown;
   let steps: unknown;
   let tags: unknown;
+  let equipment: unknown;
+  let nutrition: unknown;
+  let galleryExisting: unknown;
   try {
     ingredients = JSON.parse((formData.get("ingredients") as string) ?? "[]");
     steps = JSON.parse((formData.get("steps") as string) ?? "[]");
     tags = JSON.parse((formData.get("tags") as string) ?? "[]");
+    equipment = JSON.parse((formData.get("equipment") as string) ?? "[]");
+    nutrition = JSON.parse((formData.get("nutrition") as string) ?? "{}");
+    galleryExisting = JSON.parse((formData.get("galleryExisting") as string) ?? "[]");
   } catch {
-    return { error: "Ingredienti, passaggi o tag non validi" };
+    return { error: "Ingredienti, passaggi, tag, attrezzatura o valori nutrizionali non validi" };
   }
 
   const parsed = recipeInputSchema.safeParse({
@@ -30,6 +46,9 @@ export function parseRecipeFormData(
     prepTimeMinutes: toNumberOrNull(formData.get("prepTimeMinutes")),
     cookTimeMinutes: toNumberOrNull(formData.get("cookTimeMinutes")),
     sourceUrl: formData.get("sourceUrl") || null,
+    videoUrl: formData.get("videoUrl") || null,
+    equipment,
+    nutrition,
     ingredients,
     steps,
     tags,
@@ -39,5 +58,9 @@ export function parseRecipeFormData(
     return { error: parsed.error.issues.map((i) => i.message).join("; ") };
   }
 
-  return { data: parsed.data, photo };
+  if (!Array.isArray(galleryExisting) || !galleryExisting.every((f) => typeof f === "string")) {
+    return { error: "Galleria non valida" };
+  }
+
+  return { data: parsed.data, photo, existingPhotoUrl, galleryPhotos, galleryExisting };
 }

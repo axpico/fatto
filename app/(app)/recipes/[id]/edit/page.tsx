@@ -10,6 +10,8 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
       ingredients: { orderBy: { sortOrder: "asc" } },
       steps: { orderBy: { sortOrder: "asc" } },
       tags: true,
+      images: { orderBy: { sortOrder: "asc" } },
+      nutrition: true,
     },
   });
 
@@ -17,7 +19,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
 
   return (
     <div>
-      <h1 className="px-4 pt-4 text-lg font-semibold text-foreground">Modifica ricetta</h1>
+      <h1 className="px-4 pt-4 font-display text-lg font-semibold text-foreground">Modifica ricetta</h1>
       <RecipeForm
         recipeId={recipe.id}
         initialData={{
@@ -27,15 +29,32 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
           prepTimeMinutes: recipe.prepTimeMinutes,
           cookTimeMinutes: recipe.cookTimeMinutes,
           sourceUrl: recipe.sourceUrl ?? "",
+          videoUrl: recipe.videoUrl ?? "",
+          equipment: recipe.equipment,
+          nutrition: recipe.nutrition
+            ? {
+                caloriesKcal: recipe.nutrition.caloriesKcal,
+                proteinG: recipe.nutrition.proteinG,
+                carbsG: recipe.nutrition.carbsG,
+                fatG: recipe.nutrition.fatG,
+                fiberG: recipe.nutrition.fiberG,
+                sugarG: recipe.nutrition.sugarG,
+                saturatedFatG: recipe.nutrition.saturatedFatG,
+                sodiumMg: recipe.nutrition.sodiumMg,
+              }
+            : undefined,
           photoUrl: recipe.photoUrl,
+          gallery: recipe.images.map((img) => ({ kind: "existing" as const, filename: img.filename })),
           ingredients: recipe.ingredients.map((i) => ({
             name: i.name,
             quantity: i.quantity,
             unit: i.unit,
+            optional: i.optional,
           })),
           steps: recipe.steps.map((s) => ({
             instruction: s.instruction,
             timerMinutes: s.timerMinutes,
+            optional: s.optional,
           })),
           tags: recipe.tags.map((t) => t.name),
         }}

@@ -7,6 +7,8 @@ import { inputClasses } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 type CookLog = {
   id: string;
@@ -54,31 +56,35 @@ export function CookLogSection({
   const [logs, setLogs] = useState(initialLogs);
   const [marking, setMarking] = useState(false);
   const dialogRef = useRef<ConfirmDialogHandle>(null);
+  const toast = useToast();
 
   async function markCooked() {
     setMarking(true);
     const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
     setMarking(false);
-    if (res.ok) {
-      const log = await res.json();
-      setLogs((prev) => [log, ...prev]);
-    }
+    if (await reportIfFailed(res, toast)) return;
+    const log = await res.json();
+    setLogs((prev) => [log, ...prev]);
   }
 
   async function patchLog(id: string, patch: Partial<Pick<CookLog, "rating" | "notes">>) {
+    const previous = logs;
     setLogs((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-    await fetch(`/api/cook-logs/${id}`, {
+    const res = await fetch(`/api/cook-logs/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
+    if (await reportIfFailed(res, toast)) setLogs(previous);
   }
 
   async function removeLog(id: string) {
     const confirmed = await dialogRef.current?.open();
     if (!confirmed) return;
+    const previous = logs;
     setLogs((prev) => prev.filter((l) => l.id !== id));
-    await fetch(`/api/cook-logs/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/cook-logs/${id}`, { method: "DELETE" });
+    if (await reportIfFailed(res, toast)) setLogs(previous);
   }
 
   return (
@@ -121,7 +127,7 @@ export function CookLogSection({
                 defaultValue={log.notes ?? ""}
                 onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
                 rows={1}
-                className={`mt-2 text-sm ${inputClasses}`}
+                className={`mt-2 w-full text-sm ${inputClasses}`}
               />
             </Card>
           ))}

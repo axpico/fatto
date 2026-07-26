@@ -40,6 +40,8 @@ model Recipe {
   cookTimeMinutes Int?
   sourceUrl       String?
   photoUrl        String?
+  videoUrl        String?
+  equipment       String[] @default([])
   createdById     String
   createdBy       User     @relation(fields: [createdById], references: [id])
   createdAt       DateTime @default(now())
@@ -47,9 +49,35 @@ model Recipe {
 
   ingredients Ingredient[]
   steps       Step[]
-  tags        Tag[]      @relation("RecipeTags")
+  tags        Tag[]         @relation("RecipeTags")
   cookLogs    CookLog[]
   mealPlans   MealPlan[]
+  images      RecipeImage[]
+  nutrition   Nutrition?
+}
+
+model Nutrition {
+  id            String @id @default(cuid())
+  recipeId      String @unique
+  recipe        Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  caloriesKcal  Float?
+  proteinG      Float?
+  carbsG        Float?
+  fatG          Float?
+  fiberG        Float?
+  sugarG        Float?
+  saturatedFatG Float?
+  sodiumMg      Float?
+}
+
+model RecipeImage {
+  id        String @id @default(cuid())
+  recipeId  String
+  recipe    Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  filename  String
+  sortOrder Int
+
+  @@index([recipeId])
 }
 
 model Ingredient {
@@ -59,18 +87,20 @@ model Ingredient {
   name      String
   quantity  Float?
   unit      String?
+  optional  Boolean @default(false)
   sortOrder Int
 
   @@index([recipeId])
 }
 
 model Step {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   recipeId     String
-  recipe       Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   sortOrder    Int
   instruction  String
   timerMinutes Int?
+  optional     Boolean @default(false)
 
   @@index([recipeId])
 }

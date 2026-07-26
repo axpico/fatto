@@ -1,15 +1,22 @@
 import { mkdir, writeFile, unlink } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import sharp from "sharp";
 import { env } from "@/lib/env";
+
+const MAX_WIDTH = 1600;
 
 export async function saveUpload(file: File): Promise<string> {
   await mkdir(env.UPLOAD_DIR, { recursive: true });
 
-  const ext = path.extname(file.name).slice(0, 10);
-  const filename = `${randomUUID()}${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(env.UPLOAD_DIR, filename), buffer);
+  const filename = `${randomUUID()}.jpg`;
+  const original = Buffer.from(await file.arrayBuffer());
+  const resized = await sharp(original)
+    .rotate()
+    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+    .jpeg({ quality: 82 })
+    .toBuffer();
+  await writeFile(path.join(env.UPLOAD_DIR, filename), resized);
 
   return filename;
 }

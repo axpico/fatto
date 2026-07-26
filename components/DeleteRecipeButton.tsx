@@ -4,19 +4,21 @@ import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 export function DeleteRecipeButton({ recipeId }: { recipeId: string }) {
   const router = useRouter();
+  const toast = useToast();
   const dialogRef = useRef<ConfirmDialogHandle>(null);
 
   async function handleDelete() {
     const confirmed = await dialogRef.current?.open();
     if (!confirmed) return;
     const res = await fetch(`/api/recipes/${recipeId}`, { method: "DELETE" });
-    if (res.ok) {
-      router.push("/");
-      router.refresh();
-    }
+    if (await reportIfFailed(res, toast)) return;
+    router.push("/");
+    router.refresh();
   }
 
   return (

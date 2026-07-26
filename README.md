@@ -1,10 +1,10 @@
 # Recipe Book
 
-App self-hosted per archiviare le ricette che cucini davvero: ricerca (anche per ingredienti disponibili), import assistito da AI da link/screenshot/PDF, pianificazione settimanale con lista spesa, modalità cottura hands-free, storico e export PDF.
+App self-hosted per archiviare le ricette che cucini davvero: ricerca (anche per ingredienti disponibili), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), pianificazione settimanale con lista spesa e dispensa, modalità cottura hands-free con comandi vocali, storico e export PDF.
 
 ## Stack
 
-Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR. Tutto in un solo repo, deploy via Docker Compose.
+Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR, yt-dlp/ffmpeg/whisper.cpp per l'import da Reel Instagram. Tutto in un solo repo, deploy via Docker Compose.
 
 ## Setup
 
@@ -62,12 +62,19 @@ npm test
 
 Copre la logica non banale: scaling porzioni, aggregazione quantità della lista spesa, ranking della ricerca per ingredienti disponibili.
 
+## Dispensa e conversione unità
+
+C'è una dispensa condivisa (`/pantry`, raggiungibile dalla lista della spesa): spuntare un articolo della lista lo aggiunge automaticamente in dispensa, e la pagina di ogni ricetta mostra un badge "in dispensa" sugli ingredienti che hai già (match sul nome, anche approssimato). Le quantità si sommano automaticamente anche quando le unità sono diverse ma compatibili (g/kg/hg, ml/l/cl, cucchiaio/cucchiaino/tazza/bicchiere trattate come volume approssimato). Non c'è conversione tra massa e volume (dipende dalla densità dell'ingrediente, non deducibile in modo affidabile), né deduplicazione retroattiva del catalogo ingredienti (usato solo per l'autocompletamento, cresce con l'uso).
+
+## Import da Reel Instagram e traduzione
+
+Nella pagina di import, oltre a link e screenshot/PDF, c'è una terza opzione "Da un Reel Instagram": incolla l'URL di un reel pubblico (`instagram.com/reel/...` o `/p/...`) e, opzionalmente, delle note manuali. Il server scarica il video (`yt-dlp`), ne trascrive l'audio (`whisper.cpp`, modello multilingua, rilevamento lingua automatico), estrae la caption e — se disponibili — i commenti, unisce tutto e lo passa alla stessa pipeline AI usata per link/screenshot/PDF. Le note manuali sono sempre incluse e sono l'unico modo per procedere se il download del video fallisce (reel privato, rimosso, o non raggiungibile) — in quel caso appare un errore chiaro e si può comunque proseguire scrivendo a mano cosa ricordi dalla descrizione/commenti.
+
+Nella schermata "Rivedi e salva" (per qualunque metodo di import) c'è anche un selettore lingua + bottone "Traduci": traduce titolo, descrizione, nomi ingredienti e passaggi nella lingua scelta, lasciando invariati quantità/unità/porzioni/tempi (che non vengono mai inviati all'AI di traduzione). È un'azione esplicita, mai automatica.
+
 ## Limiti noti (v1)
 
-- Nessuna gestione dispensa/inventario persistente.
-- Nessuna conversione di unità di misura (lo scaling porzioni è una moltiplicazione lineare).
-- Nessun catalogo ingredienti condiviso: ogni ricetta ha i propri ingredienti in testo libero.
-- L'import da PDF funziona solo su PDF con testo selezionabile — un PDF scansionato va importato come screenshot (immagine), non come PDF.
-- Nessun comando vocale in modalità cottura.
-- Quando l'import AI passa al fallback OpenRouter (modelli gratuiti), le risposte possono essere più lente o meno accurate di Claude — rivedi sempre i dati precompilati prima di salvare.
-- Le foto non vengono ridimensionate lato server: usa immagini già di dimensioni ragionevoli.
+- L'import da PDF funziona solo su PDF con testo selezionabile. Questo è un limite permanente, non temporaneo: un PDF scansionato va importato come screenshot (immagine, già supportato via OCR) — renderizzare le pagine PDF come immagini richiederebbe un binding nativo (canvas/cairo) fragile da compilare in Docker su Alpine, per un caso già coperto dal workaround.
+- Quando l'import AI (estrazione o traduzione) passa al fallback OpenRouter (modelli gratuiti), le risposte possono essere più lente o meno accurate di Claude — la pagina di importazione lo segnala esplicitamente quando succede, ma rivedi comunque sempre i dati precompilati prima di salvare.
+- L'import da Reel funziona solo con reel/post video pubblici e singoli: niente Stories, niente caroselli multi-immagine, niente login Instagram per contenuti privati.
+- L'estrazione dei commenti Instagram è best-effort: se Instagram nega l'accesso (serve login, rate limit) viene saltata silenziosamente, senza bloccare l'import — resta sempre disponibile il campo note manuali.

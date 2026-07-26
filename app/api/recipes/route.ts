@@ -58,9 +58,11 @@ export async function POST(request: Request) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo } = parsed;
+  const { data, photo, existingPhotoUrl, galleryPhotos } = parsed;
 
-  const photoUrl = photo ? await saveUpload(photo) : null;
+  const photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
+  const galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+  const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
 
   const recipe = await prisma.recipe.create({
     data: {
@@ -70,6 +72,8 @@ export async function POST(request: Request) {
       prepTimeMinutes: data.prepTimeMinutes,
       cookTimeMinutes: data.cookTimeMinutes,
       sourceUrl: data.sourceUrl,
+      videoUrl: data.videoUrl,
+      equipment: data.equipment,
       photoUrl,
       createdById: user!.id,
       ingredients: {
@@ -84,7 +88,16 @@ export async function POST(request: Request) {
           create: { name: name.toLowerCase() },
         })),
       },
+      images: {
+        create: galleryFilenames.map((filename, index) => ({ filename, sortOrder: index })),
+      },
+      ...(hasNutrition && { nutrition: { create: data.nutrition } }),
     },
+  });
+
+  await prisma.ingredientCatalog.createMany({
+    data: data.ingredients.map((i) => ({ name: i.name.trim().toLowerCase() })),
+    skipDuplicates: true,
   });
 
   return Response.json(recipe, { status: 201 });

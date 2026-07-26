@@ -6,10 +6,20 @@ export default async function CookModePage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const recipe = await prisma.recipe.findUnique({
     where: { id },
-    include: { steps: { orderBy: { sortOrder: "asc" } } },
+    include: {
+      steps: { orderBy: { sortOrder: "asc" } },
+      ingredients: { orderBy: { sortOrder: "asc" } },
+    },
   });
 
   if (!recipe) notFound();
 
-  return <CookingModeViewer recipeId={recipe.id} steps={recipe.steps} />;
+  return (
+    <CookingModeViewer
+      recipeId={recipe.id}
+      steps={recipe.steps}
+      ingredients={recipe.ingredients}
+      baseServings={recipe.servingsBase}
+    />
+  );
 }

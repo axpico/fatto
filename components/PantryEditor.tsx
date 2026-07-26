@@ -5,6 +5,8 @@ import { X, Plus } from "lucide-react";
 import { inputClasses } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 type Item = { id: string; name: string; quantity: number | null; unit: string | null };
 
@@ -13,19 +15,24 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
   const [name, setName] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
+  const toast = useToast();
 
   async function patch(id: string, data: Partial<Pick<Item, "quantity" | "unit">>) {
+    const previous = items;
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, ...data } : i)));
-    await fetch(`/api/pantry/${id}`, {
+    const res = await fetch(`/api/pantry/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
+    if (await reportIfFailed(res, toast)) setItems(previous);
   }
 
   async function remove(id: string) {
+    const previous = items;
     setItems((prev) => prev.filter((i) => i.id !== id));
-    await fetch(`/api/pantry/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/pantry/${id}`, { method: "DELETE" });
+    if (await reportIfFailed(res, toast)) setItems(previous);
   }
 
   async function addManual(e: React.FormEvent) {
@@ -40,13 +47,12 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
         unit: unit.trim() || null,
       }),
     });
-    if (res.ok) {
-      const item = await res.json();
-      setItems((prev) => [...prev, item].sort((a, b) => a.name.localeCompare(b.name)));
-      setName("");
-      setQuantity("");
-      setUnit("");
-    }
+    if (await reportIfFailed(res, toast)) return;
+    const item = await res.json();
+    setItems((prev) => [...prev, item].sort((a, b) => a.name.localeCompare(b.name)));
+    setName("");
+    setQuantity("");
+    setUnit("");
   }
 
   return (
@@ -55,6 +61,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
         <input
           type="text"
           placeholder="Aggiungi alla dispensa"
+          aria-label="Nome articolo"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={`flex-1 ${inputClasses}`}
@@ -63,6 +70,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
           type="number"
           step="any"
           placeholder="Qtà"
+          aria-label="Quantità"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           className={`w-16 ${inputClasses}`}
@@ -70,6 +78,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
         <input
           type="text"
           placeholder="Unità"
+          aria-label="Unità"
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
           className={`w-16 ${inputClasses}`}
@@ -89,7 +98,7 @@ export function PantryEditor({ initialItems }: { initialItems: Item[] }) {
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2"
+              className="flex items-center gap-2 rounded-lg border border-border bg-surface-sunken px-3 py-2"
             >
               <span className="flex-1 text-foreground">{item.name}</span>
               <input

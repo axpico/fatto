@@ -32,8 +32,8 @@ export async function POST(request: Request) {
   }
 
   try {
-    const recipe = await extractRecipe(rawText);
-    return Response.json(recipe);
+    const { recipe, provider } = await extractRecipe(rawText);
+    return Response.json({ ...recipe, provider });
   } catch (err) {
     if (err instanceof AiExtractionError) {
       return Response.json({ error: err.message }, { status: 422 });

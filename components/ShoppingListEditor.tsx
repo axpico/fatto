@@ -6,6 +6,9 @@ import { inputClasses } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
+import { Checkbox } from "@/components/ui/Checkbox";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 type Item = {
   id: string;
@@ -33,6 +36,7 @@ export function ShoppingListEditor({
   const [quantity, setQuantity] = useState("");
   const [unit, setUnit] = useState("");
   const [generating, setGenerating] = useState(!!generateRange);
+  const toast = useToast();
 
   useEffect(() => {
     if (!generateRange) return;
@@ -40,27 +44,33 @@ export function ShoppingListEditor({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ startDate: generateRange.from, endDate: generateRange.to }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setItems(data);
+    }).then(async (res) => {
+      if (await reportIfFailed(res, toast)) {
         setGenerating(false);
-      });
+        return;
+      }
+      setItems(await res.json());
+      setGenerating(false);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function toggle(item: Item) {
+    const previous = items;
     setItems((prev) => prev.map((i) => (i.id === item.id ? { ...i, checked: !i.checked } : i)));
-    await fetch(`/api/shopping-list/${item.id}`, {
+    const res = await fetch(`/api/shopping-list/${item.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ checked: !item.checked }),
     });
+    if (await reportIfFailed(res, toast)) setItems(previous);
   }
 
   async function remove(id: string) {
+    const previous = items;
     setItems((prev) => prev.filter((i) => i.id !== id));
-    await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/shopping-list/${id}`, { method: "DELETE" });
+    if (await reportIfFailed(res, toast)) setItems(previous);
   }
 
   async function addManual(e: React.FormEvent) {
@@ -75,13 +85,12 @@ export function ShoppingListEditor({
         unit: unit.trim() || null,
       }),
     });
-    if (res.ok) {
-      const item = await res.json();
-      setItems((prev) => [...prev, item]);
-      setName("");
-      setQuantity("");
-      setUnit("");
-    }
+    if (await reportIfFailed(res, toast)) return;
+    const item = await res.json();
+    setItems((prev) => [...prev, item]);
+    setName("");
+    setQuantity("");
+    setUnit("");
   }
 
   return (
@@ -96,6 +105,7 @@ export function ShoppingListEditor({
         <input
           type="text"
           placeholder="Aggiungi articolo"
+          aria-label="Nome articolo"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={`flex-1 ${inputClasses}`}
@@ -104,6 +114,7 @@ export function ShoppingListEditor({
           type="number"
           step="any"
           placeholder="Qtà"
+          aria-label="Quantità"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}
           className={`w-16 ${inputClasses}`}
@@ -111,6 +122,7 @@ export function ShoppingListEditor({
         <input
           type="text"
           placeholder="Unità"
+          aria-label="Unità"
           value={unit}
           onChange={(e) => setUnit(e.target.value)}
           className={`w-16 ${inputClasses}`}
@@ -127,13 +139,13 @@ export function ShoppingListEditor({
           {items.map((item) => (
             <li
               key={item.id}
-              className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
+              className="flex items-center gap-3 rounded-lg border border-border bg-surface-sunken px-3 py-2"
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={item.checked}
                 onChange={() => toggle(item)}
-                className="h-5 w-5 accent-primary"
+                aria-label={`Segna ${item.name} come preso`}
+                className="h-5 w-5"
               />
               <span className={`flex-1 ${item.checked ? "text-muted-foreground line-through" : "text-foreground"}`}>
                 {item.name}

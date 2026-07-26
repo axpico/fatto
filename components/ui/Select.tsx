@@ -6,7 +6,7 @@ type Props = SelectHTMLAttributes<HTMLSelectElement> & { label?: string };
 export const Select = forwardRef<HTMLSelectElement, Props>(
   ({ label, id, className, children, ...props }, ref) => {
     const select = (
-      <select ref={ref} id={id} className={[inputClasses, className].filter(Boolean).join(" ")} {...props}>
+      <select ref={ref} id={id} className={[inputClasses, "w-full", className].filter(Boolean).join(" ")} {...props}>
         {children}
       </select>
     );

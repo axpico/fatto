@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 type MealSlot = "COLAZIONE" | "PRANZO" | "CENA";
 const SLOTS: { value: MealSlot; label: string }[] = [
@@ -41,6 +43,7 @@ export function MealPlanCalendar({
   const [entries, setEntries] = useState(initialEntries);
   const [addingCell, setAddingCell] = useState<string | null>(null);
   const [selectedRecipeId, setSelectedRecipeId] = useState("");
+  const toast = useToast();
 
   function cellKey(date: string, slot: MealSlot) {
     return `${date}::${slot}`;
@@ -53,17 +56,18 @@ export function MealPlanCalendar({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ recipeId: selectedRecipeId, plannedDate: date, mealSlot: slot }),
     });
-    if (res.ok) {
-      const entry = await res.json();
-      setEntries((prev) => [...prev, entry]);
-    }
     setAddingCell(null);
     setSelectedRecipeId("");
+    if (await reportIfFailed(res, toast)) return;
+    const entry = await res.json();
+    setEntries((prev) => [...prev, entry]);
   }
 
   async function unassign(id: string) {
+    const previous = entries;
     setEntries((prev) => prev.filter((e) => e.id !== id));
-    await fetch(`/api/meal-plan/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/meal-plan/${id}`, { method: "DELETE" });
+    if (await reportIfFailed(res, toast)) setEntries(previous);
   }
 
   return (
@@ -97,6 +101,7 @@ export function MealPlanCalendar({
                     <span className="flex items-center gap-1">
                       <select
                         autoFocus
+                        aria-label="Scegli ricetta"
                         value={selectedRecipeId}
                         onChange={(e) => setSelectedRecipeId(e.target.value)}
                         className={`${inputClasses} px-2 py-1 text-xs`}

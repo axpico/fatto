@@ -1,5 +1,4 @@
-import { extractedRecipeSchema, type ExtractedRecipe } from "@/lib/ai/schema";
-import { SYSTEM_PROMPT, JSON_INSTRUCTIONS } from "@/lib/ai/prompt";
+import type { z } from "zod";
 import { env } from "@/lib/env";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
@@ -52,21 +51,27 @@ export function markFailed(modelId: string): void {
   negativeCache.set(modelId, Date.now());
 }
 
-function parseJsonResponse(content: string): ExtractedRecipe {
+function parseJsonResponse<T>(content: string, schema: z.ZodType<T>): T {
   const stripped = content
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/```\s*$/i, "");
 
   const parsed = JSON.parse(stripped);
-  const result = extractedRecipeSchema.safeParse(parsed);
+  const result = schema.safeParse(parsed);
   if (!result.success) {
     throw new Error(`OpenRouter: risposta non conforme allo schema (${result.error.message})`);
   }
   return result.data;
 }
 
-export async function callOpenRouter(text: string, modelId: string): Promise<ExtractedRecipe> {
+export async function callOpenRouter<T>(
+  text: string,
+  modelId: string,
+  systemPrompt: string,
+  jsonInstructions: string,
+  schema: z.ZodType<T>,
+): Promise<T> {
   const res = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
@@ -76,7 +81,7 @@ export async function callOpenRouter(text: string, modelId: string): Promise<Ext
     body: JSON.stringify({
       model: modelId,
       messages: [
-        { role: "system", content: `${SYSTEM_PROMPT}\n\n${JSON_INSTRUCTIONS}` },
+        { role: "system", content: `${systemPrompt}\n\n${jsonInstructions}` },
         { role: "user", content: text },
       ],
     }),
@@ -96,5 +101,5 @@ export async function callOpenRouter(text: string, modelId: string): Promise<Ext
     throw new Error(`OpenRouter ${modelId}: risposta vuota`);
   }
 
-  return parseJsonResponse(content);
+  return parseJsonResponse(content, schema);
 }

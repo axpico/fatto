@@ -23,15 +23,15 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
           <img
             src={`/api/uploads/${recipe.photoUrl}`}
             alt={recipe.title}
-            className="h-16 w-16 shrink-0 rounded-lg object-cover"
+            className="h-20 w-20 shrink-0 rounded-lg object-cover shadow-sm"
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground">
             <UtensilsCrossed className="h-6 w-6" aria-hidden="true" />
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <h3 className="truncate font-medium text-foreground">{recipe.title}</h3>
+          <h3 className="truncate font-display font-medium text-foreground">{recipe.title}</h3>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             {totalTime > 0 && (
               <span className="inline-flex items-center gap-1">
@@ -41,6 +41,7 @@ export function RecipeCard({ recipe }: { recipe: RecipeCardData }) {
             {recipe.tags.slice(0, 3).map((tag) => (
               <Badge key={tag.id}>{tag.name}</Badge>
             ))}
+            {recipe.tags.length > 3 && <Badge variant="neutral">+{recipe.tags.length - 3}</Badge>}
           </div>
         </div>
       </Card>

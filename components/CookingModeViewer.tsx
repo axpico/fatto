@@ -2,9 +2,112 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Mic, MicOff, List, Pause, Play, Square } from "lucide-react";
+import { matchVoiceCommand } from "@/lib/voiceCommands";
+import { Modal, type ModalHandle } from "@/components/ui/Modal";
+import { ServingsStepper, formatQuantity } from "@/components/ServingsAdjuster";
+import { scaleQuantity } from "@/lib/scaling";
+import { useToast } from "@/components/ui/Toast";
+import { reportIfFailed } from "@/lib/apiError";
 
 type Step = { id: string; instruction: string; timerMinutes: number | null };
+type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null };
+
+type SpeechRecognitionLike = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+
+function getSpeechRecognitionCtor(): (new () => SpeechRecognitionLike) | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as {
+    SpeechRecognition?: new () => SpeechRecognitionLike;
+    webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+// ponytail: nessun polyfill, il bottone microfono/la voce di risposta compaiono solo se il browser
+// supporta le API native (SpeechRecognition / SpeechSynthesis)
+function speak(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = "it-IT";
+  window.speechSynthesis.speak(utterance);
+}
+
+function useVoiceControl(actions: {
+  next: () => void;
+  prev: () => void;
+  startTimer: () => void;
+  repeat: () => void;
+  jump: (step: number) => void;
+  timeLeft: () => void;
+}) {
+  const [supported] = useState(() => getSpeechRecognitionCtor() !== null);
+  const [listening, setListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const actionsRef = useRef(actions);
+
+  useEffect(() => {
+    actionsRef.current = actions;
+  });
+
+  useEffect(() => {
+    return () => recognitionRef.current?.stop();
+  }, []);
+
+  function toggle() {
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
+    const recognition = new Ctor();
+    recognition.lang = "it-IT";
+    recognition.continuous = true;
+    recognition.interimResults = false;
+    recognition.onresult = (event) => {
+      const results = event.results;
+      const transcript = results[results.length - 1][0].transcript;
+      const command = matchVoiceCommand(transcript);
+      if (!command) return;
+      switch (command.type) {
+        case "next":
+          actionsRef.current.next();
+          break;
+        case "prev":
+          actionsRef.current.prev();
+          break;
+        case "timer":
+          actionsRef.current.startTimer();
+          break;
+        case "repeat":
+          actionsRef.current.repeat();
+          break;
+        case "jump":
+          actionsRef.current.jump(command.step);
+          break;
+        case "timeLeft":
+          actionsRef.current.timeLeft();
+          break;
+      }
+    };
+    recognition.onend = () => setListening(false);
+    recognition.start();
+    recognitionRef.current = recognition;
+    setListening(true);
+  }
+
+  return { supported, listening, toggle };
+}
 
 function playBeep() {
   const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
@@ -47,17 +150,19 @@ function useStepTimer(minutes: number | null) {
   // reset del timer quando si cambia passaggio (pattern React: adjust state during render, non in un effect)
   const [trackedMinutes, setTrackedMinutes] = useState(minutes);
   const [remaining, setRemaining] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
 
   if (minutes !== trackedMinutes) {
     setTrackedMinutes(minutes);
     setRemaining(null);
+    setPaused(false);
   }
 
   useEffect(() => {
-    if (remaining === null || remaining <= 0) return;
+    if (remaining === null || remaining <= 0 || paused) return;
     const id = setTimeout(() => setRemaining((r) => (r ?? 1) - 1), 1000);
     return () => clearTimeout(id);
-  }, [remaining]);
+  }, [remaining, paused]);
 
   // remaining passa a 0 una sola volta per countdown (poi l'effect sopra si ferma), quindi l'effect
   // seguente scatta esattamente una volta a fine timer, senza bisogno di un flag "già suonato"
@@ -71,27 +176,102 @@ function useStepTimer(minutes: number | null) {
   function start() {
     if (minutes === null) return;
     setRemaining(minutes * 60);
+    setPaused(false);
+  }
+  function togglePause() {
+    setPaused((p) => !p);
+  }
+  function cancel() {
+    setRemaining(null);
+    setPaused(false);
   }
 
-  return { remaining, start };
+  return { remaining, paused, start, togglePause, cancel };
 }
 
-export function CookingModeViewer({ recipeId, steps }: { recipeId: string; steps: Step[] }) {
+export function CookingModeViewer({
+  recipeId,
+  steps,
+  ingredients,
+  baseServings,
+}: {
+  recipeId: string;
+  steps: Step[];
+  ingredients: Ingredient[];
+  baseServings: number;
+}) {
   const router = useRouter();
+  const toast = useToast();
   const [index, setIndex] = useState(0);
+  const [announcement, setAnnouncement] = useState("");
+  const [trackedIndex, setTrackedIndex] = useState(0);
+  const [trackedRemaining, setTrackedRemaining] = useState<number | null>(null);
+  const [servings, setServings] = useState(baseServings);
+  const [marking, setMarking] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const ingredientsModalRef = useRef<ModalHandle>(null);
 
   useWakeLock();
 
   const step = steps[index];
+  const isDone = index === steps.length;
   const timer = useStepTimer(step?.timerMinutes ?? null);
 
+  // annunci discreti (cambio passaggio, timer terminato) calcolati durante il render, non in un
+  // effect, per evitare il pattern "setState sincrono dentro un effect" — stesso approccio di
+  // useStepTimer sopra
+  if (index !== trackedIndex) {
+    setTrackedIndex(index);
+    setAnnouncement(isDone ? "Ricetta completata" : `Passaggio ${index + 1} di ${steps.length}`);
+  }
+  if (timer.remaining !== trackedRemaining) {
+    setTrackedRemaining(timer.remaining);
+    if (timer.remaining === 0) setAnnouncement("Timer terminato");
+  }
+
   function next() {
-    setIndex((i) => Math.min(i + 1, steps.length - 1));
+    setIndex((i) => Math.min(i + 1, steps.length));
   }
   function prev() {
     setIndex((i) => Math.max(i - 1, 0));
   }
+  function jumpTo(stepNumber: number) {
+    setIndex(Math.min(Math.max(stepNumber - 1, 0), steps.length - 1));
+  }
+  function handleStartTimer() {
+    if (!step) return;
+    timer.start();
+    setAnnouncement(`Timer avviato: ${step.timerMinutes} minuti`);
+  }
+  function handleTogglePause() {
+    const willPause = !timer.paused;
+    timer.togglePause();
+    setAnnouncement(willPause ? "Timer in pausa" : "Timer ripreso");
+  }
+  function handleCancelTimer() {
+    timer.cancel();
+    setAnnouncement("Timer annullato");
+  }
+
+  async function markCooked() {
+    setMarking(true);
+    const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
+    setMarking(false);
+    if (await reportIfFailed(res, toast)) return;
+    toast.success("Ricetta segnata come cucinata.");
+  }
+
+  const voice = useVoiceControl({
+    next,
+    prev,
+    startTimer: handleStartTimer,
+    repeat: () => step && speak(step.instruction),
+    jump: jumpTo,
+    timeLeft: () => {
+      if (timer.remaining === null) speak("Nessun timer attivo");
+      else speak(`Mancano ${Math.ceil(timer.remaining / 60)} minuti`);
+    },
+  });
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -106,71 +286,183 @@ export function CookingModeViewer({ recipeId, steps }: { recipeId: string; steps
     touchStartX.current = null;
   }
 
-  if (!step) return null;
-
   const minutes = timer.remaining !== null ? Math.floor(timer.remaining / 60) : null;
   const seconds = timer.remaining !== null ? timer.remaining % 60 : null;
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-neutral-950 text-white"
+      className="fixed inset-0 z-50 flex flex-col bg-background text-foreground"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <p className="sr-only" aria-live="polite">
+        {announcement}
+      </p>
+
+      <div className="px-4 pt-4">
+        <div
+          role="progressbar"
+          aria-valuenow={Math.min(index + 1, steps.length)}
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-labelledby="step-progress-label"
+          className="h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken"
+        >
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${(Math.min(index + 1, steps.length) / steps.length) * 100}%` }}
+          />
+        </div>
+      </div>
+
       <div className="flex items-center justify-between p-4">
-        <span className="text-sm text-neutral-400">
-          Passaggio {index + 1} di {steps.length}
+        <span id="step-progress-label" className="text-sm text-muted-foreground">
+          {isDone ? "Ricetta completata" : `Passaggio ${index + 1} di ${steps.length}`}
         </span>
-        <button
-          type="button"
-          onClick={() => router.push(`/recipes/${recipeId}`)}
-          aria-label="Chiudi modalità cottura"
-          className="rounded-full p-2 text-neutral-400 hover:text-white"
-        >
-          <X className="h-6 w-6" aria-hidden="true" />
-        </button>
+        <div className="flex items-center gap-1">
+          {ingredients.length > 0 && (
+            <button
+              type="button"
+              onClick={() => ingredientsModalRef.current?.open()}
+              aria-label="Mostra ingredienti"
+              className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+            >
+              <List className="h-6 w-6" aria-hidden="true" />
+            </button>
+          )}
+          {voice.supported && (
+            <button
+              type="button"
+              onClick={voice.toggle}
+              aria-label={voice.listening ? "Disattiva comandi vocali" : "Attiva comandi vocali"}
+              className={`rounded-full p-2 ${voice.listening ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              {voice.listening ? (
+                <Mic className="h-6 w-6" aria-hidden="true" />
+              ) : (
+                <MicOff className="h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.push(`/recipes/${recipeId}`)}
+            aria-label="Chiudi modalità cottura"
+            className="rounded-full p-2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-6 w-6" aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-        <p className="text-3xl font-medium leading-snug">{step.instruction}</p>
-
-        {step.timerMinutes !== null && (
-          <div className="flex flex-col items-center gap-3">
-            {timer.remaining !== null ? (
-              <span className="text-5xl font-bold tabular-nums">
-                {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-              </span>
-            ) : (
-              <button
-                type="button"
-                onClick={timer.start}
-                className="rounded-full bg-primary px-6 py-4 text-lg font-medium hover:bg-primary-hover"
-              >
-                Avvia timer {step.timerMinutes} min
-              </button>
-            )}
+      {isDone ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
+          <p className="text-3xl font-medium leading-snug">Ricetta completata!</p>
+          <div className="flex w-full max-w-sm flex-col gap-3">
+            <button
+              type="button"
+              onClick={markCooked}
+              disabled={marking}
+              className="rounded-full bg-primary py-4 text-lg font-medium hover:bg-primary-hover disabled:opacity-50"
+            >
+              Segna come cucinata
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/recipes/${recipeId}`)}
+              className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground hover:bg-background"
+            >
+              Torna alla ricetta
+            </button>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
+          <p className="text-3xl font-medium leading-snug">{step.instruction}</p>
 
-      <div className="flex gap-3 p-4 pb-8">
-        <button
-          type="button"
-          onClick={prev}
-          disabled={index === 0}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-neutral-800 py-6 text-xl font-medium disabled:opacity-30"
-        >
-          <ChevronLeft className="h-5 w-5" aria-hidden="true" /> Indietro
-        </button>
-        <button
-          type="button"
-          onClick={next}
-          disabled={index === steps.length - 1}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium disabled:opacity-30"
-        >
-          Avanti <ChevronRight className="h-5 w-5" aria-hidden="true" />
-        </button>
-      </div>
+          {step.timerMinutes !== null && (
+            <div className="flex flex-col items-center gap-3">
+              {timer.remaining !== null ? (
+                <>
+                  <span className="text-5xl font-bold tabular-nums">
+                    {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleTogglePause}
+                      aria-label={timer.paused ? "Riprendi timer" : "Metti in pausa timer"}
+                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
+                    >
+                      {timer.paused ? (
+                        <Play className="h-4 w-4" aria-hidden="true" />
+                      ) : (
+                        <Pause className="h-4 w-4" aria-hidden="true" />
+                      )}
+                      {timer.paused ? "Riprendi" : "Pausa"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelTimer}
+                      aria-label="Annulla timer"
+                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
+                    >
+                      <Square className="h-4 w-4" aria-hidden="true" /> Annulla
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStartTimer}
+                  className="rounded-full bg-primary px-6 py-4 text-lg font-medium hover:bg-primary-hover"
+                >
+                  Avvia timer {step.timerMinutes} min
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {!isDone && (
+        <div className="flex gap-3 p-4 pb-8">
+          <button
+            type="button"
+            onClick={prev}
+            disabled={index === 0}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface py-6 text-xl font-medium text-foreground hover:bg-background disabled:opacity-30"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" /> Indietro
+          </button>
+          <button
+            type="button"
+            onClick={next}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium"
+          >
+            Avanti <ChevronRight className="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
+      <Modal ref={ingredientsModalRef} variant="sheet" title="Ingredienti">
+        <ServingsStepper servings={servings} onChange={setServings} />
+        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto text-foreground">
+          {ingredients.map((ing) => {
+            const scaled = scaleQuantity(ing.quantity, baseServings, servings);
+            return (
+              <li key={ing.id} className="flex justify-between gap-2 border-b border-border pb-2 text-sm">
+                <span>{ing.name}</span>
+                {scaled !== null && (
+                  <span className="text-muted-foreground">
+                    {formatQuantity(scaled)} {ing.unit ?? ""}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </Modal>
     </div>
   );
 }

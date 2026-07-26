@@ -1,26 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
 import { Input } from "@/components/ui/Input";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Button } from "@/components/ui/Button";
 
 type Tag = { id: string; name: string };
 
 export default function SearchPage() {
-  const [query, setQuery] = useState("");
+  return (
+    <Suspense fallback={<div className="flex justify-center p-8"><Spinner /></div>}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
+    () => searchParams.get("tags")?.split(",").filter(Boolean) ?? [],
+  );
   const [ingredientInput, setIngredientInput] = useState("");
-  const [ingredients, setIngredients] = useState<string[]>([]);
+  const [ingredients, setIngredients] = useState<string[]>(
+    () => searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [],
+  );
+  const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
   const [results, setResults] = useState<RecipeCardData[]>([]);
+  const [status, setStatus] = useState<"loading" | "done">("loading");
 
   useEffect(() => {
     fetch("/api/tags")
       .then((res) => res.json())
       .then(setTags);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/ingredients")
+      .then((res) => res.json())
+      .then((rows: { name: string }[]) => setIngredientSuggestions(rows.map((r) => r.name)));
   }, []);
 
   useEffect(() => {
@@ -30,13 +56,18 @@ export default function SearchPage() {
     if (ingredients.length > 0) params.set("ingredients", ingredients.join(","));
 
     const handle = setTimeout(() => {
+      router.replace(params.size > 0 ? `/search?${params}` : "/search", { scroll: false });
+      setStatus("loading");
       fetch(`/api/recipes?${params}`)
         .then((res) => res.json())
-        .then(setResults);
+        .then((data) => {
+          setResults(data);
+          setStatus("done");
+        });
     }, 200);
 
     return () => clearTimeout(handle);
-  }, [query, selectedTagIds, ingredients]);
+  }, [query, selectedTagIds, ingredients, router]);
 
   function toggleTag(id: string) {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -49,9 +80,25 @@ export default function SearchPage() {
     setIngredientInput("");
   }
 
+  const hasActiveFilters = query.trim() !== "" || selectedTagIds.length > 0 || ingredients.length > 0;
+
+  function clearFilters() {
+    setQuery("");
+    setSelectedTagIds([]);
+    setIngredients([]);
+    setIngredientInput("");
+  }
+
   return (
     <div className="space-y-5 p-4">
-      <h1 className="text-lg font-semibold text-foreground">Cerca ricette</h1>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="font-display text-lg font-semibold text-foreground">Cerca ricette</h1>
+        {hasActiveFilters && (
+          <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
+            Cancella filtri
+          </Button>
+        )}
+      </div>
 
       <Input
         type="search"
@@ -97,6 +144,7 @@ export default function SearchPage() {
         </div>
         <Input
           type="text"
+          list="search-ingredient-suggestions"
           placeholder="Es. pomodoro, poi invio"
           value={ingredientInput}
           onChange={(e) => setIngredientInput(e.target.value)}
@@ -108,13 +156,23 @@ export default function SearchPage() {
           }}
           onBlur={addIngredient}
         />
+        <datalist id="search-ingredient-suggestions">
+          {ingredientSuggestions.map((name) => (
+            <option key={name} value={name} />
+          ))}
+        </datalist>
       </div>
 
       <div className="space-y-3">
         {results.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} />
         ))}
-        {results.length === 0 && <EmptyState title="Nessuna ricetta trovata" />}
+        {status === "loading" && (
+          <div className="flex justify-center py-4">
+            <Spinner />
+          </div>
+        )}
+        {status === "done" && results.length === 0 && <EmptyState title="Nessuna ricetta trovata" />}
       </div>
     </div>
   );

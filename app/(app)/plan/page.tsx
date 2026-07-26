@@ -48,7 +48,7 @@ export default async function PlanPage({
   return (
     <div className="p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-foreground">Piano settimanale</h1>
+        <h1 className="font-display text-lg font-semibold text-foreground">Piano settimanale</h1>
         <div className="flex gap-2">
           <Link href={`/plan?week=${prevWeek}`} className={buttonClasses("secondary", "sm")}>
             <ChevronLeft className="h-4 w-4" aria-hidden="true" /> Prima

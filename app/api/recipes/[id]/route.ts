@@ -17,6 +17,8 @@ export async function GET(_request: Request, { params }: Params) {
       steps: { orderBy: { sortOrder: "asc" } },
       tags: true,
       cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
+      images: { orderBy: { sortOrder: "asc" } },
+      nutrition: true,
     },
   });
 
@@ -29,7 +31,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const existing = await prisma.recipe.findUnique({ where: { id } });
+  const existing = await prisma.recipe.findUnique({ where: { id }, include: { images: true, nutrition: true } });
   if (!existing) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
 
   const formData = await request.formData();
@@ -37,13 +39,23 @@ export async function PATCH(request: Request, { params }: Params) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo } = parsed;
+  const { data, photo, galleryPhotos, galleryExisting } = parsed;
 
   let photoUrl = existing.photoUrl;
   if (photo) {
     await deleteUpload(existing.photoUrl);
     photoUrl = await saveUpload(photo);
   }
+
+  // solo le foto galleria rimosse vengono cancellate da disco; quelle mantenute non vengono
+  // ricaricate/ri-codificate, solo le righe RecipeImage sono full-replace (economiche)
+  const keepSet = new Set(galleryExisting);
+  const toRemove = existing.images.filter((img) => !keepSet.has(img.filename));
+  await Promise.all(toRemove.map((img) => deleteUpload(img.filename)));
+  const newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+  const orderedFilenames = [...galleryExisting, ...newFilenames];
+
+  const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
 
   const recipe = await prisma.recipe.update({
     where: { id },
@@ -54,6 +66,8 @@ export async function PATCH(request: Request, { params }: Params) {
       prepTimeMinutes: data.prepTimeMinutes,
       cookTimeMinutes: data.cookTimeMinutes,
       sourceUrl: data.sourceUrl,
+      videoUrl: data.videoUrl,
+      equipment: data.equipment,
       photoUrl,
       ingredients: {
         deleteMany: {},
@@ -70,7 +84,21 @@ export async function PATCH(request: Request, { params }: Params) {
           create: { name: name.toLowerCase() },
         })),
       },
+      images: {
+        deleteMany: {},
+        create: orderedFilenames.map((filename, index) => ({ filename, sortOrder: index })),
+      },
+      nutrition: hasNutrition
+        ? { upsert: { create: data.nutrition, update: data.nutrition } }
+        : existing.nutrition
+          ? { delete: true }
+          : undefined,
     },
+  });
+
+  await prisma.ingredientCatalog.createMany({
+    data: data.ingredients.map((i) => ({ name: i.name.trim().toLowerCase() })),
+    skipDuplicates: true,
   });
 
   return Response.json(recipe);

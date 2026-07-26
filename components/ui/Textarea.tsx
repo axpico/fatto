@@ -6,7 +6,7 @@ type Props = TextareaHTMLAttributes<HTMLTextAreaElement> & { label?: string };
 export const Textarea = forwardRef<HTMLTextAreaElement, Props>(
   ({ label, id, className, ...props }, ref) => {
     const textarea = (
-      <textarea ref={ref} id={id} className={[inputClasses, className].filter(Boolean).join(" ")} {...props} />
+      <textarea ref={ref} id={id} className={[inputClasses, "w-full", className].filter(Boolean).join(" ")} {...props} />
     );
     if (!label) return textarea;
     return (

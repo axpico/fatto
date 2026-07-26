@@ -35,6 +35,8 @@ function dimensionOf(unit: string): { table: Record<string, number>; factor: num
   return null;
 }
 
+export const CANONICAL_UNITS = [...new Set([...Object.keys(MASS), ...Object.keys(VOLUME), ...Object.keys(ALIASES)])];
+
 // ponytail: nessuna conversione massa<->volume, dipende dalla densità dell'ingrediente
 export function convert(quantity: number, fromUnit: string, toUnit: string): number | null {
   const from = dimensionOf(normalize(fromUnit));
