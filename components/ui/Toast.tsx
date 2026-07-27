@@ -38,10 +38,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.variant === "error" ? "alert" : "status"}
             aria-live={t.variant === "error" ? "assertive" : "polite"}
-            className={`pointer-events-auto flex w-full max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-md ${
+            className={`pointer-events-auto flex w-full max-w-sm animate-[enter_200ms_ease-out] items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-md ${
               t.variant === "error"
                 ? "border-destructive/30 bg-surface text-destructive"
-                : "border-border bg-surface text-foreground"
+                : "border-success/30 bg-surface text-success"
             }`}
           >
             {t.variant === "error" ? (

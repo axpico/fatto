@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { BookOpen, Plus, SlidersHorizontal, Sparkles } from "lucide-react";
+import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { RecipeCard } from "@/components/RecipeCard";
+import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
 import { pillButtonClasses } from "@/components/ui/Badge";
@@ -51,9 +52,12 @@ export default async function HomePage({
     recipes = await prisma.recipe.findMany({ include: baseInclude, orderBy: { createdAt: "desc" } });
   }
 
+  // eslint-disable-next-line react-hooks/purity -- scelta casuale intenzionale ad ogni richiesta (server component, non un hook)
+  const highlight = recipes.length > 0 ? recipes[Math.floor(Math.random() * recipes.length)] : null;
+
   return (
     <div className="page-shell max-w-3xl space-y-6">
-      <div className="page-header mb-0 rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
+      <div className="page-header rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
         <div>
           <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-primary"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Il tuo ricettario</p>
           <h1 className="page-title">Le tue ricette</h1>
@@ -64,7 +68,20 @@ export default async function HomePage({
         </Link>
       </div>
 
-      <div className="rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5">
+      {highlight && (
+        <section>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><Shuffle className="h-4 w-4" aria-hidden="true" /></span>
+            <div>
+              <h2 className="font-medium text-foreground">Sorpresa del giorno</h2>
+              <p className="text-sm text-muted-foreground">Una ricetta a caso dalla tua raccolta.</p>
+            </div>
+          </div>
+          <RecipeCard recipe={highlight} variant="featured" />
+        </section>
+      )}
+
+      <div className="panel">
         <div className="mb-3 flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
           <div>
@@ -99,11 +116,7 @@ export default async function HomePage({
             <h2 className="font-display text-xl font-semibold text-foreground">La tua raccolta</h2>
             <span className="text-sm text-muted-foreground">{recipes.length} {recipes.length === 1 ? "ricetta" : "ricette"}</span>
           </div>
-        <div className="space-y-3">
-          {recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
-          ))}
-        </div>
+        <RecipeList recipes={recipes} />
         </section>
       )}
     </div>

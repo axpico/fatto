@@ -357,20 +357,20 @@ export function CookingModeViewer({
 
       {isDone ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-          <p className="text-3xl font-medium leading-snug">Ricetta completata!</p>
+          <p className="font-display text-3xl font-medium leading-snug">Ricetta completata!</p>
           <div className="flex w-full max-w-sm flex-col gap-3">
             <button
               type="button"
               onClick={markCooked}
               disabled={marking}
-              className="rounded-full bg-primary py-4 text-lg font-medium hover:bg-primary-hover disabled:opacity-50"
+              className="rounded-full bg-primary py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50"
             >
               Segna come cucinata
             </button>
             <button
               type="button"
               onClick={() => router.push(`/recipes/${recipeId}`)}
-              className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground hover:bg-background"
+              className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
             >
               Torna alla ricetta
             </button>
@@ -378,7 +378,7 @@ export function CookingModeViewer({
         </div>
       ) : (
         <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-          <p className="text-3xl font-medium leading-snug">{step.instruction}</p>
+          <p className="font-display text-3xl font-medium leading-snug">{step.instruction}</p>
 
           {step.timerMinutes !== null && (
             <div className="flex flex-col items-center gap-3">
@@ -392,7 +392,7 @@ export function CookingModeViewer({
                       type="button"
                       onClick={handleTogglePause}
                       aria-label={timer.paused ? "Riprendi timer" : "Metti in pausa timer"}
-                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
+                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
                     >
                       {timer.paused ? (
                         <Play className="h-4 w-4" aria-hidden="true" />
@@ -405,7 +405,7 @@ export function CookingModeViewer({
                       type="button"
                       onClick={handleCancelTimer}
                       aria-label="Annulla timer"
-                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground hover:bg-background"
+                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
                     >
                       <Square className="h-4 w-4" aria-hidden="true" /> Annulla
                     </button>
@@ -415,7 +415,7 @@ export function CookingModeViewer({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="rounded-full bg-primary px-6 py-4 text-lg font-medium hover:bg-primary-hover"
+                  className="rounded-full bg-primary px-6 py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98]"
                 >
                   Avvia timer {step.timerMinutes} min
                 </button>
@@ -431,14 +431,14 @@ export function CookingModeViewer({
             type="button"
             onClick={prev}
             disabled={index === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface py-6 text-xl font-medium text-foreground hover:bg-background disabled:opacity-30"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface py-6 text-xl font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98] disabled:opacity-30"
           >
             <ChevronLeft className="h-5 w-5" aria-hidden="true" /> Indietro
           </button>
           <button
             type="button"
             onClick={next}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98]"
           >
             Avanti <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </button>

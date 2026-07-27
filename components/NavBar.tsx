@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { House, Search, Plus, CalendarDays, ShoppingCart } from "lucide-react";
-
-const TABS = [
-  { href: "/", label: "Home", icon: House },
-  { href: "/search", label: "Cerca", icon: Search },
-  { href: "/import", label: "Importa", icon: Plus },
-  { href: "/plan", label: "Piano", icon: CalendarDays },
-  { href: "/shopping-list", label: "Spesa", icon: ShoppingCart },
-] as const;
+import { NAV_ITEMS } from "@/lib/navItems";
 
 export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
   const pathname = usePathname();
@@ -21,7 +13,7 @@ export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = 
       className="print:hidden fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <ul className="flex justify-around">
-        {TABS.map((tab) => {
+        {NAV_ITEMS.map((tab) => {
           const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
           const Icon = tab.icon;
           return (

@@ -3,10 +3,12 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
-import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
+import { type RecipeCardData } from "@/components/RecipeCard";
+import { RecipeList } from "@/components/RecipeList";
 import { Input } from "@/components/ui/Input";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -92,7 +94,7 @@ function SearchPageContent() {
 
   return (
     <div className="page-shell max-w-3xl space-y-6">
-      <div className="page-header mb-0 rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
+      <div className="page-header rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
         <div>
           <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-primary"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Scopri cosa cucinare</p>
           <h1 className="page-title">Cerca ricette</h1>
@@ -187,15 +189,15 @@ function SearchPageContent() {
           <h2 className="font-display text-xl font-semibold text-foreground">Risultati</h2>
           {status === "done" && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
         </div>
-      <div className="space-y-3">
-        {results.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} />
-        ))}
+      <div>
         {status === "loading" && (
-          <div className="flex justify-center py-4">
-            <Spinner />
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <Skeleton key={i} className="list-row h-[88px] border-transparent shadow-none" />
+            ))}
           </div>
         )}
+        {status === "done" && results.length > 0 && <RecipeList recipes={results} />}
         {status === "done" && results.length === 0 && <EmptyState title="Nessuna ricetta trovata" description="Prova a cambiare i filtri o cerca un ingrediente diverso." />}
       </div>
       </section>

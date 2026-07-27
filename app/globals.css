@@ -47,8 +47,10 @@
   --font-display: var(--font-fraunces);
 }
 
+/* ponytail: dark values are duplicated between the OS-preference query and the
+   manual [data-theme] override below — editing one means editing both. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --background: #1c1917;
     --foreground: #f5f0e8;
     --surface: #262220;
@@ -59,7 +61,30 @@
     --muted-foreground: #a8a29e;
     --primary: #ea580c;
     --primary-hover: #f97316;
+    --accent: #4a2e1a;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --destructive: #f87171;
+    --destructive-hover: #ef4444;
   }
+}
+
+:root[data-theme="dark"] {
+  --background: #1c1917;
+  --foreground: #f5f0e8;
+  --surface: #262220;
+  --surface-secondary: #302a26;
+  --surface-sunken: #211d1a;
+  --border: #443d37;
+  --border-strong: #5d534b;
+  --muted-foreground: #a8a29e;
+  --primary: #ea580c;
+  --primary-hover: #f97316;
+  --accent: #4a2e1a;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --destructive: #f87171;
+  --destructive-hover: #ef4444;
 }
 
 body {
