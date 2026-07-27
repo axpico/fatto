@@ -91,6 +91,11 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Cottura: {recipe.cookTimeMinutes} min
           </span>
         )}
+        {recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null && (
+          <span className="inline-flex items-center gap-1 font-medium text-foreground">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Totale: {recipe.prepTimeMinutes + recipe.cookTimeMinutes} min
+          </span>
+        )}
         {recipe.sourceUrl && (
           <a
             href={recipe.sourceUrl}
