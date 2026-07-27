@@ -4,6 +4,8 @@ import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
 
 const MIN_PDF_TEXT_LENGTH = 50;
 
+// Risposta NDJSON in streaming, stesso pattern di app/api/import/reel/route.ts: una riga
+// { stage } per avanzamento, poi una riga finale { done: true, ...ricetta } o { done: true, error }.
 export async function POST(request: Request) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
@@ -13,31 +15,47 @@ export async function POST(request: Request) {
   if (!(file instanceof File) || file.size === 0) {
     return Response.json({ error: "Nessun file caricato" }, { status: 400 });
   }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  let rawText: string;
-  if (file.type === "application/pdf") {
-    rawText = await extractTextFromPdf(buffer);
-    if (rawText.trim().length < MIN_PDF_TEXT_LENGTH) {
-      return Response.json(
-        { error: "Questo PDF sembra una scansione: carica uno screenshot invece" },
-        { status: 422 },
-      );
-    }
-  } else if (file.type.startsWith("image/")) {
-    rawText = await extractTextFromImage(buffer);
-  } else {
+  if (file.type !== "application/pdf" && !file.type.startsWith("image/")) {
     return Response.json({ error: "Formato file non supportato" }, { status: 400 });
   }
 
-  try {
-    const { recipe, provider } = await extractRecipe(rawText);
-    return Response.json({ ...recipe, provider });
-  } catch (err) {
-    if (err instanceof AiExtractionError) {
-      return Response.json({ error: err.message }, { status: 422 });
-    }
-    return Response.json({ error: "Estrazione AI non riuscita" }, { status: 422 });
-  }
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function write(line: object) {
+        controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
+      }
+      try {
+        write({ stage: "Leggendo il file..." });
+        let rawText: string;
+        if (file.type === "application/pdf") {
+          rawText = await extractTextFromPdf(buffer);
+          if (rawText.trim().length < MIN_PDF_TEXT_LENGTH) {
+            write({ done: true, error: "Questo PDF sembra una scansione: carica uno screenshot invece" });
+            return;
+          }
+        } else {
+          rawText = await extractTextFromImage(buffer);
+        }
+
+        write({ stage: "Estraendo ricetta..." });
+        const { recipe, provider } = await extractRecipe(rawText);
+        write({ done: true, ...recipe, provider });
+      } catch (err) {
+        if (err instanceof AiExtractionError) {
+          write({ done: true, error: err.message });
+        } else {
+          write({ done: true, error: "Estrazione AI non riuscita" });
+        }
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-ndjson" },
+  });
 }

@@ -26,6 +26,8 @@ async function fetchCoverImage(url: string): Promise<string | null> {
   }
 }
 
+// Risposta NDJSON in streaming, stesso pattern di app/api/import/reel/route.ts: una riga
+// { stage } per avanzamento, poi una riga finale { done: true, ...ricetta } o { done: true, error }.
 export async function POST(request: Request) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
@@ -36,33 +38,49 @@ export async function POST(request: Request) {
     return Response.json({ error: "Link non valido" }, { status: 400 });
   }
 
-  let html: string;
-  try {
-    const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
-  } catch {
-    return Response.json(
-      { error: "Impossibile scaricare la pagina. Controlla il link e riprova." },
-      { status: 422 },
-    );
-  }
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      function write(line: object) {
+        controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
+      }
+      try {
+        write({ stage: "Scaricando pagina..." });
+        let html: string;
+        try {
+          const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          html = await res.text();
+        } catch {
+          write({ done: true, error: "Impossibile scaricare la pagina. Controlla il link e riprova." });
+          return;
+        }
 
-  const jsonLd = extractJsonLdRecipe(html);
+        const jsonLd = extractJsonLdRecipe(html);
 
-  try {
-    const { recipe, provider } = await extractRecipe(htmlToText(html));
-    const photoUrl = jsonLd?.imageUrl ? await fetchCoverImage(jsonLd.imageUrl) : null;
-    return Response.json({
-      ...recipe,
-      nutrition: jsonLd?.nutrition ?? recipe.nutrition,
-      photoUrl,
-      provider,
-    });
-  } catch (err) {
-    if (err instanceof AiExtractionError) {
-      return Response.json({ error: err.message }, { status: 422 });
-    }
-    return Response.json({ error: "Estrazione AI non riuscita" }, { status: 422 });
-  }
+        write({ stage: "Estraendo ricetta..." });
+        const { recipe, provider } = await extractRecipe(htmlToText(html));
+        const photoUrl = jsonLd?.imageUrl ? await fetchCoverImage(jsonLd.imageUrl) : null;
+        write({
+          done: true,
+          ...recipe,
+          nutrition: jsonLd?.nutrition ?? recipe.nutrition,
+          photoUrl,
+          provider,
+        });
+      } catch (err) {
+        if (err instanceof AiExtractionError) {
+          write({ done: true, error: err.message });
+        } else {
+          write({ done: true, error: "Estrazione AI non riuscita" });
+        }
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: { "Content-Type": "application/x-ndjson" },
+  });
 }

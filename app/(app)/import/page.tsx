@@ -11,6 +11,7 @@ import { Button, buttonClasses } from "@/components/ui/Button";
 import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 const LANGUAGES = [
   { code: "italiano", label: "Italiano" },
@@ -26,7 +27,50 @@ const IMPORT_TABS = [
   { value: "reel", label: "Reel" },
 ];
 
+const LINK_STAGES = ["Scaricando pagina...", "Estraendo ricetta..."];
+const FILE_STAGES = ["Leggendo il file...", "Estraendo ricetta..."];
+const REEL_STAGES = ["Scaricando video...", "Trascrivendo audio...", "Estraendo ricetta..."];
+
 type ImportedRecipe = ExtractedRecipe & { photoUrl?: string | null };
+
+type ImportStreamLine = { stage: string } | ({ done: true; error: string }) | (ImportedRecipe & { done: true; provider?: string });
+
+/** Legge una risposta NDJSON in streaming (una riga { stage } per avanzamento, poi { done: true, ... }
+ * o { done: true, error }), invocando onStage per ogni stage e restituendo il payload finale. */
+async function runImportStream(
+  url: string,
+  init: RequestInit,
+  onStage: (stage: string) => void,
+): Promise<ImportedRecipe & { provider?: string }> {
+  const res = await fetch(url, init);
+  if (!res.ok || !res.body) {
+    throw new Error("Importazione fallita");
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalLine: ImportStreamLine | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const parsed: ImportStreamLine = JSON.parse(line);
+      if ("stage" in parsed) onStage(parsed.stage);
+      else finalLine = parsed;
+    }
+  }
+
+  if (!finalLine || "error" in finalLine) {
+    throw new Error((finalLine as { error?: string } | null)?.error ?? "Importazione fallita");
+  }
+  return finalLine;
+}
 
 function mapExtractedToFormData(extracted: ImportedRecipe, sourceUrl?: string): Partial<RecipeFormData> {
   const n = extracted.nutrition;
@@ -72,7 +116,7 @@ export default function ImportPage() {
   const [reelNotes, setReelNotes] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadingLabel, setLoadingLabel] = useState("Estrazione in corso...");
+  const [stageIndex, setStageIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
   const [extracted, setExtracted] = useState<Partial<RecipeFormData> | null>(null);
   const [manual, setManual] = useState(false);
@@ -84,89 +128,68 @@ export default function ImportPage() {
   async function importFromUrl(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setLoadingLabel("Estrazione in corso...");
+    setStageIndex(-1);
     setError(null);
-    const res = await fetch("/api/import/link", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url }),
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error ?? "Importazione fallita");
-      return;
+    try {
+      const data = await runImportStream(
+        "/api/import/link",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        },
+        (stage) => setStageIndex(LINK_STAGES.indexOf(stage)),
+      );
+      setProvider(data.provider ?? null);
+      setExtracted(mapExtractedToFormData(data, url));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Importazione fallita");
+    } finally {
+      setLoading(false);
     }
-    setProvider(data.provider ?? null);
-    setExtracted(mapExtractedToFormData(data, url));
   }
 
   async function importFromFile(file: File) {
     setLoading(true);
-    setLoadingLabel("Estrazione in corso...");
+    setStageIndex(-1);
     setError(null);
-    const body = new FormData();
-    body.set("file", file);
-    const res = await fetch("/api/import/file", { method: "POST", body });
-    const data = await res.json();
-    setLoading(false);
-    if (!res.ok) {
-      setError(data.error ?? "Importazione fallita");
-      return;
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const data = await runImportStream("/api/import/file", { method: "POST", body }, (stage) =>
+        setStageIndex(FILE_STAGES.indexOf(stage)),
+      );
+      setProvider(data.provider ?? null);
+      setExtracted(mapExtractedToFormData(data));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Importazione fallita");
+    } finally {
+      setLoading(false);
     }
-    setProvider(data.provider ?? null);
-    setExtracted(mapExtractedToFormData(data));
   }
 
   async function importFromReel(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setLoadingLabel("Scaricando video...");
+    setStageIndex(-1);
     setError(null);
-
-    const res = await fetch("/api/import/reel", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: reelUrl, notes: reelNotes || undefined }),
-    });
-
-    if (!res.ok || !res.body) {
+    try {
+      const data = await runImportStream(
+        "/api/import/reel",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: reelUrl, notes: reelNotes || undefined }),
+        },
+        (stage) => setStageIndex(REEL_STAGES.indexOf(stage)),
+      );
+      setProvider(data.provider ?? null);
+      setExtracted(mapExtractedToFormData(data, reelUrl));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Importazione fallita");
+    } finally {
       setLoading(false);
-      setError("Importazione fallita");
-      return;
     }
-
-    type ReelStreamLine =
-      | { stage: string }
-      | ({ done: true; error: string })
-      | (ExtractedRecipe & { done: true; provider?: string });
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    let finalLine: ReelStreamLine | null = null;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        const parsed: ReelStreamLine = JSON.parse(line);
-        if ("stage" in parsed) setLoadingLabel(parsed.stage);
-        else finalLine = parsed;
-      }
-    }
-
-    setLoading(false);
-    if (!finalLine || "error" in finalLine) {
-      setError((finalLine as { error?: string } | null)?.error ?? "Importazione fallita");
-      return;
-    }
-    setProvider(finalLine.provider ?? null);
-    setExtracted(mapExtractedToFormData(finalLine, reelUrl));
   }
 
   async function translate() {
@@ -311,14 +334,14 @@ export default function ImportPage() {
               onChange={(e) => setUrl(e.target.value)}
             />
             <Button type="submit" disabled={loading} className="w-full">
-              {loading && activeTab === "link" ? (
-                <>
-                  <Spinner /> {loadingLabel}
-                </>
-              ) : (
-                "Importa"
-              )}
+              {loading && activeTab === "link" ? <Spinner /> : "Importa"}
             </Button>
+            {loading && activeTab === "link" && (
+              <ProgressBar
+                value={((stageIndex + 1) / LINK_STAGES.length) * 100}
+                label={LINK_STAGES[stageIndex] ?? "Avvio..."}
+              />
+            )}
           </form>
         </Card>
       </div>
@@ -364,9 +387,12 @@ export default function ImportPage() {
             </p>
           )}
           {loading && activeTab === "file" && (
-            <p className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-              <Spinner /> {loadingLabel}
-            </p>
+            <div className="mt-3">
+              <ProgressBar
+                value={((stageIndex + 1) / FILE_STAGES.length) * 100}
+                label={FILE_STAGES[stageIndex] ?? "Avvio..."}
+              />
+            </div>
           )}
         </Card>
       </div>
@@ -397,14 +423,14 @@ export default function ImportPage() {
               rows={2}
             />
             <Button type="submit" disabled={loading} className="w-full">
-              {loading && activeTab === "reel" ? (
-                <>
-                  <Spinner /> {loadingLabel}
-                </>
-              ) : (
-                "Importa dal Reel"
-              )}
+              {loading && activeTab === "reel" ? <Spinner /> : "Importa dal Reel"}
             </Button>
+            {loading && activeTab === "reel" && (
+              <ProgressBar
+                value={((stageIndex + 1) / REEL_STAGES.length) * 100}
+                label={REEL_STAGES[stageIndex] ?? "Avvio..."}
+              />
+            )}
           </form>
         </Card>
       </div>
