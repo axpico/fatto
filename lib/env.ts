@@ -12,7 +12,7 @@ const envSchema = z.object({
   OPENROUTER_API_KEY: optionalString(),
   OPENROUTER_MODEL_OVERRIDE: optionalString(),
   GROQ_API_KEY: optionalString(),
-  GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
+  GROQ_MODEL: z.string().default("openai/gpt-oss-20b"),
   UPLOAD_DIR: z.string().default("./data/uploads"),
   COOKIE_SECURE: z
     .string()

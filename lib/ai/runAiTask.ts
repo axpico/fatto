@@ -71,7 +71,13 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
   }
 
   const models = env.OPENROUTER_MODEL_OVERRIDE ? [env.OPENROUTER_MODEL_OVERRIDE] : await getFreeModelIds();
-  const candidates = models.filter((modelId) => !isRecentlyFailed(modelId));
+  if (models.length === 0) {
+    throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
+  }
+  const recentlyOk = models.filter((modelId) => !isRecentlyFailed(modelId));
+  // se sono tutti in cooldown (falliti di recente), ritenta comunque tutti: sono gratuiti, meglio
+  // un altro tentativo che fallire subito riesumando l'errore stantio di un provider precedente
+  const candidates = recentlyOk.length > 0 ? recentlyOk : models;
 
   // ponytail: modelli gratuiti, nessun costo per token — non vale la complessità di annullare i
   // tentativi perdenti (AbortController condiviso), li si lascia semplicemente terminare in background

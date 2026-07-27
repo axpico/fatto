@@ -18,7 +18,7 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
    - `ANTHROPIC_API_KEY`: la tua chiave API Anthropic ([console.anthropic.com](https://console.anthropic.com)) per l'import AI delle ricette. Opzionale se imposti `GROQ_API_KEY` o `OPENROUTER_API_KEY`.
    - `ANTHROPIC_MODEL`: modello da usare per l'estrazione (default `claude-haiku-4-5`, economico e sufficiente per estrarre dati strutturati)
    - `GROQ_API_KEY`: chiave [Groq](https://console.groq.com/keys), opzionale — provata dopo Anthropic e prima di OpenRouter.
-   - `GROQ_MODEL`: modello Groq da usare (default `llama-3.3-70b-versatile`)
+   - `GROQ_MODEL`: modello Groq da usare (default `openai/gpt-oss-20b`; solo questo e `openai/gpt-oss-120b` supportano output strutturato json_schema su Groq)
    - `OPENROUTER_API_KEY`: chiave [OpenRouter](https://openrouter.ai/keys), opzionale — usata come ultimo fallback automatico se Anthropic e Groq non sono configurate o la chiamata fallisce (chiave scaduta, rate limit, ecc.). Prova in sequenza i modelli gratuiti disponibili, scoperti a runtime (nessuna lista da configurare). Se nessuna delle tre chiavi è impostata, l'import AI non è disponibile ma il resto dell'app funziona normalmente (inserimento manuale sempre possibile).
    - `OPENROUTER_MODEL_OVERRIDE`: solo per debug, forza un modello OpenRouter specifico saltando la scoperta automatica.
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`: credenziali del primo utente, create automaticamente all'avvio

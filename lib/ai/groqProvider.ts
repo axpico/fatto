@@ -26,12 +26,17 @@ export async function callGroq<T>(
         type: "json_schema",
         json_schema: { name: "response", schema: z.toJSONSchema(schema) },
       },
+      // ponytail: gpt-oss è un modello "reasoning" — senza questo su un testo lungo spende il
+      // budget di completion in catena di pensiero e restituisce HTTP 400 "max completion tokens
+      // reached before generating a valid document" prima di arrivare al JSON vero e proprio
+      reasoning_effort: "low",
     }),
     signal: AbortSignal.timeout(40000),
   });
 
   if (!res.ok) {
-    throw new Error(`Groq ${env.GROQ_MODEL}: HTTP ${res.status}`);
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Groq ${env.GROQ_MODEL}: HTTP ${res.status} ${detail}`.trim());
   }
 
   const body = await res.json();
