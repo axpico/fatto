@@ -39,6 +39,8 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
     return { result: cached.result as T, provider: cached.provider };
   }
 
+  let lastError: unknown;
+
   if (env.ANTHROPIC_API_KEY) {
     try {
       const result = await callAnthropic(input, opts.systemPrompt, opts.schema);
@@ -47,11 +49,12 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
       return { result, provider: "anthropic" };
     } catch (err) {
       console.error("[ai] anthropic fallito:", err);
+      lastError = err;
     }
   }
 
   if (!env.OPENROUTER_API_KEY) {
-    throw new AiTaskError(MSG_NON_DISPONIBILE);
+    throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
   }
 
   const models = env.OPENROUTER_MODEL_OVERRIDE ? [env.OPENROUTER_MODEL_OVERRIDE] : await getFreeModelIds();
@@ -64,6 +67,7 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
       resultCache.set(key, { result, provider: `openrouter:${modelId}`, cachedAt: Date.now() });
       return { result, provider: `openrouter:${modelId}` };
     } catch (err) {
+      lastError = err;
       if (err instanceof OpenRouterAuthError) {
         console.error("[ai] openrouter chiave non valida, interrompo il fallback");
         break;
@@ -73,5 +77,5 @@ export async function runAiTask<T>(input: string, opts: AiTaskOptions<T>): Promi
     }
   }
 
-  throw new AiTaskError(MSG_NON_DISPONIBILE);
+  throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
 }
