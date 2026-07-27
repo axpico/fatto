@@ -14,10 +14,9 @@ model User {
   name         String
   createdAt    DateTime @default(now())
 
-  recipes   Recipe[]
-  cookLogs  CookLog[]
-  mealPlans MealPlan[]
-  sessions  Session[]
+  recipes  Recipe[]
+  cookLogs CookLog[]
+  sessions Session[]
 }
 
 model Session {
@@ -51,7 +50,6 @@ model Recipe {
   steps       Step[]
   tags        Tag[]         @relation("RecipeTags")
   cookLogs    CookLog[]
-  mealPlans   MealPlan[]
   images      RecipeImage[]
   nutrition   Nutrition?
 }
@@ -122,48 +120,6 @@ model CookLog {
   notes    String?
 
   @@index([recipeId])
-}
-
-enum MealSlot {
-  COLAZIONE
-  PRANZO
-  CENA
-}
-
-model MealPlan {
-  id          String   @id @default(cuid())
-  recipeId    String
-  recipe      Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  plannedDate DateTime @db.Date
-  mealSlot    MealSlot
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-
-  @@index([plannedDate])
-}
-
-enum ShoppingListSource {
-  MANUALE
-  MEAL_PLAN
-}
-
-model ShoppingListItem {
-  id        String             @id @default(cuid())
-  name      String
-  quantity  Float?
-  unit      String?
-  checked   Boolean            @default(false)
-  source    ShoppingListSource @default(MANUALE)
-  createdAt DateTime           @default(now())
-}
-
-model PantryItem {
-  id        String   @id @default(cuid())
-  name      String
-  quantity  Float?
-  unit      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model IngredientCatalog {

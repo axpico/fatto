@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus, Check } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
@@ -23,11 +23,9 @@ export function formatQuantity(n: number) {
 export function ServingsAdjuster({
   baseServings,
   ingredients,
-  inPantry = [],
 }: {
   baseServings: number;
   ingredients: Ingredient[];
-  inPantry?: string[];
 }) {
   const [servings, setServings] = useState(baseServings);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -97,11 +95,6 @@ export function ServingsAdjuster({
                   {ing.optional && (
                     <Badge variant="neutral" size="sm">
                       facoltativo
-                    </Badge>
-                  )}
-                  {inPantry.includes(ing.id) && (
-                    <Badge variant="accent" size="sm">
-                      <Check className="h-3 w-3" aria-hidden="true" /> in dispensa
                     </Badge>
                   )}
                   </span>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChefHat, Printer, Pencil, Clock, ExternalLink, Video } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { findPantryMatchesForRecipe } from "@/lib/ingredientSearch";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
 import { CookLogSection } from "@/components/CookLogSection";
@@ -23,27 +22,19 @@ const NUTRITION_FIELDS: { key: "caloriesKcal" | "proteinG" | "carbsG" | "fatG" |
 
 export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [recipe, pantryItems] = await Promise.all([
-    prisma.recipe.findUnique({
-      where: { id },
-      include: {
-        ingredients: { orderBy: { sortOrder: "asc" } },
-        steps: { orderBy: { sortOrder: "asc" } },
-        tags: true,
-        cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
-        images: { orderBy: { sortOrder: "asc" } },
-        nutrition: true,
-      },
-    }),
-    prisma.pantryItem.findMany({ select: { name: true } }),
-  ]);
+  const recipe = await prisma.recipe.findUnique({
+    where: { id },
+    include: {
+      ingredients: { orderBy: { sortOrder: "asc" } },
+      steps: { orderBy: { sortOrder: "asc" } },
+      tags: true,
+      cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
+      images: { orderBy: { sortOrder: "asc" } },
+      nutrition: true,
+    },
+  });
 
   if (!recipe) notFound();
-
-  const inPantry = await findPantryMatchesForRecipe(
-    recipe.id,
-    pantryItems.map((p) => p.name),
-  );
 
   return (
     <div className="page-shell">
@@ -139,7 +130,6 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           <ServingsAdjuster
             baseServings={recipe.servingsBase}
             ingredients={recipe.ingredients}
-            inPantry={[...inPantry]}
           />
         </Card>
       </section>

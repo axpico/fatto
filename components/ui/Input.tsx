@@ -1,6 +1,6 @@
 import { forwardRef, type InputHTMLAttributes } from "react";
 
-// niente "w-full" qui: molti usi (IngredientRows, StepRows, ShoppingListEditor, ...) affiancano una
+// niente "w-full" qui: molti usi (IngredientRows, StepRows, ServingsAdjuster, ...) affiancano una
 // larghezza fissa (w-16/w-20) concatenando questa stringa — se "w-full" fosse già dentro, le due
 // classi di larghezza finirebbero entrambe sull'elemento e vincerebbe quella che capita per ultima
 // nel CSS compilato, non quella scritta per ultima nel markup (bug reale, risolto qui alla radice)

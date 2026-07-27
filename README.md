@@ -1,6 +1,6 @@
 # Recipe Book
 
-App self-hosted per archiviare le ricette che cucini davvero: ricerca (anche per ingredienti disponibili), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), pianificazione settimanale con lista spesa e dispensa, modalità cottura hands-free con comandi vocali, storico e export PDF.
+App self-hosted per archiviare le ricette che cucini davvero: ricerca (anche per ingredienti disponibili), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), modalità cottura hands-free con comandi vocali, storico e export PDF.
 
 ## Stack
 
@@ -62,11 +62,7 @@ Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`) e abbia `ANTHR
 npm test
 ```
 
-Copre la logica non banale: scaling porzioni, aggregazione quantità della lista spesa, ranking della ricerca per ingredienti disponibili.
-
-## Dispensa e conversione unità
-
-C'è una dispensa condivisa (`/pantry`, raggiungibile dalla lista della spesa): spuntare un articolo della lista lo aggiunge automaticamente in dispensa, e la pagina di ogni ricetta mostra un badge "in dispensa" sugli ingredienti che hai già (match sul nome, anche approssimato). Le quantità si sommano automaticamente anche quando le unità sono diverse ma compatibili (g/kg/hg, ml/l/cl, cucchiaio/cucchiaino/tazza/bicchiere trattate come volume approssimato). Non c'è conversione tra massa e volume (dipende dalla densità dell'ingrediente, non deducibile in modo affidabile), né deduplicazione retroattiva del catalogo ingredienti (usato solo per l'autocompletamento, cresce con l'uso).
+Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili.
 
 ## Import da Reel Instagram e traduzione
 
