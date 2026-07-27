@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { RecipeList } from "@/components/RecipeList";
 import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -14,6 +15,10 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
 type Tag = { id: string; name: string };
+type TagMode = "all" | "any";
+type Sort = "relevance" | "best-match" | "recent" | "most-cooked" | "prep-time";
+
+const RATING_OPTIONS = [3, 4, 5];
 
 export default function SearchPage() {
   return (
@@ -32,13 +37,22 @@ function SearchPageContent() {
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
     () => searchParams.get("tags")?.split(",").filter(Boolean) ?? [],
   );
+  const [tagMode, setTagMode] = useState<TagMode>(() => (searchParams.get("tagMode") === "any" ? "any" : "all"));
   const [ingredientInput, setIngredientInput] = useState("");
   const [ingredients, setIngredients] = useState<string[]>(
     () => searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [],
   );
   const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
+  const [prepMax, setPrepMax] = useState(() => searchParams.get("prepMax") ?? "");
+  const [cookMax, setCookMax] = useState(() => searchParams.get("cookMax") ?? "");
+  const [servingsMin, setServingsMin] = useState(() => searchParams.get("servingsMin") ?? "");
+  const [ratingMin, setRatingMin] = useState(() => searchParams.get("ratingMin") ?? "");
+  const [explicitSort, setExplicitSort] = useState<Sort | null>(() => (searchParams.get("sort") as Sort) ?? null);
   const [results, setResults] = useState<RecipeCardData[]>([]);
   const [status, setStatus] = useState<"loading" | "done">("loading");
+
+  // finché l'utente non sceglie un sort esplicito, lo deriviamo dal filtro più specifico attivo
+  const sort: Sort = explicitSort ?? (ingredients.length > 0 ? "best-match" : query.trim() ? "relevance" : "recent");
 
   useEffect(() => {
     fetch("/api/tags")
@@ -56,21 +70,34 @@ function SearchPageContent() {
     const params = new URLSearchParams();
     if (query.trim()) params.set("q", query.trim());
     if (selectedTagIds.length > 0) params.set("tags", selectedTagIds.join(","));
+    if (selectedTagIds.length > 0 && tagMode === "any") params.set("tagMode", "any");
     if (ingredients.length > 0) params.set("ingredients", ingredients.join(","));
+    if (prepMax) params.set("prepMax", prepMax);
+    if (cookMax) params.set("cookMax", cookMax);
+    if (servingsMin) params.set("servingsMin", servingsMin);
+    if (ratingMin) params.set("ratingMin", ratingMin);
+    if (explicitSort) params.set("sort", explicitSort);
 
+    const controller = new AbortController();
     const handle = setTimeout(() => {
       router.replace(params.size > 0 ? `/search?${params}` : "/search", { scroll: false });
       setStatus("loading");
-      fetch(`/api/recipes?${params}`)
+      fetch(`/api/recipes?${params}`, { signal: controller.signal })
         .then((res) => res.json())
         .then((data) => {
           setResults(data);
           setStatus("done");
+        })
+        .catch((err) => {
+          if (err.name !== "AbortError") throw err;
         });
     }, 200);
 
-    return () => clearTimeout(handle);
-  }, [query, selectedTagIds, ingredients, router]);
+    return () => {
+      clearTimeout(handle);
+      controller.abort();
+    };
+  }, [query, selectedTagIds, tagMode, ingredients, prepMax, cookMax, servingsMin, ratingMin, explicitSort, sort, router]);
 
   function toggleTag(id: string) {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -83,14 +110,35 @@ function SearchPageContent() {
     setIngredientInput("");
   }
 
-  const hasActiveFilters = query.trim() !== "" || selectedTagIds.length > 0 || ingredients.length > 0;
+  const hasActiveFilters =
+    query.trim() !== "" ||
+    selectedTagIds.length > 0 ||
+    ingredients.length > 0 ||
+    prepMax !== "" ||
+    cookMax !== "" ||
+    servingsMin !== "" ||
+    ratingMin !== "";
 
   function clearFilters() {
     setQuery("");
     setSelectedTagIds([]);
+    setTagMode("all");
     setIngredients([]);
     setIngredientInput("");
+    setPrepMax("");
+    setCookMax("");
+    setServingsMin("");
+    setRatingMin("");
+    setExplicitSort(null);
   }
+
+  const sortOptions: { value: Sort; label: string }[] = [
+    { value: "relevance", label: "Rilevanza" },
+    { value: "best-match", label: "Miglior abbinamento" },
+    { value: "recent", label: "Recenti" },
+    { value: "most-cooked", label: "Più cucinate" },
+    { value: "prep-time", label: "Tempo di preparazione" },
+  ];
 
   return (
     <div className="page-shell max-w-3xl space-y-6">
@@ -128,7 +176,17 @@ function SearchPageContent() {
 
       {tags.length > 0 && (
         <div className="border-t border-border pt-4">
-          <p className="mb-2 text-sm font-medium text-foreground">Filtra per tag</p>
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">Filtra per tag</p>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={() => setTagMode("all")} className={pillButtonClasses(tagMode === "all")}>
+                Tutti
+              </button>
+              <button type="button" onClick={() => setTagMode("any")} className={pillButtonClasses(tagMode === "any")}>
+                Almeno uno
+              </button>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
               <button
@@ -182,12 +240,69 @@ function SearchPageContent() {
           ))}
         </datalist>
       </div>
+
+      <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+        <Input
+          label="Prep. entro (min)"
+          type="number"
+          min={0}
+          placeholder="es. 30"
+          value={prepMax}
+          onChange={(e) => setPrepMax(e.target.value)}
+        />
+        <Input
+          label="Cottura entro (min)"
+          type="number"
+          min={0}
+          placeholder="es. 30"
+          value={cookMax}
+          onChange={(e) => setCookMax(e.target.value)}
+        />
+        <Input
+          label="Porzioni almeno"
+          type="number"
+          min={1}
+          placeholder="es. 4"
+          value={servingsMin}
+          onChange={(e) => setServingsMin(e.target.value)}
+        />
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <p className="mb-2 text-sm font-medium text-foreground">Valutazione minima</p>
+        <div className="flex flex-wrap gap-2">
+          {RATING_OPTIONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRatingMin(ratingMin === String(r) ? "" : String(r))}
+              className={pillButtonClasses(ratingMin === String(r))}
+            >
+              {r}+
+            </button>
+          ))}
+        </div>
+      </div>
       </Card>
 
       <section aria-live="polite">
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xl font-semibold text-foreground">Risultati</h2>
-          {status === "done" && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
+          <div className="flex items-center gap-3">
+            {status === "done" && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
+            <Select
+              aria-label="Ordina per"
+              value={sort}
+              onChange={(e) => setExplicitSort(e.target.value as Sort)}
+              className="w-auto min-h-9 py-1 text-sm"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       <div>
         {status === "loading" && (

@@ -4,7 +4,12 @@ import { saveUpload } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { findIngredientMatches } from "@/lib/ingredientSearch";
 import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
+import { searchRecipesByText } from "@/lib/recipeSearch";
+import { resolveTagNames } from "@/lib/tagDedupe";
 import type { Prisma } from "@/lib/generated/prisma/client";
+
+const SORTS = ["relevance", "best-match", "recent", "most-cooked", "prep-time"] as const;
+type Sort = (typeof SORTS)[number];
 
 export async function GET(request: Request) {
   const { unauthorized } = await requireApiUser();
@@ -13,40 +18,82 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
   const tagIds = searchParams.get("tags")?.split(",").filter(Boolean) ?? [];
+  const tagMode = searchParams.get("tagMode") === "any" ? "any" : "all";
   const ingredientTerms = searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [];
+  const prepMax = numberParam(searchParams, "prepMax");
+  const cookMax = numberParam(searchParams, "cookMax");
+  const servingsMin = numberParam(searchParams, "servingsMin");
+  const ratingMin = numberParam(searchParams, "ratingMin");
+  const sortParam = searchParams.get("sort");
+  const sort: Sort = SORTS.includes(sortParam as Sort) ? (sortParam as Sort) : "recent";
 
-  let rankByRecipeId: Map<string, number> | null = null;
+  let ingredientRankByRecipeId: Map<string, number> | null = null;
   if (ingredientTerms.length > 0) {
     const matches = await findIngredientMatches(ingredientTerms);
     const ranked = rankRecipesByIngredientMatches(matches);
     if (ranked.length === 0) return Response.json([]);
-    rankByRecipeId = new Map(ranked.map((r) => [r.recipeId, r.matchCount]));
+    ingredientRankByRecipeId = new Map(ranked.map((r) => [r.recipeId, r.matchCount]));
   }
 
+  let textRankByRecipeId: Map<string, number> | null = null;
+  if (q) {
+    const ranked = await searchRecipesByText(q);
+    if (ranked.length === 0) return Response.json([]);
+    textRankByRecipeId = new Map(ranked.map((r) => [r.recipeId, r.rank]));
+  }
+
+  let ratingRecipeIds: string[] | null = null;
+  if (ratingMin != null) {
+    const ratingRows = await prisma.cookLog.groupBy({
+      by: ["recipeId"],
+      _avg: { rating: true },
+      having: { rating: { _avg: { gte: ratingMin } } },
+    });
+    if (ratingRows.length === 0) return Response.json([]);
+    ratingRecipeIds = ratingRows.map((r) => r.recipeId);
+  }
+
+  const idConstraints = [textRankByRecipeId && [...textRankByRecipeId.keys()], ingredientRankByRecipeId && [...ingredientRankByRecipeId.keys()], ratingRecipeIds].filter(
+    (c): c is string[] => c != null,
+  );
+
   const where: Prisma.RecipeWhereInput = {
-    ...(q && {
-      OR: [
-        { title: { contains: q, mode: "insensitive" } },
-        { description: { contains: q, mode: "insensitive" } },
-      ],
+    ...(tagIds.length > 0 && (tagMode === "any"
+      ? { tags: { some: { id: { in: tagIds } } } }
+      : { AND: tagIds.map((id) => ({ tags: { some: { id } } })) })),
+    ...(prepMax != null && { prepTimeMinutes: { lte: prepMax } }),
+    ...(cookMax != null && { cookTimeMinutes: { lte: cookMax } }),
+    ...(servingsMin != null && { servingsBase: { gte: servingsMin } }),
+    ...(idConstraints.length > 0 && {
+      id: { in: idConstraints.reduce((a, b) => a.filter((id) => b.includes(id))) },
     }),
-    ...(tagIds.length > 0 && {
-      AND: tagIds.map((id) => ({ tags: { some: { id } } })),
-    }),
-    ...(rankByRecipeId && { id: { in: [...rankByRecipeId.keys()] } }),
   };
+
+  const dbOrderBy: Prisma.RecipeOrderByWithRelationInput =
+    sort === "most-cooked" ? { cookLogs: { _count: "desc" } } : sort === "prep-time" ? { prepTimeMinutes: "asc" } : { createdAt: "desc" };
 
   const recipes = await prisma.recipe.findMany({
     where,
-    orderBy: rankByRecipeId ? undefined : { createdAt: "desc" },
+    orderBy: dbOrderBy,
     include: { tags: true, _count: { select: { cookLogs: true } } },
   });
 
-  if (rankByRecipeId) {
-    recipes.sort((a, b) => rankByRecipeId!.get(b.id)! - rankByRecipeId!.get(a.id)!);
+  // relevance/best-match sono calcolati in JS sopra la base order del DB, e ricadono su di
+  // essa quando il rank richiesto non è disponibile (es. sort=relevance senza query di testo)
+  if (sort === "best-match" && ingredientRankByRecipeId) {
+    recipes.sort((a, b) => ingredientRankByRecipeId!.get(b.id)! - ingredientRankByRecipeId!.get(a.id)!);
+  } else if (sort === "relevance" && textRankByRecipeId) {
+    recipes.sort((a, b) => textRankByRecipeId!.get(b.id)! - textRankByRecipeId!.get(a.id)!);
   }
 
   return Response.json(recipes);
+}
+
+function numberParam(params: URLSearchParams, key: string): number | null {
+  const raw = params.get(key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
 }
 
 export async function POST(request: Request) {
@@ -63,6 +110,7 @@ export async function POST(request: Request) {
   const photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
   const galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
+  const resolvedTagNames = await resolveTagNames(data.tags);
 
   const recipe = await prisma.recipe.create({
     data: {
@@ -83,9 +131,9 @@ export async function POST(request: Request) {
         create: data.steps.map((step, index) => ({ ...step, sortOrder: index })),
       },
       tags: {
-        connectOrCreate: data.tags.map((name) => ({
-          where: { name: name.toLowerCase() },
-          create: { name: name.toLowerCase() },
+        connectOrCreate: resolvedTagNames.map((name) => ({
+          where: { name },
+          create: { name },
         })),
       },
       images: {

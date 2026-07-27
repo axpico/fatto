@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ChevronRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LogoutButton } from "@/components/LogoutButton";
@@ -26,6 +28,14 @@ export default async function SettingsPage() {
         </div>
         <ThemeToggle />
       </div>
+
+      <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+        <div>
+          <p className="font-medium text-foreground">Tag simili</p>
+          <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      </Link>
 
       <div className="panel flex items-center justify-between gap-4">
         <div>

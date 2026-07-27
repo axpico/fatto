@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
 import { saveUpload, deleteUpload } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
+import { resolveTagNames } from "@/lib/tagDedupe";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -56,6 +57,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const orderedFilenames = [...galleryExisting, ...newFilenames];
 
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
+  const resolvedTagNames = await resolveTagNames(data.tags);
 
   const recipe = await prisma.recipe.update({
     where: { id },
@@ -79,9 +81,9 @@ export async function PATCH(request: Request, { params }: Params) {
       },
       tags: {
         set: [],
-        connectOrCreate: data.tags.map((name) => ({
-          where: { name: name.toLowerCase() },
-          create: { name: name.toLowerCase() },
+        connectOrCreate: resolvedTagNames.map((name) => ({
+          where: { name },
+          create: { name },
         })),
       },
       images: {
