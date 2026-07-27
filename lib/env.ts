@@ -11,6 +11,8 @@ const envSchema = z.object({
   ANTHROPIC_MODEL: z.string().default("claude-haiku-4-5"),
   OPENROUTER_API_KEY: optionalString(),
   OPENROUTER_MODEL_OVERRIDE: optionalString(),
+  GROQ_API_KEY: optionalString(),
+  GROQ_MODEL: z.string().default("llama-3.3-70b-versatile"),
   UPLOAD_DIR: z.string().default("./data/uploads"),
   COOKIE_SECURE: z
     .string()

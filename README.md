@@ -15,9 +15,11 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
    ```
 
    - `POSTGRES_PASSWORD`: password del database (scegline una qualsiasi, robusta)
-   - `ANTHROPIC_API_KEY`: la tua chiave API Anthropic ([console.anthropic.com](https://console.anthropic.com)) per l'import AI delle ricette. Opzionale se imposti `OPENROUTER_API_KEY`.
+   - `ANTHROPIC_API_KEY`: la tua chiave API Anthropic ([console.anthropic.com](https://console.anthropic.com)) per l'import AI delle ricette. Opzionale se imposti `GROQ_API_KEY` o `OPENROUTER_API_KEY`.
    - `ANTHROPIC_MODEL`: modello da usare per l'estrazione (default `claude-haiku-4-5`, economico e sufficiente per estrarre dati strutturati)
-   - `OPENROUTER_API_KEY`: chiave [OpenRouter](https://openrouter.ai/keys), opzionale — usata come fallback automatico se Anthropic non è configurata o la chiamata fallisce (chiave scaduta, rate limit, ecc.). Prova in sequenza i modelli gratuiti disponibili, scoperti a runtime (nessuna lista da configurare). Se nessuna delle due chiavi è impostata, l'import AI non è disponibile ma il resto dell'app funziona normalmente (inserimento manuale sempre possibile).
+   - `GROQ_API_KEY`: chiave [Groq](https://console.groq.com/keys), opzionale — provata dopo Anthropic e prima di OpenRouter.
+   - `GROQ_MODEL`: modello Groq da usare (default `llama-3.3-70b-versatile`)
+   - `OPENROUTER_API_KEY`: chiave [OpenRouter](https://openrouter.ai/keys), opzionale — usata come ultimo fallback automatico se Anthropic e Groq non sono configurate o la chiamata fallisce (chiave scaduta, rate limit, ecc.). Prova in sequenza i modelli gratuiti disponibili, scoperti a runtime (nessuna lista da configurare). Se nessuna delle tre chiavi è impostata, l'import AI non è disponibile ma il resto dell'app funziona normalmente (inserimento manuale sempre possibile).
    - `OPENROUTER_MODEL_OVERRIDE`: solo per debug, forza un modello OpenRouter specifico saltando la scoperta automatica.
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`: credenziali del primo utente, create automaticamente all'avvio
    - `COOKIE_SECURE`: lascia `true` se l'app è dietro HTTPS (reverse proxy); metti `false` per un deploy su LAN in solo HTTP
@@ -75,6 +77,6 @@ Nella schermata "Rivedi e salva" (per qualunque metodo di import) c'è anche un 
 ## Limiti noti (v1)
 
 - L'import da PDF funziona solo su PDF con testo selezionabile. Questo è un limite permanente, non temporaneo: un PDF scansionato va importato come screenshot (immagine, già supportato via OCR) — renderizzare le pagine PDF come immagini richiederebbe un binding nativo (canvas/cairo) fragile da compilare in Docker su Alpine, per un caso già coperto dal workaround.
-- Quando l'import AI (estrazione o traduzione) passa al fallback OpenRouter (modelli gratuiti), le risposte possono essere più lente o meno accurate di Claude — la pagina di importazione lo segnala esplicitamente quando succede, ma rivedi comunque sempre i dati precompilati prima di salvare.
+- Quando l'import AI (estrazione o traduzione) passa al fallback OpenRouter (modelli gratuiti), le risposte possono essere più lente o meno accurate di Claude/Groq — la pagina di importazione lo segnala esplicitamente quando succede, ma rivedi comunque sempre i dati precompilati prima di salvare.
 - L'import da Reel funziona solo con reel/post video pubblici e singoli: niente Stories, niente caroselli multi-immagine, niente login Instagram per contenuti privati.
 - L'estrazione dei commenti Instagram è best-effort: se Instagram nega l'accesso (serve login, rate limit) viene saltata silenziosamente, senza bloccare l'import — resta sempre disponibile il campo note manuali.

@@ -53,7 +53,7 @@ export function markFailed(modelId: string): void {
   negativeCache.set(modelId, Date.now());
 }
 
-function parseJsonResponse<T>(content: string, schema: z.ZodType<T>): T {
+export function parseJsonResponse<T>(content: string, schema: z.ZodType<T>): T {
   const stripped = content
     .trim()
     .replace(/^```(?:json)?\s*/i, "")
@@ -93,7 +93,7 @@ export async function callOpenRouter<T>(
         json_schema: { name: "response", schema: z.toJSONSchema(schema) },
       },
     }),
-    signal: AbortSignal.timeout(20000),
+    signal: AbortSignal.timeout(40000),
   });
 
   if (res.status === 401) {
