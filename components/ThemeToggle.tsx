@@ -13,13 +13,12 @@ function resolve(stored: string | null): Theme {
 }
 
 export function ThemeToggle() {
-  const theme = useLocalStorageSync(THEME_STORAGE_KEY, THEME_EVENT, resolve, "light");
+  const [theme, setTheme] = useLocalStorageSync(THEME_STORAGE_KEY, THEME_EVENT, resolve, "light");
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";
-    localStorage.setItem(THEME_STORAGE_KEY, next);
+    setTheme(next);
     document.documentElement.dataset.theme = next;
-    window.dispatchEvent(new Event(THEME_EVENT));
   }
 
   return (

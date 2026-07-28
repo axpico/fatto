@@ -208,12 +208,11 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Galleria</h2>
           <div className="flex gap-3 overflow-x-auto pb-2">
             {recipe.images.map((img, idx) => (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <StepImageThumb
                 key={img.id}
-                src={`/api/uploads/${img.filename}`}
+                filename={img.filename}
                 alt={`Foto ${recipe.title} ${idx + 1}`}
-                className="h-28 w-28 shrink-0 rounded-lg object-cover shadow-sm transition-transform duration-200 hover:scale-[1.02]"
+                className="h-28 w-28"
               />
             ))}
           </div>

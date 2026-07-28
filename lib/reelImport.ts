@@ -48,6 +48,17 @@ function classifyYtDlpError(err: unknown): string {
   if (e?.stderr && /unavailable|not available|private|login required|does not exist|removed/i.test(e.stderr)) {
     return "Questo reel è privato, è stato rimosso o non è più disponibile.";
   }
+  if (e?.stderr && /rate.?limit|429|try again later|confirm you.?re not a bot/i.test(e.stderr)) {
+    return "Instagram ha limitato temporaneamente le richieste. Riprova tra qualche minuto.";
+  }
+  if (
+    e?.stderr &&
+    /name or service not known|temporary failure in name resolution|connection refused|network is unreachable|could not resolve host/i.test(
+      e.stderr,
+    )
+  ) {
+    return "Errore di rete durante il download del reel: controlla la connessione e riprova.";
+  }
   return "Impossibile scaricare il reel: controlla il link e riprova, oppure aggiungi le note manuali.";
 }
 

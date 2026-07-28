@@ -37,13 +37,23 @@ const MAX_URL_IMAGE_BYTES = 8 * 1024 * 1024;
 export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.error(`[uploads] fetchImageBuffer: HTTP ${res.status} per ${url}`);
+      return null;
+    }
     const contentType = res.headers.get("content-type") ?? "";
-    if (!contentType.startsWith("image/")) return null;
+    if (!contentType.startsWith("image/")) {
+      console.error(`[uploads] fetchImageBuffer: content-type non immagine ("${contentType}") per ${url}`);
+      return null;
+    }
     const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.byteLength > MAX_URL_IMAGE_BYTES) return null;
+    if (buffer.byteLength > MAX_URL_IMAGE_BYTES) {
+      console.error(`[uploads] fetchImageBuffer: immagine troppo grande (${buffer.byteLength} byte) per ${url}`);
+      return null;
+    }
     return { buffer, contentType };
-  } catch {
+  } catch (err) {
+    console.error(`[uploads] fetchImageBuffer: richiesta fallita per ${url}:`, err);
     return null;
   }
 }

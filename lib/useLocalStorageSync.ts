@@ -7,7 +7,7 @@ export function useLocalStorageSync<T>(
   event: string,
   resolve: (stored: string | null) => T,
   serverValue: T,
-): T {
+): [T, (raw: string) => void] {
   function subscribe(callback: () => void) {
     window.addEventListener(event, callback);
     return () => window.removeEventListener(event, callback);
@@ -21,5 +21,11 @@ export function useLocalStorageSync<T>(
     return serverValue;
   }
 
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  function set(raw: string) {
+    localStorage.setItem(key, raw);
+    window.dispatchEvent(new Event(event));
+  }
+
+  const value = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return [value, set];
 }

@@ -13,11 +13,10 @@ function resolve(stored: string | null): View {
 }
 
 export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
-  const view = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolve, "list");
+  const [view, setView] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolve, "list");
 
   function select(next: View) {
-    localStorage.setItem(VIEW_STORAGE_KEY, next);
-    window.dispatchEvent(new Event(VIEW_EVENT));
+    setView(next);
   }
 
   return (
