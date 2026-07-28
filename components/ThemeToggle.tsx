@@ -1,28 +1,19 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { resolveTheme, THEME_STORAGE_KEY, type Theme } from "@/lib/theme";
+import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
 const THEME_EVENT = "fatto-theme-change";
 
-function subscribe(callback: () => void) {
-  window.addEventListener(THEME_EVENT, callback);
-  return () => window.removeEventListener(THEME_EVENT, callback);
-}
-
-function getSnapshot(): Theme {
+function resolve(stored: string | null): Theme {
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  return resolveTheme(localStorage.getItem(THEME_STORAGE_KEY), prefersDark);
-}
-
-function getServerSnapshot(): Theme {
-  return "light";
+  return resolveTheme(stored, prefersDark);
 }
 
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const theme = useLocalStorageSync(THEME_STORAGE_KEY, THEME_EVENT, resolve, "light");
 
   function toggle() {
     const next: Theme = theme === "dark" ? "light" : "dark";

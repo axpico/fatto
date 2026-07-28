@@ -8,8 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { reportIfFailed } from "@/lib/apiError";
-
-type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
+import type { DuplicatePair } from "@/app/api/tags/duplicates/route";
 
 export default function TagDuplicatesPage() {
   const toast = useToast();

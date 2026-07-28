@@ -41,4 +41,3 @@ export const recipeInputSchema = z.object({
 });
 
 export type RecipeInput = z.infer<typeof recipeInputSchema>;
-export type NutritionInput = z.infer<typeof nutritionInputSchema>;

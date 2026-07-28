@@ -1,28 +1,19 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
 import { LayoutGrid, List as ListIcon } from "lucide-react";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
+import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
 const VIEW_STORAGE_KEY = "fatto-recipe-view";
 const VIEW_EVENT = "fatto-recipe-view-change";
 type View = "list" | "grid";
 
-function subscribe(callback: () => void) {
-  window.addEventListener(VIEW_EVENT, callback);
-  return () => window.removeEventListener(VIEW_EVENT, callback);
-}
-
-function getSnapshot(): View {
-  return localStorage.getItem(VIEW_STORAGE_KEY) === "grid" ? "grid" : "list";
-}
-
-function getServerSnapshot(): View {
-  return "list";
+function resolve(stored: string | null): View {
+  return stored === "grid" ? "grid" : "list";
 }
 
 export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
-  const view = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const view = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolve, "list");
 
   function select(next: View) {
     localStorage.setItem(VIEW_STORAGE_KEY, next);

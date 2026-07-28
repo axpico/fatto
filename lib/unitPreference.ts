@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState } from "react";
+import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
 export const UNIT_PREF_STORAGE_KEY = "fatto-unit-preference";
 export const UNIT_PREF_EVENT = "fatto-unit-preference-change";
@@ -9,21 +10,8 @@ export function resolveUnitPreference(stored: string | null): boolean {
   return stored === "metric";
 }
 
-function subscribe(callback: () => void) {
-  window.addEventListener(UNIT_PREF_EVENT, callback);
-  return () => window.removeEventListener(UNIT_PREF_EVENT, callback);
-}
-
-function getSnapshot(): boolean {
-  return resolveUnitPreference(localStorage.getItem(UNIT_PREF_STORAGE_KEY));
-}
-
-function getServerSnapshot(): boolean {
-  return false;
-}
-
 export function useGlobalUnitPreference(): boolean {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  return useLocalStorageSync(UNIT_PREF_STORAGE_KEY, UNIT_PREF_EVENT, resolveUnitPreference, false);
 }
 
 // ponytail: override locale non persistito, serve solo a "provare" la conversione su una vista

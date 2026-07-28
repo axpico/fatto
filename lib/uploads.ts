@@ -51,8 +51,3 @@ export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; c
 export async function saveUploadFromBuffer(buffer: Buffer, contentType: string): Promise<string> {
   return saveUpload(new File([new Uint8Array(buffer)], "download.jpg", { type: contentType }));
 }
-
-export async function saveUploadFromUrl(url: string): Promise<string | null> {
-  const fetched = await fetchImageBuffer(url);
-  return fetched ? saveUploadFromBuffer(fetched.buffer, fetched.contentType) : null;
-}

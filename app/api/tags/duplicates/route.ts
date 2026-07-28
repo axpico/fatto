@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
 
-type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
+export type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
 
 export async function GET() {
   const { unauthorized } = await requireApiUser();

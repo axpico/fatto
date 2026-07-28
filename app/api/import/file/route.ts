@@ -1,6 +1,7 @@
 import { requireApiUser } from "@/lib/auth";
 import { extractTextFromImage, extractTextFromPdf } from "@/lib/ocr/extractText";
 import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
+import { streamNdjson } from "@/lib/ndjson";
 
 const MIN_PDF_TEXT_LENGTH = 50;
 
@@ -21,41 +22,29 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      function write(line: object) {
-        controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
-      }
-      try {
-        write({ stage: "Leggendo il file..." });
-        let rawText: string;
-        if (file.type === "application/pdf") {
-          rawText = await extractTextFromPdf(buffer);
-          if (rawText.trim().length < MIN_PDF_TEXT_LENGTH) {
-            write({ done: true, error: "Questo PDF sembra una scansione: carica uno screenshot invece" });
-            return;
-          }
-        } else {
-          rawText = await extractTextFromImage(buffer);
+  return streamNdjson(async (write) => {
+    try {
+      write({ stage: "Leggendo il file..." });
+      let rawText: string;
+      if (file.type === "application/pdf") {
+        rawText = await extractTextFromPdf(buffer);
+        if (rawText.trim().length < MIN_PDF_TEXT_LENGTH) {
+          write({ done: true, error: "Questo PDF sembra una scansione: carica uno screenshot invece" });
+          return;
         }
-
-        write({ stage: "Estraendo ricetta..." });
-        const { recipe, provider } = await extractRecipe(rawText);
-        write({ done: true, ...recipe, provider });
-      } catch (err) {
-        if (err instanceof AiExtractionError) {
-          write({ done: true, error: err.message });
-        } else {
-          write({ done: true, error: "Estrazione AI non riuscita" });
-        }
-      } finally {
-        controller.close();
+      } else {
+        rawText = await extractTextFromImage(buffer);
       }
-    },
-  });
 
-  return new Response(stream, {
-    headers: { "Content-Type": "application/x-ndjson" },
+      write({ stage: "Estraendo ricetta..." });
+      const { recipe, provider } = await extractRecipe(rawText);
+      write({ done: true, ...recipe, provider });
+    } catch (err) {
+      if (err instanceof AiExtractionError) {
+        write({ done: true, error: err.message });
+      } else {
+        write({ done: true, error: "Estrazione AI non riuscita" });
+      }
+    }
   });
 }

@@ -5,6 +5,7 @@ import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
 import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
 import { fetchImageBuffer, saveUploadFromBuffer } from "@/lib/uploads";
 import { MAX_VISION_IMAGES, type VisionImage } from "@/lib/ai/visionImage";
+import { streamNdjson } from "@/lib/ndjson";
 
 const bodySchema = z.object({ url: z.string().url() });
 
@@ -27,71 +28,59 @@ export async function POST(request: Request) {
     return Response.json({ error: "Link non valido" }, { status: 400 });
   }
 
-  const encoder = new TextEncoder();
-  const stream = new ReadableStream({
-    async start(controller) {
-      function write(line: object) {
-        controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
-      }
+  return streamNdjson(async (write) => {
+    try {
+      write({ stage: "Scaricando pagina..." });
+      let html: string;
       try {
-        write({ stage: "Scaricando pagina..." });
-        let html: string;
-        try {
-          const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          html = await res.text();
-        } catch {
-          write({ done: true, error: "Impossibile scaricare la pagina. Controlla il link e riprova." });
-          return;
-        }
-
-        const jsonLd = extractJsonLdRecipe(html);
-
-        const coverFetched = jsonLd?.imageUrl ? await fetchImageBuffer(jsonLd.imageUrl) : null;
-        const stepFetched = jsonLd?.stepImageUrls
-          ? await Promise.all(
-              jsonLd.stepImageUrls.map((url) => (url ? fetchImageBuffer(url) : Promise.resolve(null))),
-            )
-          : [];
-
-        const visionImages: VisionImage[] = [coverFetched, ...stepFetched]
-          .filter((f): f is { buffer: Buffer; contentType: string } => f != null)
-          .filter((f) => VISION_MIME_TYPES.has(f.contentType as VisionImage["mediaType"]))
-          .slice(0, MAX_VISION_IMAGES)
-          .map((f) => ({ data: f.buffer, mediaType: f.contentType as VisionImage["mediaType"] }));
-
-        write({ stage: "Estraendo ricetta..." });
-        const { recipe, provider } = await extractRecipe(htmlToText(html), visionImages);
-        const photoUrl = coverFetched ? await saveUploadFromBuffer(coverFetched.buffer, coverFetched.contentType) : null;
-        const stepImageFilenames = stepFetched.length
-          ? await Promise.all(
-              stepFetched.map((f) => (f ? saveUploadFromBuffer(f.buffer, f.contentType) : Promise.resolve(null))),
-            )
-          : null;
-        write({
-          done: true,
-          ...recipe,
-          nutrition: jsonLd?.nutrition ?? recipe.nutrition,
-          steps: recipe.steps.map((step, i) => ({
-            ...step,
-            image_filename: stepImageFilenames?.[i] ?? null,
-          })),
-          photoUrl,
-          provider,
-        });
-      } catch (err) {
-        if (err instanceof AiExtractionError) {
-          write({ done: true, error: err.message });
-        } else {
-          write({ done: true, error: "Estrazione AI non riuscita" });
-        }
-      } finally {
-        controller.close();
+        const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        html = await res.text();
+      } catch {
+        write({ done: true, error: "Impossibile scaricare la pagina. Controlla il link e riprova." });
+        return;
       }
-    },
-  });
 
-  return new Response(stream, {
-    headers: { "Content-Type": "application/x-ndjson" },
+      const jsonLd = extractJsonLdRecipe(html);
+
+      const coverFetched = jsonLd?.imageUrl ? await fetchImageBuffer(jsonLd.imageUrl) : null;
+      const stepFetched = jsonLd?.stepImageUrls
+        ? await Promise.all(
+            jsonLd.stepImageUrls.map((url) => (url ? fetchImageBuffer(url) : Promise.resolve(null))),
+          )
+        : [];
+
+      const visionImages: VisionImage[] = [coverFetched, ...stepFetched]
+        .filter((f): f is { buffer: Buffer; contentType: string } => f != null)
+        .filter((f) => VISION_MIME_TYPES.has(f.contentType as VisionImage["mediaType"]))
+        .slice(0, MAX_VISION_IMAGES)
+        .map((f) => ({ data: f.buffer, mediaType: f.contentType as VisionImage["mediaType"] }));
+
+      write({ stage: "Estraendo ricetta..." });
+      const { recipe, provider } = await extractRecipe(htmlToText(html), visionImages);
+      const photoUrl = coverFetched ? await saveUploadFromBuffer(coverFetched.buffer, coverFetched.contentType) : null;
+      const stepImageFilenames = stepFetched.length
+        ? await Promise.all(
+            stepFetched.map((f) => (f ? saveUploadFromBuffer(f.buffer, f.contentType) : Promise.resolve(null))),
+          )
+        : null;
+      write({
+        done: true,
+        ...recipe,
+        nutrition: jsonLd?.nutrition ?? recipe.nutrition,
+        steps: recipe.steps.map((step, i) => ({
+          ...step,
+          image_filename: stepImageFilenames?.[i] ?? null,
+        })),
+        photoUrl,
+        provider,
+      });
+    } catch (err) {
+      if (err instanceof AiExtractionError) {
+        write({ done: true, error: err.message });
+      } else {
+        write({ done: true, error: "Estrazione AI non riuscita" });
+      }
+    }
   });
 }

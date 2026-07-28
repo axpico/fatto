@@ -6,27 +6,6 @@ import { resolveTagNames } from "@/lib/tagDedupe";
 
 type Params = { params: Promise<{ id: string }> };
 
-export async function GET(_request: Request, { params }: Params) {
-  const { unauthorized } = await requireApiUser();
-  if (unauthorized) return unauthorized;
-
-  const { id } = await params;
-  const recipe = await prisma.recipe.findUnique({
-    where: { id },
-    include: {
-      ingredients: { orderBy: { sortOrder: "asc" } },
-      steps: { orderBy: { sortOrder: "asc" } },
-      tags: true,
-      cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
-      images: { orderBy: { sortOrder: "asc" } },
-      nutrition: true,
-    },
-  });
-
-  if (!recipe) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
-  return Response.json(recipe);
-}
-
 export async function PATCH(request: Request, { params }: Params) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
