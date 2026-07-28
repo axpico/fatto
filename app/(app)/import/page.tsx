@@ -31,7 +31,10 @@ const LINK_STAGES = ["Scaricando pagina...", "Estraendo ricetta..."];
 const FILE_STAGES = ["Leggendo il file...", "Estraendo ricetta..."];
 const REEL_STAGES = ["Scaricando video...", "Trascrivendo audio...", "Estraendo ricetta..."];
 
-type ImportedRecipe = ExtractedRecipe & { photoUrl?: string | null };
+type ImportedRecipe = Omit<ExtractedRecipe, "steps"> & {
+  photoUrl?: string | null;
+  steps: (ExtractedRecipe["steps"][number] & { image_filename?: string | null })[];
+};
 
 type ImportStreamLine = { stage: string } | ({ done: true; error: string }) | (ImportedRecipe & { done: true; provider?: string });
 
@@ -105,6 +108,8 @@ function mapExtractedToFormData(extracted: ImportedRecipe, sourceUrl?: string): 
       instruction: s.instruction,
       timerMinutes: s.timer_minutes,
       optional: s.optional,
+      imageFilename: s.image_filename ?? null,
+      imageFile: null,
     })),
   };
 }
@@ -232,7 +237,7 @@ export default function ImportPage() {
       return;
     }
     setProvider(data.provider ?? null);
-    setExtracted(data);
+    setExtracted({ ...data, steps: data.steps.map((s: RecipeFormData["steps"][number]) => ({ ...s, imageFile: null })) });
     setFormKey((k) => k + 1);
   }
 

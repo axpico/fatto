@@ -14,6 +14,7 @@ export type JsonLdNutrition = {
 export type JsonLdRecipeData = {
   nutrition: JsonLdNutrition | null;
   imageUrl: string | null;
+  stepImageUrls: (string | null)[] | null;
 };
 
 function parseNum(value: unknown): number | null {
@@ -49,6 +50,14 @@ function parseImage(image: unknown): string | null {
   return null;
 }
 
+// HowToSection (passaggi raggruppati sotto titoli) non è gestita — caso meno comune, ricade su
+// null come il resto di questo parser best-effort
+function parseStepImages(recipeInstructions: unknown): (string | null)[] | null {
+  if (!Array.isArray(recipeInstructions) || recipeInstructions.length === 0) return null;
+  if (recipeInstructions.some((item) => typeof item !== "object" || item === null)) return null;
+  return recipeInstructions.map((item) => parseImage((item as Record<string, unknown>).image));
+}
+
 function findRecipeNode(node: unknown): Record<string, unknown> | null {
   if (Array.isArray(node)) {
     for (const item of node) {
@@ -81,7 +90,11 @@ export function extractJsonLdRecipe(html: string): JsonLdRecipeData | null {
     }
     const recipe = findRecipeNode(parsed);
     if (recipe) {
-      return { nutrition: parseNutrition(recipe.nutrition), imageUrl: parseImage(recipe.image) };
+      return {
+        nutrition: parseNutrition(recipe.nutrition),
+        imageUrl: parseImage(recipe.image),
+        stepImageUrls: parseStepImages(recipe.recipeInstructions),
+      };
     }
   }
   return null;

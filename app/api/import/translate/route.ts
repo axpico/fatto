@@ -22,7 +22,12 @@ const bodySchema = z.object({
     }),
   ),
   steps: z.array(
-    z.object({ instruction: z.string(), timerMinutes: z.number().nullable(), optional: z.boolean() }),
+    z.object({
+      instruction: z.string(),
+      timerMinutes: z.number().nullable(),
+      optional: z.boolean(),
+      imageFilename: z.string().nullable(),
+    }),
   ),
   tags: z.array(z.string()),
   photoUrl: z.string().nullable(),

@@ -5,13 +5,26 @@ import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight, Mic, MicOff, List, Pause, Play, Square } from "lucide-react";
 import { matchVoiceCommand } from "@/lib/voiceCommands";
 import { Modal, type ModalHandle } from "@/components/ui/Modal";
-import { ServingsStepper, formatQuantity } from "@/components/ServingsAdjuster";
-import { scaleQuantity } from "@/lib/scaling";
+import { ServingsAdjuster } from "@/components/ServingsAdjuster";
+import { Badge } from "@/components/ui/Badge";
+import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { reportIfFailed } from "@/lib/apiError";
 
-type Step = { id: string; instruction: string; timerMinutes: number | null };
-type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null };
+type Step = {
+  id: string;
+  instruction: string;
+  timerMinutes: number | null;
+  optional: boolean;
+  imageFilename: string | null;
+};
+type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null; optional: boolean };
+
+function requiredProgress(steps: Step[], index: number) {
+  const total = Math.max(steps.filter((s) => !s.optional).length, 1);
+  const current = steps.slice(0, index + 1).filter((s) => !s.optional).length;
+  return { current, total };
+}
 
 type SpeechRecognitionLike = {
   lang: string;
@@ -206,8 +219,9 @@ export function CookingModeViewer({
   const [announcement, setAnnouncement] = useState("");
   const [trackedIndex, setTrackedIndex] = useState(0);
   const [trackedRemaining, setTrackedRemaining] = useState<number | null>(null);
-  const [servings, setServings] = useState(baseServings);
   const [marking, setMarking] = useState(false);
+  const [cookLogId, setCookLogId] = useState<string | null>(null);
+  const [rating, setRating] = useState<number | null>(null);
   const touchStartX = useRef<number | null>(null);
   const ingredientsModalRef = useRef<ModalHandle>(null);
 
@@ -222,7 +236,8 @@ export function CookingModeViewer({
   // useStepTimer sopra
   if (index !== trackedIndex) {
     setTrackedIndex(index);
-    setAnnouncement(isDone ? "Ricetta completata" : `Passaggio ${index + 1} di ${steps.length}`);
+    const p = requiredProgress(steps, Math.min(index, steps.length - 1));
+    setAnnouncement(isDone ? "Ricetta completata" : `Passaggio ${p.current} di ${p.total}`);
   }
   if (timer.remaining !== trackedRemaining) {
     setTrackedRemaining(timer.remaining);
@@ -253,12 +268,39 @@ export function CookingModeViewer({
     setAnnouncement("Timer annullato");
   }
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.target as HTMLElement | null)?.closest("input, textarea, dialog")) return;
+      if (e.key === "ArrowRight") next();
+      else if (e.key === "ArrowLeft") prev();
+      else if (e.key === " " && step) {
+        e.preventDefault();
+        if (timer.remaining === null) handleStartTimer();
+        else handleTogglePause();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  });
+
   async function markCooked() {
     setMarking(true);
     const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
     setMarking(false);
     if (await reportIfFailed(res, toast)) return;
+    const log = await res.json();
+    setCookLogId(log.id);
     toast.success("Ricetta segnata come cucinata.");
+  }
+
+  async function patchCookLog(patch: { rating?: number | null; notes?: string | null }) {
+    if (!cookLogId) return;
+    const res = await fetch(`/api/cook-logs/${cookLogId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    await reportIfFailed(res, toast);
   }
 
   const voice = useVoiceControl({
@@ -288,6 +330,7 @@ export function CookingModeViewer({
 
   const minutes = timer.remaining !== null ? Math.floor(timer.remaining / 60) : null;
   const seconds = timer.remaining !== null ? timer.remaining % 60 : null;
+  const progress = requiredProgress(steps, Math.min(index, steps.length - 1));
 
   return (
     <div
@@ -300,24 +343,37 @@ export function CookingModeViewer({
       </p>
 
       <div className="px-4 pt-4">
-        <div
-          role="progressbar"
-          aria-valuenow={Math.min(index + 1, steps.length)}
-          aria-valuemin={1}
-          aria-valuemax={steps.length}
-          aria-labelledby="step-progress-label"
-          className="h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken"
-        >
-          <div
-            className="h-full bg-primary transition-all"
-            style={{ width: `${(Math.min(index + 1, steps.length) / steps.length) * 100}%` }}
-          />
-        </div>
+        {!isDone && (
+          <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Vai al passaggio">
+            {steps.map((s, i) => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => jumpTo(i + 1)}
+                aria-label={`Vai al passaggio ${i + 1}`}
+                aria-current={i === index}
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center"
+              >
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    i === index
+                      ? "bg-primary"
+                      : i < index
+                        ? "bg-primary/40"
+                        : s.optional
+                          ? "border border-muted-foreground"
+                          : "bg-surface-sunken"
+                  }`}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between p-4">
         <span id="step-progress-label" className="text-sm text-muted-foreground">
-          {isDone ? "Ricetta completata" : `Passaggio ${index + 1} di ${steps.length}`}
+          {isDone ? "Ricetta completata" : `Passaggio ${progress.current} di ${progress.total}`}
         </span>
         <div className="flex items-center gap-1">
           {ingredients.length > 0 && (
@@ -356,35 +412,82 @@ export function CookingModeViewer({
       </div>
 
       {isDone ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-          <p className="font-display text-3xl font-medium leading-snug">Ricetta completata!</p>
-          <div className="flex w-full max-w-sm flex-col gap-3">
-            <button
-              type="button"
-              onClick={markCooked}
-              disabled={marking}
-              className="rounded-full bg-primary py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50"
-            >
-              Segna come cucinata
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/recipes/${recipeId}`)}
-              className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
-            >
-              Torna alla ricetta
-            </button>
-          </div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-6 py-6 text-center">
+          <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">Ricetta completata!</p>
+          {cookLogId ? (
+            <div className="flex w-full max-w-sm flex-col items-center gap-4">
+              <StarRating
+                value={rating}
+                onChange={(n) => {
+                  setRating(n);
+                  patchCookLog({ rating: n });
+                }}
+              />
+              <textarea
+                placeholder="Note (opzionale)"
+                onBlur={(e) => patchCookLog({ notes: e.target.value || null })}
+                rows={2}
+                className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-foreground"
+              />
+              <button
+                type="button"
+                onClick={() => router.push(`/recipes/${recipeId}`)}
+                className="w-full rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+              >
+                Torna alla ricetta
+              </button>
+            </div>
+          ) : (
+            <div className="flex w-full max-w-sm flex-col gap-3">
+              <button
+                type="button"
+                onClick={markCooked}
+                disabled={marking}
+                className="rounded-full bg-primary py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50"
+              >
+                Segna come cucinata
+              </button>
+              <button
+                type="button"
+                onClick={() => router.push(`/recipes/${recipeId}`)}
+                className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+              >
+                Torna alla ricetta
+              </button>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 text-center">
-          <p className="font-display text-3xl font-medium leading-snug">{step.instruction}</p>
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center">
+          {step.imageFilename && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={`/api/uploads/${step.imageFilename}`}
+              alt=""
+              className="max-h-48 w-full max-w-sm rounded-xl object-cover"
+            />
+          )}
+          {step.optional && (
+            <Badge variant="neutral" size="sm">
+              facoltativo
+            </Badge>
+          )}
+          <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">{step.instruction}</p>
+          {step.optional && (
+            <button
+              type="button"
+              onClick={next}
+              className="text-sm font-medium text-muted-foreground underline-offset-2 hover:underline"
+            >
+              Salta passaggio
+            </button>
+          )}
 
           {step.timerMinutes !== null && (
             <div className="flex flex-col items-center gap-3">
               {timer.remaining !== null ? (
                 <>
-                  <span className="text-5xl font-bold tabular-nums">
+                  <span className="text-4xl font-bold tabular-nums sm:text-5xl">
                     {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
                   </span>
                   <div className="flex gap-2">
@@ -446,22 +549,7 @@ export function CookingModeViewer({
       )}
 
       <Modal ref={ingredientsModalRef} variant="sheet" title="Ingredienti">
-        <ServingsStepper servings={servings} onChange={setServings} />
-        <ul className="mt-3 max-h-96 space-y-2 overflow-y-auto text-foreground">
-          {ingredients.map((ing) => {
-            const scaled = scaleQuantity(ing.quantity, baseServings, servings);
-            return (
-              <li key={ing.id} className="flex justify-between gap-2 border-b border-border pb-2 text-sm">
-                <span>{ing.name}</span>
-                {scaled !== null && (
-                  <span className="text-muted-foreground">
-                    {formatQuantity(scaled)} {ing.unit ?? ""}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        <ServingsAdjuster baseServings={baseServings} ingredients={ingredients} />
       </Modal>
     </div>
   );

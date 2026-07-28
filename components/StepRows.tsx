@@ -1,10 +1,20 @@
 "use client";
 
+import { X } from "lucide-react";
 import { inputClasses } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ReorderableRows } from "@/components/ui/ReorderableRows";
 
-export type StepRow = { instruction: string; timerMinutes: number | null; optional: boolean };
+export type StepRow = {
+  instruction: string;
+  timerMinutes: number | null;
+  optional: boolean;
+  imageFilename: string | null;
+  imageFile: File | null;
+};
+
+const stepImageInputClasses =
+  "text-xs text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-surface-secondary file:px-2 file:py-1 file:text-xs";
 
 export function StepRows({
   value,
@@ -19,7 +29,7 @@ export function StepRows({
       onChange={onChange}
       itemLabel="passaggio"
       addLabel="Aggiungi passaggio"
-      onAdd={() => ({ instruction: "", timerMinutes: null, optional: false })}
+      onAdd={() => ({ instruction: "", timerMinutes: null, optional: false, imageFilename: null, imageFile: null })}
       renderFields={(row, index, update) => (
         <>
           <span className="pt-2 text-sm font-medium text-muted-foreground">{index + 1}.</span>
@@ -42,11 +52,40 @@ export function StepRows({
         </>
       )}
       renderOptional={(row, _index, update) => (
-        <Checkbox
-          label="Facoltativo"
-          checked={row.optional}
-          onChange={(e) => update({ optional: e.target.checked })}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Checkbox
+            label="Facoltativo"
+            checked={row.optional}
+            onChange={(e) => update({ optional: e.target.checked })}
+          />
+          <div className="flex items-center gap-2">
+            {row.imageFilename && !row.imageFile && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={`/api/uploads/${row.imageFilename}`}
+                alt=""
+                className="h-10 w-10 rounded object-cover"
+              />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              aria-label="Immagine passaggio"
+              onChange={(e) => update({ imageFile: e.target.files?.[0] ?? null })}
+              className={stepImageInputClasses}
+            />
+            {(row.imageFilename || row.imageFile) && (
+              <button
+                type="button"
+                onClick={() => update({ imageFilename: null, imageFile: null })}
+                aria-label="Rimuovi immagine passaggio"
+                className="flex min-h-11 min-w-11 items-center justify-center text-muted-foreground hover:text-destructive"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+        </div>
       )}
     />
   );

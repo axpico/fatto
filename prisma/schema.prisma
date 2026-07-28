@@ -92,13 +92,14 @@ model Ingredient {
 }
 
 model Step {
-  id           String  @id @default(cuid())
-  recipeId     String
-  recipe       Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  sortOrder    Int
-  instruction  String
-  timerMinutes Int?
-  optional     Boolean @default(false)
+  id            String  @id @default(cuid())
+  recipeId      String
+  recipe        Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sortOrder     Int
+  instruction   String
+  timerMinutes  Int?
+  optional      Boolean @default(false)
+  imageFilename String?
 
   @@index([recipeId])
 }

@@ -11,6 +11,7 @@ export const stepInputSchema = z.object({
   instruction: z.string().trim().min(1),
   timerMinutes: z.number().int().positive().nullable(),
   optional: z.boolean(),
+  imageFilename: z.string().nullable(),
 });
 
 export const nutritionInputSchema = z.object({

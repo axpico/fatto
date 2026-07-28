@@ -32,7 +32,10 @@ export async function PATCH(request: Request, { params }: Params) {
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const existing = await prisma.recipe.findUnique({ where: { id }, include: { images: true, nutrition: true } });
+  const existing = await prisma.recipe.findUnique({
+    where: { id },
+    include: { images: true, nutrition: true, steps: true },
+  });
   if (!existing) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
 
   const formData = await request.formData();
@@ -40,7 +43,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo, galleryPhotos, galleryExisting } = parsed;
+  const { data, photo, galleryPhotos, galleryExisting, stepImages } = parsed;
 
   let photoUrl = existing.photoUrl;
   if (photo) {
@@ -55,6 +58,15 @@ export async function PATCH(request: Request, { params }: Params) {
   await Promise.all(toRemove.map((img) => deleteUpload(img.filename)));
   const newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
   const orderedFilenames = [...galleryExisting, ...newFilenames];
+
+  const stepImageFilenames = await Promise.all(
+    data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
+  );
+  const oldStepImages = existing.steps
+    .map((s) => s.imageFilename)
+    .filter((f): f is string => f != null);
+  const newStepImages = new Set(stepImageFilenames.filter((f): f is string => f != null));
+  await Promise.all(oldStepImages.filter((f) => !newStepImages.has(f)).map(deleteUpload));
 
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
   const resolvedTagNames = await resolveTagNames(data.tags);
@@ -77,7 +89,11 @@ export async function PATCH(request: Request, { params }: Params) {
       },
       steps: {
         deleteMany: {},
-        create: data.steps.map((step, index) => ({ ...step, sortOrder: index })),
+        create: data.steps.map((step, index) => ({
+          ...step,
+          imageFilename: stepImageFilenames[index],
+          sortOrder: index,
+        })),
       },
       tags: {
         set: [],

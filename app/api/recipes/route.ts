@@ -105,10 +105,13 @@ export async function POST(request: Request) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo, existingPhotoUrl, galleryPhotos } = parsed;
+  const { data, photo, existingPhotoUrl, galleryPhotos, stepImages } = parsed;
 
   const photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
   const galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+  const stepImageFilenames = await Promise.all(
+    data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
+  );
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
   const resolvedTagNames = await resolveTagNames(data.tags);
 
@@ -128,7 +131,11 @@ export async function POST(request: Request) {
         create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
       },
       steps: {
-        create: data.steps.map((step, index) => ({ ...step, sortOrder: index })),
+        create: data.steps.map((step, index) => ({
+          ...step,
+          imageFilename: stepImageFilenames[index],
+          sortOrder: index,
+        })),
       },
       tags: {
         connectOrCreate: resolvedTagNames.map((name) => ({

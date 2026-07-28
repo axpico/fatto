@@ -13,6 +13,7 @@ export function parseRecipeFormData(formData: FormData):
       existingPhotoUrl: string | null;
       galleryPhotos: File[];
       galleryExisting: string[];
+      stepImages: (File | null)[];
     }
   | { error: string } {
   const photoEntry = formData.get("photo");
@@ -62,5 +63,10 @@ export function parseRecipeFormData(formData: FormData):
     return { error: "Galleria non valida" };
   }
 
-  return { data: parsed.data, photo, existingPhotoUrl, galleryPhotos, galleryExisting };
+  const stepImages = parsed.data.steps.map((_, i) => {
+    const f = formData.get(`stepImage_${i}`);
+    return f instanceof File && f.size > 0 ? f : null;
+  });
+
+  return { data: parsed.data, photo, existingPhotoUrl, galleryPhotos, galleryExisting, stepImages };
 }

@@ -165,7 +165,20 @@ export function RecipeForm({
     body.set("equipment", JSON.stringify(form.equipment));
     body.set("nutrition", JSON.stringify(form.nutrition));
     body.set("ingredients", JSON.stringify(form.ingredients));
-    body.set("steps", JSON.stringify(form.steps));
+    body.set(
+      "steps",
+      JSON.stringify(
+        form.steps.map((s) => ({
+          instruction: s.instruction,
+          timerMinutes: s.timerMinutes,
+          optional: s.optional,
+          imageFilename: s.imageFilename,
+        })),
+      ),
+    );
+    form.steps.forEach((s, i) => {
+      if (s.imageFile) body.append(`stepImage_${i}`, s.imageFile);
+    });
     body.set("tags", JSON.stringify(form.tags));
     if (photoFile) body.set("photo", photoFile);
     else if (form.photoUrl) body.set("existingPhotoUrl", form.photoUrl);

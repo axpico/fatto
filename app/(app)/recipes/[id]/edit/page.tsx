@@ -60,6 +60,8 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
             instruction: s.instruction,
             timerMinutes: s.timerMinutes,
             optional: s.optional,
+            imageFilename: s.imageFilename,
+            imageFile: null,
           })),
           tags: recipe.tags.map((t) => t.name),
         }}
