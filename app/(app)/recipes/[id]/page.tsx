@@ -5,9 +5,15 @@ import { prisma } from "@/lib/db";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
 import { CookLogSection } from "@/components/CookLogSection";
+import { StepImageThumb } from "@/components/StepImageThumb";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
+import { formatDate, formatRelativeDate } from "@/lib/formatDate";
+
+// ponytail: 60s di margine assorbe lo scarto tra createdAt (orologio DB) e updatedAt
+// (orologio Prisma) su una riga appena creata; una modifica vera arriva quasi sempre dopo
+const EDIT_THRESHOLD_MS = 60_000;
 
 const NUTRITION_FIELDS: { key: "caloriesKcal" | "proteinG" | "carbsG" | "fatG" | "fiberG" | "sugarG" | "saturatedFatG" | "sodiumMg"; label: string; unit: string }[] = [
   { key: "caloriesKcal", label: "Calorie", unit: " kcal" },
@@ -31,6 +37,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
       images: { orderBy: { sortOrder: "asc" } },
       nutrition: true,
+      createdBy: { select: { name: true } },
     },
   });
 
@@ -118,6 +125,15 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         )}
       </div>
 
+      <p className="mt-2 text-xs text-muted-foreground">
+        <span title={formatRelativeDate(recipe.createdAt.toISOString())}>Aggiunta il {formatDate(recipe.createdAt.toISOString())}</span>
+        {recipe.updatedAt.getTime() - recipe.createdAt.getTime() > EDIT_THRESHOLD_MS && (
+          <> · <span title={formatRelativeDate(recipe.updatedAt.toISOString())}>modificata il {formatDate(recipe.updatedAt.toISOString())}</span></>
+        )}
+        {" · "}
+        {recipe.createdBy.name}
+      </p>
+
       {recipe.equipment.length > 0 && (
         <section className="mt-8">
           <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Attrezzatura</h2>
@@ -145,6 +161,9 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           {recipe.steps.map((step) => (
             <li key={step.id} className="flex gap-3 rounded-lg border border-border bg-surface px-4 py-4 text-foreground shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-sm font-semibold text-muted-foreground">{step.sortOrder + 1}</span>
+              {step.imageFilename && (
+                <StepImageThumb filename={step.imageFilename} alt={`Passaggio ${step.sortOrder + 1}`} />
+              )}
               <span className="min-w-0 flex-1 leading-7">
                 {step.instruction}
                 {step.optional && (

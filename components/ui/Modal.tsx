@@ -4,7 +4,7 @@ import { forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
 
 export type ModalHandle = { open: () => void; close: () => void };
 
-type Variant = "center" | "sheet";
+type Variant = "center" | "sheet" | "image";
 
 type Props = {
   variant?: Variant;
@@ -16,6 +16,7 @@ type Props = {
 const variantClasses: Record<Variant, string> = {
   center: "w-[calc(100%-2rem)] max-w-sm rounded-xl",
   sheet: "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85vh] w-full overflow-y-auto rounded-t-xl sm:inset-auto sm:bottom-6 sm:max-w-lg sm:rounded-xl",
+  image: "w-[calc(100%-2rem)] max-w-2xl border-none bg-transparent p-0 shadow-none",
 };
 
 export const Modal = forwardRef<ModalHandle, Props>(

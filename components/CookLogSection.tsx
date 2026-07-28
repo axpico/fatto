@@ -10,6 +10,7 @@ import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/Confirm
 import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { reportIfFailed } from "@/lib/apiError";
+import { formatDate } from "@/lib/formatDate";
 
 type CookLog = {
   id: string;
@@ -18,10 +19,6 @@ type CookLog = {
   notes: string | null;
   user: { name: string };
 };
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("it-IT", { day: "numeric", month: "short", year: "numeric" });
-}
 
 export function CookLogSection({
   recipeId,
