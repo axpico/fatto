@@ -11,9 +11,28 @@ const ALIASES: Record<string, string> = {
   cucchiaini: "cucchiaino",
   tazze: "tazza",
   bicchieri: "bicchiere",
+  teaspoon: "tsp",
+  teaspoons: "tsp",
+  tablespoon: "tbsp",
+  tablespoons: "tbsp",
+  cups: "cup",
+  ounce: "oz",
+  ounces: "oz",
+  pound: "lb",
+  pounds: "lb",
+  lbs: "lb",
+  pint: "pt",
+  pints: "pt",
+  quart: "qt",
+  quarts: "qt",
+  gallon: "gal",
+  gallons: "gal",
+  "fluid ounce": "fl oz",
+  "fluid ounces": "fl oz",
+  floz: "fl oz",
 };
 
-const MASS: Record<string, number> = { mg: 0.001, g: 1, hg: 100, kg: 1000 };
+const MASS: Record<string, number> = { mg: 0.001, g: 1, hg: 100, kg: 1000, oz: 28.35, lb: 453.6 };
 const VOLUME: Record<string, number> = {
   ml: 1,
   cl: 10,
@@ -22,6 +41,13 @@ const VOLUME: Record<string, number> = {
   cucchiaio: 15,
   bicchiere: 200,
   tazza: 240,
+  tsp: 5,
+  tbsp: 15,
+  cup: 240,
+  "fl oz": 30,
+  pt: 480,
+  qt: 960,
+  gal: 3840,
 };
 
 function normalize(unit: string): string {
@@ -43,4 +69,17 @@ export function convert(quantity: number, fromUnit: string, toUnit: string): num
   const to = dimensionOf(normalize(toUnit));
   if (!from || !to || from.table !== to.table) return null;
   return (quantity * from.factor) / to.factor;
+}
+
+export function applyUnitPreference(
+  quantity: number,
+  unit: string | null,
+  useMetric: boolean,
+): { quantity: number; unit: string | null } {
+  if (!useMetric || !unit) return { quantity, unit };
+  const grams = convert(quantity, unit, "g");
+  if (grams !== null) return { quantity: grams, unit: "g" };
+  const ml = convert(quantity, unit, "ml");
+  if (ml !== null) return { quantity: ml, unit: "ml" };
+  return { quantity, unit };
 }

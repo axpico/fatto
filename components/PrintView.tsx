@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { scaleQuantity } from "@/lib/scaling";
+import { applyUnitPreference } from "@/lib/units";
+import { useUnitPreference } from "@/lib/unitPreference";
 import { formatQuantity, ServingsStepper } from "@/components/ServingsAdjuster";
+import { UnitToggle } from "@/components/UnitToggle";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 
@@ -44,6 +47,7 @@ type Recipe = {
 
 export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: string }) {
   const [servings, setServings] = useState(recipe.servingsBase);
+  const [useMetric, toggleUnit] = useUnitPreference();
   const totalMinutes =
     recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null
       ? recipe.prepTimeMinutes + recipe.cookTimeMinutes
@@ -53,6 +57,7 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
     <div className="mx-auto min-h-screen max-w-3xl bg-surface p-5 text-foreground sm:my-8 sm:rounded-xl sm:border sm:border-border sm:p-8 sm:shadow-sm print:my-0 print:max-w-none print:p-0">
       <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
         <ServingsStepper servings={servings} onChange={setServings} />
+        <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />
         <Button type="button" variant="secondary" onClick={() => window.print()}>
           Stampa / Salva PDF
         </Button>
@@ -100,11 +105,12 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
       <ul className="mt-2 list-disc space-y-1 pl-5">
         {recipe.ingredients.map((ing) => {
           const scaled = scaleQuantity(ing.quantity, recipe.servingsBase, servings);
+          const display = scaled != null ? applyUnitPreference(scaled, ing.unit, useMetric) : null;
           return (
             <li key={ing.id} className="break-inside-avoid">
-              {scaled != null && (
+              {display != null && (
                 <strong>
-                  {formatQuantity(scaled)} {ing.unit ?? ""}{" "}
+                  {formatQuantity(display.quantity)} {display.unit ?? ""}{" "}
                 </strong>
               )}
               {ing.name}

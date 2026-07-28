@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { convert } from "./units";
+import { convert, applyUnitPreference } from "./units";
 
 describe("convert", () => {
   it("converts within mass", () => {
@@ -25,5 +25,27 @@ describe("convert", () => {
   it("returns null for unknown units", () => {
     expect(convert(1, "pizzico", "g")).toBeNull();
     expect(convert(1, "g", "q.b.")).toBeNull();
+  });
+
+  it("converts English kitchen units", () => {
+    expect(convert(1, "cup", "ml")).toBe(240);
+    expect(convert(3, "tsp", "tbsp")).toBe(1);
+    expect(convert(1, "lb", "oz")).toBe(16);
+    expect(convert(1, "gallon", "cup")).toBe(16);
+    expect(convert(2, "tablespoons", "ml")).toBe(30);
+    expect(convert(1, "cup", "oz")).toBeNull();
+  });
+});
+
+describe("applyUnitPreference", () => {
+  it("converts mass and volume units to g/ml when enabled", () => {
+    expect(applyUnitPreference(2, "tsp", true)).toEqual({ quantity: 10, unit: "ml" });
+    expect(applyUnitPreference(1, "kg", true)).toEqual({ quantity: 1000, unit: "g" });
+  });
+
+  it("leaves the quantity untouched when disabled, unitless, or unconvertible", () => {
+    expect(applyUnitPreference(1, "cup", false)).toEqual({ quantity: 1, unit: "cup" });
+    expect(applyUnitPreference(3, null, true)).toEqual({ quantity: 3, unit: null });
+    expect(applyUnitPreference(2, "pizzico", true)).toEqual({ quantity: 2, unit: "pizzico" });
   });
 });

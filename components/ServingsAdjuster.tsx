@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
+import { applyUnitPreference } from "@/lib/units";
+import { useUnitPreference } from "@/lib/unitPreference";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
 import { Checkbox } from "@/components/ui/Checkbox";
+import { UnitToggle } from "@/components/UnitToggle";
 
 type Ingredient = {
   id: string;
@@ -29,6 +32,7 @@ export function ServingsAdjuster({
 }) {
   const [servings, setServings] = useState(baseServings);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [useMetric, toggleUnit] = useUnitPreference();
 
   function toggleChecked(id: string) {
     setCheckedIds((prev) => {
@@ -75,11 +79,13 @@ export function ServingsAdjuster({
           <Plus className="h-4 w-4" aria-hidden="true" />
         </Button>
         </div>
+        <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />
       </div>
 
       <ul className="space-y-2" aria-label={`Ingredienti per ${servings} porzioni`}>
         {ingredients.map((ing) => {
           const scaled = scaleQuantity(ing.quantity, baseServings, servings);
+          const display = scaled !== null ? applyUnitPreference(scaled, ing.unit, useMetric) : null;
           const checked = checkedIds.has(ing.id);
           return (
             <li key={ing.id}>
@@ -99,9 +105,9 @@ export function ServingsAdjuster({
                   )}
                   </span>
                 </span>
-                {scaled !== null && (
+                {display !== null && (
                   <span className={`shrink-0 rounded-md bg-surface-secondary px-2 py-1 text-sm font-semibold tabular-nums ${checked ? "text-muted-foreground" : "text-foreground"}`}>
-                    {formatQuantity(scaled)} <span className="text-xs font-medium text-muted-foreground">{ing.unit ?? ""}</span>
+                    {formatQuantity(display.quantity)} <span className="text-xs font-medium text-muted-foreground">{display.unit ?? ""}</span>
                   </span>
                 )}
               </label>

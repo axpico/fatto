@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { UnitPreferenceToggle } from "@/components/UnitPreferenceToggle";
 import { LogoutButton } from "@/components/LogoutButton";
 
 export default async function SettingsPage() {
@@ -27,6 +28,14 @@ export default async function SettingsPage() {
           <p className="text-sm text-muted-foreground">Passa dal tema chiaro a quello scuro.</p>
         </div>
         <ThemeToggle />
+      </div>
+
+      <div className="panel flex items-center justify-between gap-4">
+        <div>
+          <p className="font-medium text-foreground">Unità di misura</p>
+          <p className="text-sm text-muted-foreground">Converti le quantità in grammi e millilitri.</p>
+        </div>
+        <UnitPreferenceToggle />
       </div>
 
       <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
