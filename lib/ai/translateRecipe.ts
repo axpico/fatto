@@ -26,12 +26,25 @@ export type TranslationResult = { result: z.infer<typeof translationSchema>; pro
 
 export async function translateRecipe(input: TranslationInput, targetLanguage: string): Promise<TranslationResult> {
   try {
-    return await runAiTask(JSON.stringify(input), {
+    const task = await runAiTask(JSON.stringify(input), {
       systemPrompt: translationSystemPrompt(targetLanguage),
       jsonInstructions: TRANSLATION_JSON_INSTRUCTIONS,
       schema: translationSchema,
     });
+    const { result } = task;
+    if (
+      result.ingredientNames.length !== input.ingredientNames.length ||
+      result.stepInstructions.length !== input.stepInstructions.length ||
+      result.equipment.length !== input.equipment.length ||
+      result.tags.length !== input.tags.length
+    ) {
+      throw new TranslationError(
+        "Traduzione incompleta: il modello ha restituito un numero di elementi diverso dall'originale. Riprova.",
+      );
+    }
+    return task;
   } catch (err) {
+    if (err instanceof TranslationError) throw err;
     if (err instanceof AiTaskError) {
       throw new TranslationError(err.message);
     }

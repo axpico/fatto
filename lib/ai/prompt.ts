@@ -6,7 +6,11 @@ indica esplicitamente (es. "facoltativo", "per guarnire", "opzionale") — altri
 valori di "nutrition" sono null a meno che non siano esplicitamente riportati nel testo: non
 stimarli né calcolarli. "tags" non deve mai essere un array vuoto: usa le categorie esplicite nel
 testo, altrimenti inferiscine almeno una plausibile da tipo di piatto, ingrediente principale o
-cucina (es. "dolce", "primo", "vegetariano").`;
+cucina (es. "dolce", "primo", "vegetariano"). Se insieme al testo ti sono state fornite una o più
+immagini, per ogni passaggio imposta "image_index" all'indice (a partire da 0, nell'ordine in cui
+le immagini sono state fornite) dell'immagine che mostra chiaramente quel passaggio, se ce n'è una;
+altrimenti usa null. Più passaggi possono condividere lo stesso indice. Se non ti sono state
+fornite immagini, "image_index" è sempre null.`;
 
 // ponytail: descrizione JSON a mano invece di zod-to-json-schema — schema piccolo e stabile,
 // serve solo ai modelli OpenRouter che non supportano structured output nativo come Anthropic
@@ -24,14 +28,16 @@ prima o dopo, nessun blocco di codice markdown), con esattamente questa forma:
   "prep_time_minutes": number | null,
   "cook_time_minutes": number | null,
   "ingredients": [{ "name": string, "quantity": number | null, "unit": string | null, "optional": boolean }],
-  "steps": [{ "instruction": string, "timer_minutes": number | null, "optional": boolean }]
+  "steps": [{ "instruction": string, "timer_minutes": number | null, "optional": boolean, "image_index": number | null }]
 }
 "description" è un breve riassunto se presente nel testo originale (altrimenti null). "tags" sono
 categorie/etichette pertinenti (tipo di piatto, cucina, ingrediente principale): usa quelle
 esplicite nel testo, altrimenti inferiscine almeno una plausibile (es. "dolce", "primo",
 "vegetariano") — non deve mai essere un array vuoto. "equipment" sono utensili/attrezzature citati nel testo
 (es. "padella larga", "planetaria") — array vuoto se non presenti, non inventarli. "nutrition" è
-null se il testo non riporta valori nutrizionali espliciti.`;
+null se il testo non riporta valori nutrizionali espliciti. "image_index" è l'indice (a partire da
+0) dell'immagine fornita che mostra quel passaggio, se ce n'è una chiaramente pertinente e ti sono
+state fornite immagini; altrimenti null.`;
 
 export function translationSystemPrompt(targetLanguage: string): string {
   return `Sei un traduttore. Ricevi un oggetto JSON con i campi testuali di una ricetta (title,

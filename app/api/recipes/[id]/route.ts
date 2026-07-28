@@ -51,22 +51,24 @@ export async function PATCH(request: Request, { params }: Params) {
     photoUrl = await saveUpload(photo);
   }
 
-  // solo le foto galleria rimosse vengono cancellate da disco; quelle mantenute non vengono
-  // ricaricate/ri-codificate, solo le righe RecipeImage sono full-replace (economiche)
-  const keepSet = new Set(galleryExisting);
-  const toRemove = existing.images.filter((img) => !keepSet.has(img.filename));
-  await Promise.all(toRemove.map((img) => deleteUpload(img.filename)));
+  // le righe RecipeImage/Step sono full-replace (economiche); solo i FILE non più referenziati
+  // da nessuna delle due parti vengono cancellati da disco — un fotogramma reel può comparire
+  // sia in galleria che come immagine di uno step, quindi va risolto tutto prima di cancellare
+  // qualsiasi cosa, altrimenti si rischia di cancellare un file ancora usato dall'altra parte
   const newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
   const orderedFilenames = [...galleryExisting, ...newFilenames];
 
   const stepImageFilenames = await Promise.all(
     data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
   );
-  const oldStepImages = existing.steps
-    .map((s) => s.imageFilename)
-    .filter((f): f is string => f != null);
-  const newStepImages = new Set(stepImageFilenames.filter((f): f is string => f != null));
-  await Promise.all(oldStepImages.filter((f) => !newStepImages.has(f)).map(deleteUpload));
+
+  const stillReferenced = new Set([
+    ...orderedFilenames,
+    ...stepImageFilenames.filter((f): f is string => f != null),
+  ]);
+  const oldStepImages = existing.steps.map((s) => s.imageFilename).filter((f): f is string => f != null);
+  const oldFilenames = new Set([...existing.images.map((img) => img.filename), ...oldStepImages]);
+  await Promise.all([...oldFilenames].filter((f) => !stillReferenced.has(f)).map(deleteUpload));
 
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
   const resolvedTagNames = await resolveTagNames(data.tags);

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { IngredientRows, type IngredientRow } from "@/components/IngredientRows";
 import { StepRows, type StepRow } from "@/components/StepRows";
 import { TagPicker } from "@/components/TagPicker";
@@ -149,6 +149,16 @@ export function RecipeForm({
     setForm((f) => ({ ...f, gallery: f.gallery.filter((_, i) => i !== index) }));
   }
 
+  function moveGalleryItem(index: number, direction: -1 | 1) {
+    setForm((f) => {
+      const target = index + direction;
+      if (target < 0 || target >= f.gallery.length) return f;
+      const gallery = [...f.gallery];
+      [gallery[index], gallery[target]] = [gallery[target], gallery[index]];
+      return { ...f, gallery };
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -272,6 +282,26 @@ export function RecipeForm({
                     >
                       <X className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
+                    <div className="absolute -bottom-1.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => moveGalleryItem(index, -1)}
+                        disabled={index === 0}
+                        aria-label="Sposta foto a sinistra"
+                        className="rounded-full bg-surface p-0.5 text-foreground shadow disabled:opacity-30"
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveGalleryItem(index, 1)}
+                        disabled={index === form.gallery.length - 1}
+                        aria-label="Sposta foto a destra"
+                        className="rounded-full bg-surface p-0.5 text-foreground shadow disabled:opacity-30"
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

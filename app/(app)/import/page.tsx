@@ -29,10 +29,16 @@ const IMPORT_TABS = [
 
 const LINK_STAGES = ["Scaricando pagina...", "Estraendo ricetta..."];
 const FILE_STAGES = ["Leggendo il file...", "Estraendo ricetta..."];
-const REEL_STAGES = ["Scaricando video...", "Trascrivendo audio...", "Estraendo ricetta..."];
+const REEL_STAGES = [
+  "Scaricando video...",
+  "Trascrivendo audio...",
+  "Estraendo fotogrammi...",
+  "Estraendo ricetta...",
+];
 
 type ImportedRecipe = Omit<ExtractedRecipe, "steps"> & {
   photoUrl?: string | null;
+  galleryFilenames?: string[];
   steps: (ExtractedRecipe["steps"][number] & { image_filename?: string | null })[];
 };
 
@@ -75,16 +81,20 @@ async function runImportStream(
   return finalLine;
 }
 
-function mapExtractedToFormData(extracted: ImportedRecipe, sourceUrl?: string): Partial<RecipeFormData> {
+function mapExtractedToFormData(
+  extracted: ImportedRecipe,
+  source?: { url: string; isVideo?: boolean },
+): Partial<RecipeFormData> {
   const n = extracted.nutrition;
   return {
     title: extracted.title,
     description: extracted.description ?? "",
     tags: extracted.tags,
     equipment: extracted.equipment,
-    sourceUrl: sourceUrl ?? "",
-    videoUrl: "",
+    sourceUrl: source?.url ?? "",
+    videoUrl: source?.isVideo ? source.url : "",
     photoUrl: extracted.photoUrl ?? null,
+    gallery: (extracted.galleryFilenames ?? []).map((filename) => ({ kind: "existing" as const, filename })),
     nutrition: {
       caloriesKcal: n?.calories ?? null,
       proteinG: n?.protein_g ?? null,
@@ -146,7 +156,7 @@ export default function ImportPage() {
         (stage) => setStageIndex(LINK_STAGES.indexOf(stage)),
       );
       setProvider(data.provider ?? null);
-      setExtracted(mapExtractedToFormData(data, url));
+      setExtracted(mapExtractedToFormData(data, { url }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Importazione fallita");
     } finally {
@@ -189,7 +199,7 @@ export default function ImportPage() {
         (stage) => setStageIndex(REEL_STAGES.indexOf(stage)),
       );
       setProvider(data.provider ?? null);
-      setExtracted(mapExtractedToFormData(data, reelUrl));
+      setExtracted(mapExtractedToFormData(data, { url: reelUrl, isVideo: true }));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Importazione fallita");
     } finally {
@@ -237,7 +247,11 @@ export default function ImportPage() {
       return;
     }
     setProvider(data.provider ?? null);
-    setExtracted({ ...data, steps: data.steps.map((s: RecipeFormData["steps"][number]) => ({ ...s, imageFile: null })) });
+    setExtracted({
+      ...data,
+      gallery: extracted.gallery ?? [],
+      steps: data.steps.map((s: RecipeFormData["steps"][number]) => ({ ...s, imageFile: null })),
+    });
     setFormKey((k) => k + 1);
   }
 
@@ -258,7 +272,7 @@ export default function ImportPage() {
             </div>
           </div>
         </div>
-        {provider?.startsWith("openrouter") && (
+        {(provider?.startsWith("openrouter") || provider === "groq") && (
           <div className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>Estratto con un modello di fallback gratuito: rivedi i dati con particolare attenzione.</p>

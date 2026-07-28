@@ -35,6 +35,7 @@ export const extractedRecipeSchema = z.object({
       instruction: z.string(),
       timer_minutes: z.number().nullable(),
       optional: z.boolean(),
+      image_index: z.number().int().nonnegative().nullable(),
     }),
   ),
 });

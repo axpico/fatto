@@ -25,10 +25,12 @@ export async function POST(request: Request) {
         controller.enqueue(encoder.encode(JSON.stringify(line) + "\n"));
       }
       try {
-        const { recipe, provider } = await importFromReel(parsed.data.url, parsed.data.notes, (stage) =>
-          write({ stage }),
+        const { recipe, provider, galleryFilenames } = await importFromReel(
+          parsed.data.url,
+          parsed.data.notes,
+          (stage) => write({ stage }),
         );
-        write({ done: true, ...recipe, provider });
+        write({ done: true, ...recipe, provider, galleryFilenames });
       } catch (err) {
         if (err instanceof ReelImportError || err instanceof AiExtractionError) {
           write({ done: true, error: err.message });

@@ -3,9 +3,17 @@ import { requireApiUser } from "@/lib/auth";
 import { htmlToText } from "@/lib/ai/htmlToText";
 import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
 import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
-import { saveUploadFromUrl } from "@/lib/uploads";
+import { fetchImageBuffer, saveUploadFromBuffer } from "@/lib/uploads";
+import { MAX_VISION_IMAGES, type VisionImage } from "@/lib/ai/visionImage";
 
 const bodySchema = z.object({ url: z.string().url() });
+
+const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+]);
 
 // Risposta NDJSON in streaming, stesso pattern di app/api/import/reel/route.ts: una riga
 // { stage } per avanzamento, poi una riga finale { done: true, ...ricetta } o { done: true, error }.
@@ -39,12 +47,25 @@ export async function POST(request: Request) {
 
         const jsonLd = extractJsonLdRecipe(html);
 
-        write({ stage: "Estraendo ricetta..." });
-        const { recipe, provider } = await extractRecipe(htmlToText(html));
-        const photoUrl = jsonLd?.imageUrl ? await saveUploadFromUrl(jsonLd.imageUrl) : null;
-        const stepImageFilenames = jsonLd?.stepImageUrls
+        const coverFetched = jsonLd?.imageUrl ? await fetchImageBuffer(jsonLd.imageUrl) : null;
+        const stepFetched = jsonLd?.stepImageUrls
           ? await Promise.all(
-              jsonLd.stepImageUrls.map((url) => (url ? saveUploadFromUrl(url) : Promise.resolve(null))),
+              jsonLd.stepImageUrls.map((url) => (url ? fetchImageBuffer(url) : Promise.resolve(null))),
+            )
+          : [];
+
+        const visionImages: VisionImage[] = [coverFetched, ...stepFetched]
+          .filter((f): f is { buffer: Buffer; contentType: string } => f != null)
+          .filter((f) => VISION_MIME_TYPES.has(f.contentType as VisionImage["mediaType"]))
+          .slice(0, MAX_VISION_IMAGES)
+          .map((f) => ({ data: f.buffer, mediaType: f.contentType as VisionImage["mediaType"] }));
+
+        write({ stage: "Estraendo ricetta..." });
+        const { recipe, provider } = await extractRecipe(htmlToText(html), visionImages);
+        const photoUrl = coverFetched ? await saveUploadFromBuffer(coverFetched.buffer, coverFetched.contentType) : null;
+        const stepImageFilenames = stepFetched.length
+          ? await Promise.all(
+              stepFetched.map((f) => (f ? saveUploadFromBuffer(f.buffer, f.contentType) : Promise.resolve(null))),
             )
           : null;
         write({

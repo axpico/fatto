@@ -1,9 +1,12 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { mkdtemp, rm, readdir } from "node:fs/promises";
+import { mkdtemp, rm, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { extractRecipe, type ExtractionResult } from "@/lib/ai/extractRecipe";
+import { extractRecipe } from "@/lib/ai/extractRecipe";
+import { saveUpload } from "@/lib/uploads";
+import type { VisionImage } from "@/lib/ai/visionImage";
+import type { ExtractedRecipe } from "@/lib/ai/schema";
 
 const run = promisify(execFile);
 
@@ -11,6 +14,13 @@ const run = promisify(execFile);
 const REEL_URL_PATTERN = /^https:\/\/(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+\/?/i;
 
 const WHISPER_MODEL_PATH = "/app/whisper-models/ggml-small-q5_1.bin";
+
+const YT_DLP_TIMEOUT_MS = 120_000;
+const FFPROBE_TIMEOUT_MS = 15_000;
+const FFMPEG_AUDIO_TIMEOUT_MS = 45_000;
+const FFMPEG_FRAME_TIMEOUT_MS = 20_000;
+const WHISPER_TIMEOUT_MS = 180_000;
+const FRAME_COUNT = 6;
 
 export class ReelImportError extends Error {}
 
@@ -28,13 +38,78 @@ function buildText(parts: { transcript?: string; caption?: string; comments?: st
   return blocks.join("\n\n");
 }
 
+// ponytail: euristica sul testo stderr di yt-dlp — se yt-dlp cambia formato di output e questo
+// smette di classificare correttamente, passare a un controllo su exit code/error code strutturato
+function classifyYtDlpError(err: unknown): string {
+  const e = err as { killed?: boolean; stderr?: string } | undefined;
+  if (e?.killed) {
+    return "Il download del reel ha impiegato troppo tempo (connessione lenta o video molto lungo). Riprova.";
+  }
+  if (e?.stderr && /unavailable|not available|private|login required|does not exist|removed/i.test(e.stderr)) {
+    return "Questo reel è privato, è stato rimosso o non è più disponibile.";
+  }
+  return "Impossibile scaricare il reel: controlla il link e riprova, oppure aggiungi le note manuali.";
+}
+
+async function extractFrames(dir: string, videoPath: string): Promise<VisionImage[]> {
+  let duration: number;
+  try {
+    const { stdout } = await run(
+      "ffprobe",
+      ["-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", videoPath],
+      { timeout: FFPROBE_TIMEOUT_MS },
+    );
+    duration = Number(stdout.trim());
+    if (!Number.isFinite(duration) || duration <= 0) return [];
+  } catch (err) {
+    console.error("[reel] durata video non disponibile, niente fotogrammi estratti:", err);
+    return [];
+  }
+
+  const frames: VisionImage[] = [];
+  for (let i = 1; i <= FRAME_COUNT; i++) {
+    const t = ((duration * i) / (FRAME_COUNT + 1)).toFixed(2);
+    const framePath = path.join(dir, `frame_${i}.jpg`);
+    try {
+      await run("ffmpeg", ["-ss", t, "-i", videoPath, "-frames:v", "1", "-q:v", "3", "-y", framePath], {
+        timeout: FFMPEG_FRAME_TIMEOUT_MS,
+      });
+      frames.push({ data: await readFile(framePath), mediaType: "image/jpeg" });
+    } catch (err) {
+      // best-effort: un fotogramma mancante non deve bloccare l'import
+      console.error(`[reel] estrazione fotogramma ${i} fallita:`, err);
+    }
+  }
+  return frames;
+}
+
+type StepWithImage = ExtractedRecipe["steps"][number] & { image_filename: string | null };
+
+// Il modello vede gli stessi fotogrammi che gli chiediamo di trasformare in step: gli facciamo
+// riportare quale fotogramma (indice) mostra ogni passaggio, invece di costruire un picker manuale.
+export function resolveStepImages(
+  steps: ExtractedRecipe["steps"],
+  galleryFilenames: string[],
+): StepWithImage[] {
+  return steps.map((step) => ({
+    ...step,
+    image_filename: step.image_index != null ? (galleryFilenames[step.image_index] ?? null) : null,
+  }));
+}
+
+export type ReelImportResult = {
+  recipe: Omit<ExtractedRecipe, "steps"> & { steps: StepWithImage[] };
+  provider: string;
+  galleryFilenames: string[];
+};
+
 // ponytail: execFile con array di argomenti ovunque, mai shell:true — l'URL è input utente e non
 // deve mai poter raggiungere una shell.
 export async function importFromReel(
   url: string,
   notes?: string,
   onProgress?: (stage: string) => void,
-): Promise<ExtractionResult> {
+): Promise<ReelImportResult> {
   if (!REEL_URL_PATTERN.test(url)) {
     throw new ReelImportError("Il link non sembra un Reel Instagram valido (instagram.com/reel/... o /p/...)");
   }
@@ -44,28 +119,33 @@ export async function importFromReel(
   try {
     let meta: YtDlpMetadata | null = null;
     let videoFile: string | null = null;
+    let downloadError: unknown;
 
     onProgress?.("Scaricando video...");
     try {
       const { stdout } = await run(
         "yt-dlp",
         [url, "-o", "video.%(ext)s", "--no-simulate", "--dump-json", "--write-comments", "--no-playlist"],
-        { cwd: dir, timeout: 60_000, maxBuffer: 10 * 1024 * 1024 },
+        { cwd: dir, timeout: YT_DLP_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
       );
       meta = JSON.parse(stdout);
       videoFile = (await readdir(dir)).find((f) => f.startsWith("video.")) ?? null;
     } catch (err) {
       console.error("[reel] download yt-dlp fallito:", err);
+      downloadError = err;
     }
 
     if (!videoFile) {
       if (!trimmedNotes) {
-        throw new ReelImportError(
-          "Impossibile scaricare il reel: privato, rimosso o non raggiungibile. Aggiungi le note manuali e riprova.",
-        );
+        throw new ReelImportError(`${classifyYtDlpError(downloadError)} Aggiungi le note manuali e riprova.`);
       }
       onProgress?.("Estraendo ricetta...");
-      return extractRecipe(buildText({ notes: trimmedNotes }));
+      const { recipe, provider } = await extractRecipe(buildText({ notes: trimmedNotes }));
+      return {
+        recipe: { ...recipe, steps: resolveStepImages(recipe.steps, []) },
+        provider,
+        galleryFilenames: [],
+      };
     }
 
     const caption = meta?.description?.trim() ?? "";
@@ -76,19 +156,21 @@ export async function importFromReel(
       .filter((t): t is string => Boolean(t))
       .join("\n");
 
+    const videoPath = path.join(dir, videoFile);
+
     let transcript = "";
     onProgress?.("Trascrivendo audio...");
     try {
       const audioPath = path.join(dir, "audio.wav");
       await run(
         "ffmpeg",
-        ["-i", path.join(dir, videoFile), "-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", audioPath],
-        { timeout: 30_000 },
+        ["-i", videoPath, "-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", audioPath],
+        { timeout: FFMPEG_AUDIO_TIMEOUT_MS },
       );
       const { stdout } = await run(
         "whisper-cli",
         ["-m", WHISPER_MODEL_PATH, "-f", audioPath, "-l", "auto", "-nt"],
-        { timeout: 120_000, maxBuffer: 10 * 1024 * 1024 },
+        { timeout: WHISPER_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
       );
       transcript = stdout.trim();
     } catch (err) {
@@ -96,8 +178,23 @@ export async function importFromReel(
       console.error("[reel] trascrizione audio non disponibile:", err);
     }
 
+    onProgress?.("Estraendo fotogrammi...");
+    const frames = await extractFrames(dir, videoPath);
+
     onProgress?.("Estraendo ricetta...");
-    return extractRecipe(buildText({ transcript, caption, comments, notes: trimmedNotes }));
+    const { recipe, provider } = await extractRecipe(
+      buildText({ transcript, caption, comments, notes: trimmedNotes }),
+      frames,
+    );
+    const galleryFilenames = await Promise.all(
+      frames.map((f) => saveUpload(new File([new Uint8Array(f.data)], "frame.jpg", { type: f.mediaType }))),
+    );
+
+    return {
+      recipe: { ...recipe, steps: resolveStepImages(recipe.steps, galleryFilenames) },
+      provider,
+      galleryFilenames,
+    };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
