@@ -1,10 +1,12 @@
 # Recipe Book
 
-App self-hosted per archiviare le ricette che cucini davvero: ricerca (anche per ingredienti disponibili), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), modalità cottura hands-free con comandi vocali, storico e export PDF.
+App self-hosted per archiviare le ricette che cucini davvero: ricerca full-text e per ingredienti disponibili (con ranking dei risultati), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), modalità cottura hands-free con comandi vocali reali (Web Speech API: passaggio successivo/precedente, avvio timer, ripeti passaggio, "quanto manca"), storico delle cotture con valutazione e note, export PDF via stampa del browser (con QR code per riaprire la ricetta dal telefono).
+
+Altre funzionalità: conversione e preferenza unità di misura (metrico ↔ cup/tbsp/tsp), tracciamento attrezzatura richiesta e valori nutrizionali (estratti automaticamente dal JSON-LD delle pagine ricetta durante l'import da link), deduplica e merge dei tag generati dall'AI, tema chiaro/scuro.
 
 ## Stack
 
-Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR, yt-dlp/ffmpeg/whisper.cpp per l'import da Reel Instagram. Tutto in un solo repo, deploy via Docker Compose.
+Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR (dati lingua IT/EN inclusi nell'immagine Docker, funziona offline), yt-dlp/ffmpeg/whisper.cpp per l'import da Reel Instagram. Tutto in un solo repo, deploy via Docker Compose.
 
 ## Setup
 
@@ -23,6 +25,7 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
    - `OPENROUTER_MODEL_OVERRIDE`: solo per debug, forza un modello OpenRouter specifico saltando la scoperta automatica.
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`: credenziali del primo utente, create automaticamente all'avvio
    - `COOKIE_SECURE`: lascia `true` se l'app è dietro HTTPS (reverse proxy); metti `false` per un deploy su LAN in solo HTTP
+   - `UPLOAD_DIR`: cartella dove vengono salvate le immagini caricate (foto ricette, galleria, step). In Docker è già impostata a `/data/uploads` (volume persistente) in `docker-compose.yml`; rilevante da cambiare solo per lo sviluppo locale fuori Docker.
 
 2. Avvia lo stack:
 
@@ -62,7 +65,7 @@ Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`) e abbia `ANTHR
 npm test
 ```
 
-Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili.
+Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili e full-text, conversione e preferenza delle unità di misura, deduplica dei tag, parsing dei comandi vocali, estrazione JSON-LD (nutrizione/immagini) durante l'import da link, risoluzione delle immagini da Reel, selezione del modello OpenRouter di fallback.
 
 ## Import da Reel Instagram e traduzione
 
