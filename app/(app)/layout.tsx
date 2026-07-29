@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { NavBar } from "@/components/NavBar";
 import { NAV_ITEMS } from "@/lib/navItems";
 import { ToastProvider } from "@/components/ui/Toast";
+import { PageTransition } from "@/components/motion/PageTransition";
 import Link from "next/link";
 
 export default async function AppLayout({
@@ -32,7 +33,7 @@ export default async function AppLayout({
         </header>
 
         <main id="main-content" className="w-full flex-1 pb-20 md:pb-0">
-          {children}
+          <PageTransition>{children}</PageTransition>
         </main>
 
         <NavBar aria-label="Navigazione principale" />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { TiltCard } from "@/components/motion/TiltCard";
 
 export type RecipeCardData = {
   id: string;
@@ -39,6 +40,7 @@ export function RecipeCard({
   if (variant === "featured") {
     return (
       <Link href={`/recipes/${recipe.id}`} className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+        <TiltCard>
         <Card className="flex flex-col overflow-hidden transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md sm:flex-row">
           {recipe.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -58,6 +60,7 @@ export function RecipeCard({
             {timeAndTags}
           </div>
         </Card>
+        </TiltCard>
       </Link>
     );
   }
@@ -65,6 +68,7 @@ export function RecipeCard({
   if (variant === "grid") {
     return (
       <Link href={`/recipes/${recipe.id}`} className="block h-full rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+        <TiltCard className="h-full">
         <Card className="flex h-full flex-col overflow-hidden transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-md">
           {recipe.photoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -93,6 +97,7 @@ export function RecipeCard({
             </div>
           </div>
         </Card>
+        </TiltCard>
       </Link>
     );
   }

@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
 import { pillButtonClasses } from "@/components/ui/Badge";
 import { SortPillLabel } from "@/components/SortPillLabel";
+import { Reveal } from "@/components/motion/Reveal";
+import { HeroSceneLoader } from "@/components/motion/HeroSceneLoader";
 
 const SORTS = [
   { value: "recent", label: "Recenti" },
@@ -69,38 +71,45 @@ export default async function HomePage({
       </div>
 
       {highlight && (
-        <section>
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><Shuffle className="h-4 w-4" aria-hidden="true" /></span>
-            <div>
-              <h2 className="font-medium text-foreground">Sorpresa del giorno</h2>
-              <p className="text-sm text-muted-foreground">Una ricetta a caso dalla tua raccolta.</p>
+        <Reveal>
+          <section className="relative overflow-hidden rounded-xl">
+            <div className="pointer-events-none absolute inset-0 -z-10">
+              <HeroSceneLoader />
             </div>
-          </div>
-          <RecipeCard recipe={highlight} variant="featured" />
-        </section>
+            <div className="mb-3 flex items-center gap-2">
+              <span className="flex h-9 w-9 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><Shuffle className="h-4 w-4" aria-hidden="true" /></span>
+              <div>
+                <h2 className="font-medium text-foreground">Sorpresa del giorno</h2>
+                <p className="text-sm text-muted-foreground">Una ricetta a caso dalla tua raccolta.</p>
+              </div>
+            </div>
+            <RecipeCard recipe={highlight} variant="featured" />
+          </section>
+        </Reveal>
       )}
 
-      <div className="panel">
-        <div className="mb-3 flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
-          <div>
-            <h2 className="font-medium text-foreground">Ordina la raccolta</h2>
-            <p className="text-sm text-muted-foreground">Scegli cosa vuoi ritrovare per prima.</p>
+      <Reveal>
+        <div className="panel">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
+            <div>
+              <h2 className="font-medium text-foreground">Ordina la raccolta</h2>
+              <p className="text-sm text-muted-foreground">Scegli cosa vuoi ritrovare per prima.</p>
+            </div>
           </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {SORTS.map((s) => (
+            <Link
+              key={s.value}
+              href={s.value === "recent" ? "/" : `/?sort=${s.value}`}
+              className={pillButtonClasses(sort === s.value)}
+            >
+              <SortPillLabel label={s.label} />
+            </Link>
+          ))}
         </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {SORTS.map((s) => (
-          <Link
-            key={s.value}
-            href={s.value === "recent" ? "/" : `/?sort=${s.value}`}
-            className={pillButtonClasses(sort === s.value)}
-          >
-            <SortPillLabel label={s.label} />
-          </Link>
-        ))}
-      </div>
-      </div>
+        </div>
+      </Reveal>
 
       {recipes.length === 0 ? (
           <div>
@@ -111,13 +120,15 @@ export default async function HomePage({
           />
         </div>
       ) : (
-        <section>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="font-display text-xl font-semibold text-foreground">La tua raccolta</h2>
-            <span className="text-sm text-muted-foreground">{recipes.length} {recipes.length === 1 ? "ricetta" : "ricette"}</span>
-          </div>
-        <RecipeList recipes={recipes} />
-        </section>
+        <Reveal>
+          <section>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold text-foreground">La tua raccolta</h2>
+              <span className="text-sm text-muted-foreground">{recipes.length} {recipes.length === 1 ? "ricetta" : "ricette"}</span>
+            </div>
+          <RecipeList recipes={recipes} />
+          </section>
+        </Reveal>
       )}
     </div>
   );
