@@ -75,11 +75,11 @@ export function CookLogSection({
       {logs.length === 0 ? (
         <EmptyState title="Non ancora cucinata" />
       ) : (
-        <ul className="space-y-3">
+        <ul className="recipe-tilt space-y-3">
           {logs.map((log) => (
             <Card key={log.id} className="p-4">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-muted-foreground">
+                <span className="font-script text-base text-muted-foreground">
                   {formatDate(log.cookedAt)} · {log.user.name}
                 </span>
                 <Button

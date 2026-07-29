@@ -15,7 +15,7 @@ export function StarRating({
           type="button"
           onClick={() => onChange(n)}
           aria-label={`${n} stelle`}
-          className={n <= (value ?? 0) ? "text-amber-500" : "text-muted-foreground"}
+          className={n <= (value ?? 0) ? "text-primary" : "text-muted-foreground"}
         >
           <Star className="h-4 w-4" fill={n <= (value ?? 0) ? "currentColor" : "none"} aria-hidden="true" />
         </button>

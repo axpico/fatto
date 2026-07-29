@@ -157,7 +157,7 @@ function SearchPageContent() {
 
       <Card className="space-y-5 p-4 sm:p-5">
         <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
           <div>
             <h2 className="font-medium text-foreground">Trova la ricetta giusta</h2>
             <p className="text-sm text-muted-foreground">Cerca per nome o restringi i risultati con i filtri.</p>

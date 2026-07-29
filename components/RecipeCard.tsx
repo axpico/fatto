@@ -30,7 +30,7 @@ export function RecipeCard({
         </span>
       )}
       {recipe.tags.slice(0, 3).map((tag) => (
-        <Badge key={tag.id}>{tag.name}</Badge>
+        <Badge key={tag.id} className="font-script text-[0.95rem]">{tag.name}</Badge>
       ))}
       {recipe.tags.length > 3 && <Badge variant="neutral">+{recipe.tags.length - 3}</Badge>}
     </div>
@@ -87,7 +87,7 @@ export function RecipeCard({
                 </span>
               )}
               {recipe.tags.slice(0, 1).map((tag) => (
-                <Badge key={tag.id} className="truncate">{tag.name}</Badge>
+                <Badge key={tag.id} className="truncate font-script text-[0.95rem]">{tag.name}</Badge>
               ))}
               {recipe.tags.length > 1 && <Badge variant="neutral" className="shrink-0">+{recipe.tags.length - 1}</Badge>}
             </div>

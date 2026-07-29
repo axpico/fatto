@@ -337,7 +337,7 @@ export default function ImportPage() {
       <div role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden={activeTab !== "link"}>
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Link2 className="h-5 w-5" aria-hidden="true" /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><Link2 className="h-5 w-5" aria-hidden="true" /></span>
             <div>
               <h2 className="font-display text-xl font-semibold text-foreground">Da un link</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla l&apos;URL di una ricetta online e noi estrarremo i dettagli.</p>
@@ -368,7 +368,7 @@ export default function ImportPage() {
       <div role="tabpanel" id="panel-file" aria-labelledby="tab-file" hidden={activeTab !== "file"}>
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><ImageIcon className="h-5 w-5" aria-hidden="true" /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><ImageIcon className="h-5 w-5" aria-hidden="true" /></span>
             <div>
               <h2 className="font-display text-xl font-semibold text-foreground">Da un file</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Carica uno screenshot o un PDF: leggeremo il testo della ricetta per te.</p>
@@ -419,7 +419,7 @@ export default function ImportPage() {
       <div role="tabpanel" id="panel-reel" aria-labelledby="tab-reel" hidden={activeTab !== "reel"}>
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Video className="h-5 w-5" aria-hidden="true" /></span>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[45%_55%_52%_48%/48%_45%_55%_52%] bg-accent text-primary"><Video className="h-5 w-5" aria-hidden="true" /></span>
             <div>
               <h2 className="font-display text-xl font-semibold text-foreground">Da un Reel</h2>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video.</p>
