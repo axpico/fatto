@@ -30,6 +30,9 @@ export async function createSession(userId: string) {
       expiresAt: new Date(Date.now() + SESSION_TTL_MS),
     },
   });
+  // ponytail: piggyback la pulizia delle sessioni scadute su ogni login invece di un cron —
+  // unico ritmo realistico per un'app familiare a singolo processo
+  await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
