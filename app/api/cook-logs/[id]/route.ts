@@ -20,6 +20,9 @@ export async function PATCH(request: Request, { params }: Params) {
     return Response.json({ error: "Dati non validi" }, { status: 400 });
   }
 
+  const existing = await prisma.cookLog.findUnique({ where: { id } });
+  if (!existing) return Response.json({ error: "Cottura non trovata" }, { status: 404 });
+
   const cookLog = await prisma.cookLog.update({ where: { id }, data: parsed.data });
   return Response.json(cookLog);
 }
@@ -29,6 +32,9 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
+  const existing = await prisma.cookLog.findUnique({ where: { id } });
+  if (!existing) return Response.json({ error: "Cottura non trovata" }, { status: 404 });
+
   await prisma.cookLog.delete({ where: { id } });
   return Response.json({ ok: true });
 }

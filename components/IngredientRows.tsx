@@ -25,7 +25,8 @@ export function IngredientRows({
   useEffect(() => {
     fetch("/api/ingredients")
       .then((res) => res.json())
-      .then((rows: { name: string }[]) => setSuggestions(rows.map((r) => r.name)));
+      .then((rows: { name: string }[]) => setSuggestions(rows.map((r) => r.name)))
+      .catch(() => {});
   }, []);
 
   return (

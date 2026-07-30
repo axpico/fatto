@@ -15,7 +15,8 @@ export function TagPicker({
   useEffect(() => {
     fetch("/api/tags")
       .then((res) => res.json())
-      .then((tags: { name: string }[]) => setExistingTags(tags.map((t) => t.name)));
+      .then((tags: { name: string }[]) => setExistingTags(tags.map((t) => t.name)))
+      .catch(() => {});
   }, []);
 
   return (
