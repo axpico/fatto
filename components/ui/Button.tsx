@@ -7,7 +7,7 @@ const base =
   "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:shadow-md",
+  primary: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover hover:[box-shadow:var(--glow)]",
   secondary:
     "border border-border bg-surface text-foreground shadow-sm hover:border-border-strong hover:bg-surface-secondary",
   destructive: "border border-destructive/30 bg-surface text-destructive hover:bg-destructive/10",

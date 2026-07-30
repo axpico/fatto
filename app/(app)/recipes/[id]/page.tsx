@@ -48,7 +48,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   return (
     <div className="page-shell">
       {recipe.photoUrl ? (
-        <TiltCard className="torn-edge relative mb-6 h-72 w-full shadow-md sm:h-96">
+        <TiltCard className="relative mb-6 h-72 w-full overflow-hidden shadow-md sm:h-96">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={`/api/uploads/${recipe.photoUrl}`}
@@ -85,7 +85,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
 
       <div className="mt-3 flex flex-wrap gap-2">
         {recipe.tags.map((tag) => (
-          <Badge key={tag.id} className="font-script text-[0.95rem]">{tag.name}</Badge>
+          <Badge key={tag.id} variant="accent">{tag.name}</Badge>
         ))}
       </div>
 
@@ -217,7 +217,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Reveal>
           <section className="mt-10">
             <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Galleria</h2>
-            <div className="recipe-tilt flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-2">
               {recipe.images.map((img, idx) => (
                 <StepImageThumb
                   key={img.id}

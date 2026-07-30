@@ -40,8 +40,9 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm p-6 shadow-md sm:p-8">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <p className="font-display text-2xl font-semibold tracking-tight text-foreground">Fatto</p>
-            <p className="mt-1 text-sm text-muted-foreground">Accedi al tuo ricettario personale.</p>
+            <p className="eyebrow mb-2">Il tuo ricettario</p>
+            <p className="font-display text-4xl font-semibold tracking-tight text-foreground">Fatto</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">Accedi al tuo ricettario personale.</p>
           </div>
 
           {error && (

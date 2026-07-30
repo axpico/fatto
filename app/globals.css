@@ -1,29 +1,38 @@
 @import "tailwindcss";
 
+/* Light theme — refined warm off-white. Photos are the only saturated thing. */
 :root {
-  --background: #f6efe0;
-  --foreground: #2b2318;
-  --surface: #fffdf7;
-  --surface-secondary: #ede1c9;
-  --surface-sunken: #e7dabc;
-  --border: #ddccab;
-  --border-strong: #c7ae82;
-  --muted-foreground: #7c6d54;
-  --primary: #b84d1b;
-  --primary-hover: #963b12;
-  --primary-foreground: #fffaf5;
-  --accent: #f2decb;
-  --success: #39805e;
-  --warning: #a36416;
+  --background: #f7f2e9;
+  --foreground: #241d13;
+  --surface: #fffdf8;
+  --surface-secondary: #efe7d8;
+  --surface-sunken: #e9dfcc;
+  --border: #e0d5c0;
+  --border-strong: #cbb996;
+  --muted-foreground: #7a6b53;
+  --primary: #c2600f;
+  --primary-hover: #a44e08;
+  --primary-foreground: #fffaf3;
+  --accent: #f5e7d4;
+  --success: #2f7d57;
+  --warning: #a3650f;
   --destructive: #dc2626;
   --destructive-hover: #b91c1c;
+
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
-  --shadow-sm: 0 1px 2px rgb(69 47 31 / 0.04), 0 1px 3px rgb(69 47 31 / 0.05);
-  --shadow-md: 0 10px 24px rgb(69 47 31 / 0.07);
+
+  /* Named e1/e2 so @theme can point shadow-sm/shadow-md at them without a
+     circular self-reference. Theme blocks override these values. */
+  --shadow-e1: 0 1px 2px rgb(60 40 20 / 0.05), 0 1px 3px rgb(60 40 20 / 0.06);
+  --shadow-e2: 0 8px 28px rgb(60 40 20 / 0.10);
+  --glow: 0 0 0 1px rgb(194 96 15 / 0.18), 0 10px 34px rgb(194 96 15 / 0.14);
+
   --grain-blend: multiply;
+  --grain-opacity: 0.05;
+  --vignette: transparent;
 }
 
 @theme inline {
@@ -46,64 +55,102 @@
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-fraunces);
-  --font-script: var(--font-caveat);
+  --shadow-sm: var(--shadow-e1);
+  --shadow-md: var(--shadow-e2);
 }
 
-/* ponytail: dark values are duplicated between the OS-preference query and the
+/* Dark theme — deep warm near-black with an amber ember glow.
+   ponytail: dark values are duplicated between the OS-preference query and the
    manual [data-theme] override below — editing one means editing both. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --background: #1a1611;
-    --foreground: #f2e6cf;
-    --surface: #241f19;
-    --surface-secondary: #2e261c;
-    --surface-sunken: #181410;
-    --border: #4a3c28;
-    --border-strong: #6b5738;
-    --muted-foreground: #b3a084;
-    --primary: #f0800f;
-    --primary-hover: #ffab52;
-    --accent: #3e2c16;
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --destructive: #f87171;
+    --background: #14110d;
+    --foreground: #f3ece0;
+    --surface: #1c1813;
+    --surface-secondary: #241f18;
+    --surface-sunken: #100d09;
+    --border: #2e2820;
+    --border-strong: #443a2c;
+    --muted-foreground: #a1927b;
+    --primary: #f0a24b;
+    --primary-hover: #ffb968;
+    --primary-foreground: #1a140c;
+    --accent: #2c2116;
+    --success: #6bbf8f;
+    --warning: #e0a53c;
+    --destructive: #f2635a;
     --destructive-hover: #ef4444;
+
+    --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.35);
+    --shadow-e2: 0 14px 44px rgb(0 0 0 / 0.55);
+    --glow: 0 0 0 1px rgb(240 162 75 / 0.28), 0 12px 44px rgb(240 162 75 / 0.20);
+
     --grain-blend: soft-light;
+    --grain-opacity: 0.06;
+    --vignette: radial-gradient(130% 100% at 50% -10%, rgb(240 162 75 / 0.06), transparent 55%);
   }
 }
 
 :root[data-theme="dark"] {
-  --background: #1a1611;
-  --foreground: #f2e6cf;
-  --surface: #241f19;
-  --surface-secondary: #2e261c;
-  --surface-sunken: #181410;
-  --border: #4a3c28;
-  --border-strong: #6b5738;
-  --muted-foreground: #b3a084;
-  --primary: #f0800f;
-  --primary-hover: #ffab52;
-  --accent: #3e2c16;
-  --success: #4ade80;
-  --warning: #fbbf24;
-  --destructive: #f87171;
+  --background: #14110d;
+  --foreground: #f3ece0;
+  --surface: #1c1813;
+  --surface-secondary: #241f18;
+  --surface-sunken: #100d09;
+  --border: #2e2820;
+  --border-strong: #443a2c;
+  --muted-foreground: #a1927b;
+  --primary: #f0a24b;
+  --primary-hover: #ffb968;
+  --primary-foreground: #1a140c;
+  --accent: #2c2116;
+  --success: #6bbf8f;
+  --warning: #e0a53c;
+  --destructive: #f2635a;
   --destructive-hover: #ef4444;
+
+  --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.35);
+  --shadow-e2: 0 14px 44px rgb(0 0 0 / 0.55);
+  --glow: 0 0 0 1px rgb(240 162 75 / 0.28), 0 12px 44px rgb(240 162 75 / 0.20);
+
   --grain-blend: soft-light;
+  --grain-opacity: 0.06;
+  --vignette: radial-gradient(130% 100% at 50% -10%, rgb(240 162 75 / 0.06), transparent 55%);
 }
 
 body {
   background-color: var(--background);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-blend-mode: var(--grain-blend);
-  background-size: 180px 180px;
   color: var(--foreground);
   text-rendering: optimizeLegibility;
-  animation: grain-drift 38s ease-in-out infinite;
 }
 
-@keyframes grain-drift {
-  0%, 100% { background-position: 0 0; }
-  50% { background-position: 90px 60px; }
+/* Static film grain + a soft warm vignette for depth. No animation — the drift
+   was pure decoration. Fixed overlay so it never scrolls or repaints on layout. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  mix-blend-mode: var(--grain-blend);
+  opacity: var(--grain-opacity);
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: var(--vignette);
+}
+
+/* Keep app content above the fixed grain/vignette overlays. */
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 @keyframes enter {
@@ -119,29 +166,14 @@ body {
 @layer components {
   .page-shell { @apply mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8; }
   .page-header { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
-  .page-title { @apply font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl; }
-  .page-description { @apply mt-1 max-w-2xl text-sm leading-6 text-muted-foreground; }
+  .page-title { @apply font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl; }
+  .page-description { @apply mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground; }
   .panel { @apply rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5; }
   .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md; }
   .dialog-surface { animation: dialog-enter 180ms ease-out both; }
 
-  .recipe-tilt > :nth-child(3n+1) { rotate: -0.6deg; }
-  .recipe-tilt > :nth-child(3n+2) { rotate: 0.5deg; }
-  .recipe-tilt > :nth-child(3n+3) { rotate: -0.35deg; }
-  .recipe-tilt > :nth-child(3n+1):hover,
-  .recipe-tilt > :nth-child(3n+2):hover,
-  .recipe-tilt > :nth-child(3n+3):hover { rotate: 0deg; }
-
-  .torn-edge {
-    clip-path: polygon(
-      0 0, 100% 0, 100% 97%,
-      97% 100%, 94% 96%, 91% 100%, 88% 97%, 85% 100%, 82% 96%, 79% 100%,
-      76% 97%, 73% 100%, 70% 96%, 67% 100%, 64% 97%, 61% 100%, 58% 96%,
-      55% 100%, 52% 97%, 49% 100%, 46% 96%, 43% 100%, 40% 97%, 37% 100%,
-      34% 96%, 31% 100%, 28% 97%, 25% 100%, 22% 96%, 19% 100%, 16% 97%,
-      13% 100%, 10% 96%, 7% 100%, 4% 97%, 0 100%
-    );
-  }
+  /* Section eyebrow: small uppercase amber label used above page titles. */
+  .eyebrow { @apply flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary; }
 
   .reveal {
     opacity: 0;
@@ -172,16 +204,8 @@ body {
     --muted-foreground: #525252;
   }
 
-  body {
-    background: #fff;
-    background-image: none;
-    animation: none;
-    color: #000;
-  }
-
-  .recipe-tilt > * {
-    rotate: 0deg !important;
-  }
+  body { background: #fff; color: #000; }
+  body::before, body::after { display: none; }
 
   .reveal {
     opacity: 1 !important;

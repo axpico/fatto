@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { X, ChevronLeft, ChevronRight, Mic, MicOff, List, Pause, Play, Square } from "lucide-react";
 import { matchVoiceCommand } from "@/lib/voiceCommands";
@@ -10,6 +11,12 @@ import { Badge } from "@/components/ui/Badge";
 import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { reportIfFailed } from "@/lib/apiError";
+
+// ssr:false must be called from a client component — this file is one.
+const CookAmbientScene = dynamic(
+  () => import("@/components/motion/CookAmbientScene").then((m) => m.CookAmbientScene),
+  { ssr: false },
+);
 
 type Step = {
   id: string;
@@ -338,11 +345,15 @@ export function CookingModeViewer({
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      <div className="pointer-events-none absolute inset-0 z-0">
+        <CookAmbientScene />
+      </div>
+
       <p className="sr-only" aria-live="polite">
         {announcement}
       </p>
 
-      <div className="px-4 pt-4">
+      <div className="relative z-10 px-4 pt-4">
         {!isDone && (
           <div className="flex gap-1 overflow-x-auto" role="group" aria-label="Vai al passaggio">
             {steps.map((s, i) => (
@@ -371,7 +382,7 @@ export function CookingModeViewer({
         )}
       </div>
 
-      <div className="flex items-center justify-between p-4">
+      <div className="relative z-10 flex items-center justify-between p-4">
         <span id="step-progress-label" className="text-sm text-muted-foreground">
           {isDone ? "Ricetta completata" : `Passaggio ${progress.current} di ${progress.total}`}
         </span>
@@ -412,7 +423,7 @@ export function CookingModeViewer({
       </div>
 
       {isDone ? (
-        <div className="flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-6 py-6 text-center">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-6 py-6 text-center">
           <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">Ricetta completata!</p>
           {cookLogId ? (
             <div className="flex w-full max-w-sm flex-col items-center gap-4">
@@ -458,7 +469,7 @@ export function CookingModeViewer({
           )}
         </div>
       ) : (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center">
+        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center">
           {step.imageFilename && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -529,7 +540,7 @@ export function CookingModeViewer({
       )}
 
       {!isDone && (
-        <div className="flex gap-3 p-4 pb-8">
+        <div className="relative z-10 flex gap-3 p-4 pb-8">
           <button
             type="button"
             onClick={prev}

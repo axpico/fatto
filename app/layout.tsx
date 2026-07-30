@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Fraunces, Caveat } from "next/font/google";
+import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { THEME_STORAGE_KEY } from "@/lib/theme";
 import "./globals.css";
@@ -22,12 +22,6 @@ const fraunces = Fraunces({
   weight: ["500", "600"],
 });
 
-const caveat = Caveat({
-  variable: "--font-caveat",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
-
 export const metadata: Metadata = {
   title: "Recipe Book",
   description: "Le nostre ricette, sempre a portata di mano",
@@ -39,7 +33,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#c2410c",
+  themeColor: "#14110d",
 };
 
 export default function RootLayout({
@@ -51,7 +45,7 @@ export default function RootLayout({
     <html
       lang="it"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${caveat.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} h-full antialiased`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

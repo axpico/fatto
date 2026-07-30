@@ -40,7 +40,7 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
           </button>
         ))}
       </div>
-      <div className={view === "grid" ? "recipe-tilt grid grid-cols-2 gap-3 sm:grid-cols-3" : "recipe-tilt space-y-3"}>
+      <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
         {recipes.map((recipe) => (
           <RecipeCard key={recipe.id} recipe={recipe} variant={view} />
         ))}
