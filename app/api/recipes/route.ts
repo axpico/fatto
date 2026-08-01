@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { saveUpload } from "@/lib/uploads";
+import { saveUpload, UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { findIngredientMatches } from "@/lib/ingredientSearch";
 import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
@@ -107,11 +107,19 @@ export async function POST(request: Request) {
   }
   const { data, photo, existingPhotoUrl, galleryPhotos, stepImages } = parsed;
 
-  const photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
-  const galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
-  const stepImageFilenames = await Promise.all(
-    data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
-  );
+  let photoUrl: string | null;
+  let galleryFilenames: string[];
+  let stepImageFilenames: (string | null)[];
+  try {
+    photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
+    galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+    stepImageFilenames = await Promise.all(
+      data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
+    );
+  } catch (err) {
+    if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
+    throw err;
+  }
   const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
   const resolvedTagNames = await resolveTagNames(data.tags);
 

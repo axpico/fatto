@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { saveUpload, deleteUpload } from "@/lib/uploads";
+import { saveUpload, deleteUpload, UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { resolveTagNames } from "@/lib/tagDedupe";
 
@@ -24,22 +24,26 @@ export async function PATCH(request: Request, { params }: Params) {
   }
   const { data, photo, galleryPhotos, galleryExisting, stepImages } = parsed;
 
-  let photoUrl = existing.photoUrl;
-  if (photo) {
-    await deleteUpload(existing.photoUrl);
-    photoUrl = await saveUpload(photo);
-  }
-
   // le righe RecipeImage/Step sono full-replace (economiche); solo i FILE non più referenziati
   // da nessuna delle due parti vengono cancellati da disco — un fotogramma reel può comparire
   // sia in galleria che come immagine di uno step, quindi va risolto tutto prima di cancellare
   // qualsiasi cosa, altrimenti si rischia di cancellare un file ancora usato dall'altra parte
-  const newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+  let photoUrl = existing.photoUrl;
+  let newFilenames: string[];
+  let stepImageFilenames: (string | null)[];
+  try {
+    if (photo) photoUrl = await saveUpload(photo);
+    newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
+    stepImageFilenames = await Promise.all(
+      data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
+    );
+  } catch (err) {
+    if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
+    throw err;
+  }
+  // upload dei nuovi file riusciti: ora è sicuro rimpiazzare la vecchia cover
+  if (photo) await deleteUpload(existing.photoUrl);
   const orderedFilenames = [...galleryExisting, ...newFilenames];
-
-  const stepImageFilenames = await Promise.all(
-    data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
-  );
 
   const stillReferenced = new Set([
     ...orderedFilenames,

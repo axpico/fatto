@@ -8,7 +8,18 @@ import { assertPublicUrl } from "@/lib/urlSafety";
 const MAX_WIDTH = 1600;
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
+export class UploadError extends Error {}
+
+// Unico punto in cui passa ogni upload (foto ricetta, galleria, immagini step, fotogrammi reel):
+// controllo qui dimensione/tipo invece che in ciascun chiamante.
 export async function saveUpload(file: File): Promise<string> {
+  if (file.size > MAX_UPLOAD_BYTES) {
+    throw new UploadError("Immagine troppo grande (max 8MB)");
+  }
+  if (!file.type.startsWith("image/")) {
+    throw new UploadError("Formato immagine non supportato");
+  }
+
   await mkdir(env.UPLOAD_DIR, { recursive: true });
 
   const filename = `${randomUUID()}.jpg`;
