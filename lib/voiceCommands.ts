@@ -2,6 +2,8 @@ export type VoiceCommand =
   | { type: "next" }
   | { type: "prev" }
   | { type: "timer" }
+  | { type: "pauseTimer" }
+  | { type: "cancelTimer" }
   | { type: "repeat" }
   | { type: "jump"; step: number }
   | { type: "timeLeft" };
@@ -52,6 +54,8 @@ export function matchVoiceCommand(transcript: string): VoiceCommand | null {
   if (has(t, "quanto manca")) return { type: "timeLeft" };
   if (has(t, "indietro") || has(t, "precedente")) return { type: "prev" };
   if (has(t, "avanti") || has(t, "prossimo")) return { type: "next" };
+  if (has(t, "annulla timer") || has(t, "ferma timer")) return { type: "cancelTimer" };
+  if (has(t, "pausa") || has(t, "metti in pausa")) return { type: "pauseTimer" };
   if (has(t, "avvia timer") || has(t, "parti")) return { type: "timer" };
   return null;
 }

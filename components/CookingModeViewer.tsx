@@ -3,14 +3,29 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight, Mic, MicOff, List, Pause, Play, Square } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Mic,
+  MicOff,
+  List,
+  ListChecks,
+  HelpCircle,
+  Pause,
+  Play,
+  Square,
+} from "lucide-react";
 import { matchVoiceCommand } from "@/lib/voiceCommands";
 import { Modal, type ModalHandle } from "@/components/ui/Modal";
+import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { Badge } from "@/components/ui/Badge";
 import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { useCookLog } from "@/lib/useCookLog";
+import { useCookSession } from "@/lib/cookSession";
 import { UploadedImage } from "@/components/UploadedImage";
 import { pressableTransition } from "@/components/ui/Button";
 
@@ -28,6 +43,17 @@ type Step = {
   imageFilename: string | null;
 };
 type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null; optional: boolean };
+
+const VOICE_COMMANDS_HELP: { phrase: string; description: string }[] = [
+  { phrase: '"Avanti" / "Prossimo"', description: "Passaggio successivo" },
+  { phrase: '"Indietro" / "Precedente"', description: "Passaggio precedente" },
+  { phrase: '"Passaggio [numero]"', description: "Vai a un passaggio specifico" },
+  { phrase: '"Ripeti"', description: "Rileggi il passaggio corrente" },
+  { phrase: '"Avvia timer"', description: "Avvia il timer del passaggio" },
+  { phrase: '"Pausa"', description: "Metti in pausa o riprendi il timer" },
+  { phrase: '"Annulla timer" / "Ferma timer"', description: "Annulla il timer" },
+  { phrase: '"Quanto manca"', description: "Tempo rimasto sul timer" },
+];
 
 function requiredProgress(steps: Step[], index: number) {
   const total = Math.max(steps.filter((s) => !s.optional).length, 1);
@@ -67,6 +93,8 @@ function useVoiceControl(actions: {
   next: () => void;
   prev: () => void;
   startTimer: () => void;
+  pauseTimer: () => void;
+  cancelTimer: () => void;
   repeat: () => void;
   jump: (step: number) => void;
   timeLeft: () => void;
@@ -111,6 +139,12 @@ function useVoiceControl(actions: {
         case "timer":
           actionsRef.current.startTimer();
           break;
+        case "pauseTimer":
+          actionsRef.current.pauseTimer();
+          break;
+        case "cancelTimer":
+          actionsRef.current.cancelTimer();
+          break;
         case "repeat":
           actionsRef.current.repeat();
           break;
@@ -144,17 +178,27 @@ function playBeep() {
   oscillator.stop(ctx.currentTime + 0.6);
 }
 
-function useWakeLock() {
+function useWakeLock(onUnavailable?: () => void) {
   useEffect(() => {
     let lock: WakeLockSentinel | null = null;
+    let notified = false;
+
+    function notifyOnce() {
+      if (notified) return;
+      notified = true;
+      onUnavailable?.();
+    }
 
     async function acquire() {
+      if (!("wakeLock" in navigator)) {
+        notifyOnce();
+        return;
+      }
       try {
-        if ("wakeLock" in navigator) {
-          lock = await navigator.wakeLock.request("screen");
-        }
+        lock = await navigator.wakeLock.request("screen");
       } catch {
-        // ponytail: wake lock non supportato/negato, la cottura funziona comunque
+        // wake lock negato/non disponibile: segnaliamo una volta sola, la cottura funziona comunque
+        notifyOnce();
       }
     }
 
@@ -165,51 +209,112 @@ function useWakeLock() {
       document.removeEventListener("visibilitychange", acquire);
       lock?.release().catch(() => {});
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- onUnavailable è una callback one-shot catturata al mount
   }, []);
 }
 
-function useStepTimer(minutes: number | null) {
-  // reset del timer quando si cambia passaggio (pattern React: adjust state during render, non in un effect)
-  const [trackedMinutes, setTrackedMinutes] = useState(minutes);
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [paused, setPaused] = useState(false);
+export type CookTimerEntry = {
+  endAt: number | null;
+  remainingAtPause: number | null;
+  totalSeconds: number;
+};
+export type CookTimersState = Record<number, CookTimerEntry>;
 
-  if (minutes !== trackedMinutes) {
-    setTrackedMinutes(minutes);
-    setRemaining(null);
-    setPaused(false);
-  }
-
-  useEffect(() => {
-    if (remaining === null || remaining <= 0 || paused) return;
-    const id = setTimeout(() => setRemaining((r) => (r ?? 1) - 1), 1000);
-    return () => clearTimeout(id);
-  }, [remaining, paused]);
-
-  // remaining passa a 0 una sola volta per countdown (poi l'effect sopra si ferma), quindi l'effect
-  // seguente scatta esattamente una volta a fine timer, senza bisogno di un flag "già suonato"
-  useEffect(() => {
-    if (remaining === 0) {
-      playBeep();
-      navigator.vibrate?.(500);
-    }
-  }, [remaining]);
-
-  function start() {
-    if (minutes === null) return;
-    setRemaining(minutes * 60);
-    setPaused(false);
-  }
-  function togglePause() {
-    setPaused((p) => !p);
-  }
-  function cancel() {
-    setRemaining(null);
-    setPaused(false);
-  }
-
-  return { remaining, paused, start, togglePause, cancel };
+function remainingOf(entry: CookTimerEntry | undefined, now: number): number | null {
+  if (!entry) return null;
+  if (entry.endAt !== null) return Math.max(0, Math.round((entry.endAt - now) / 1000));
+  return entry.remainingAtPause;
 }
+
+// Timer multipli, uno per passaggio: sopravvivono alla navigazione tra passaggi (a differenza del
+// vecchio timer singolo legato al passaggio corrente). Basati su un endAt (timestamp assoluto), non
+// su un countdown decrementato ogni secondo, così restano corretti anche dopo che l'app è stata in
+// background (dove i timer JS vengono sospesi/rallentati dal browser) — e quindi anche dopo un
+// ripristino di sessione da localStorage.
+function useCookTimers(initial: CookTimersState, onFinish: (stepIndex: number) => void) {
+  const [timers, setTimers] = useState<CookTimersState>(initial);
+  const [now, setNow] = useState(() => Date.now());
+  const firedRef = useRef<Set<number>>(new Set());
+  const onFinishRef = useRef(onFinish);
+  useEffect(() => {
+    onFinishRef.current = onFinish;
+  });
+
+  const hasRunning = Object.values(timers).some((t) => t.endAt !== null && t.endAt > now);
+  useEffect(() => {
+    if (!hasRunning) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [hasRunning]);
+
+  useEffect(() => {
+    for (const [key, entry] of Object.entries(timers)) {
+      const stepIndex = Number(key);
+      const remaining = remainingOf(entry, now);
+      if (remaining === 0 && entry.endAt !== null && !firedRef.current.has(stepIndex)) {
+        firedRef.current.add(stepIndex);
+        playBeep();
+        navigator.vibrate?.(500);
+        onFinishRef.current(stepIndex);
+      }
+    }
+  }, [now, timers]);
+
+  function start(stepIndex: number, minutes: number) {
+    firedRef.current.delete(stepIndex);
+    setTimers((t) => ({
+      ...t,
+      [stepIndex]: { endAt: Date.now() + minutes * 60_000, remainingAtPause: null, totalSeconds: minutes * 60 },
+    }));
+  }
+
+  function togglePause(stepIndex: number) {
+    setTimers((t) => {
+      const entry = t[stepIndex];
+      if (!entry) return t;
+      if (entry.endAt !== null) {
+        return { ...t, [stepIndex]: { ...entry, endAt: null, remainingAtPause: remainingOf(entry, Date.now()) } };
+      }
+      if (entry.remainingAtPause !== null) {
+        return {
+          ...t,
+          [stepIndex]: { ...entry, endAt: Date.now() + entry.remainingAtPause * 1000, remainingAtPause: null },
+        };
+      }
+      return t;
+    });
+  }
+
+  function cancel(stepIndex: number) {
+    firedRef.current.delete(stepIndex);
+    setTimers((t) => {
+      const next = { ...t };
+      delete next[stepIndex];
+      return next;
+    });
+  }
+
+  function remainingFor(stepIndex: number): number | null {
+    return remainingOf(timers[stepIndex], now);
+  }
+
+  function isPaused(stepIndex: number): boolean {
+    const entry = timers[stepIndex];
+    return !!entry && entry.endAt === null && entry.remainingAtPause !== null;
+  }
+
+  const active = Object.entries(timers)
+    .map(([key, entry]) => ({
+      stepIndex: Number(key),
+      remaining: remainingOf(entry, now) ?? 0,
+      paused: entry.endAt === null,
+    }))
+    .sort((a, b) => a.stepIndex - b.stepIndex);
+
+  return { timers, active, start, togglePause, cancel, remainingFor, isPaused };
+}
+
+type CookSessionData = { index: number; timers: CookTimersState };
 
 export function CookingModeViewer({
   recipeId,
@@ -227,34 +332,49 @@ export function CookingModeViewer({
   const router = useRouter();
   const toast = useToast();
   const cookLog = useCookLog(recipeId);
-  const [index, setIndex] = useState(0);
+  const reduceMotion = useReducedMotion();
+  const session = useCookSession<CookSessionData>(recipeId);
+  const [index, setIndex] = useState(() => session.restored?.index ?? 0);
   const [announcement, setAnnouncement] = useState("");
-  const [trackedIndex, setTrackedIndex] = useState(0);
-  const [trackedRemaining, setTrackedRemaining] = useState<number | null>(null);
+  const [trackedIndex, setTrackedIndex] = useState(() => session.restored?.index ?? 0);
   const [marking, setMarking] = useState(false);
   const [cookLogId, setCookLogId] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
+  const [dragX, setDragX] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const ingredientsModalRef = useRef<ModalHandle>(null);
+  const stepsModalRef = useRef<ModalHandle>(null);
+  const voiceHelpModalRef = useRef<ModalHandle>(null);
+  const exitDialogRef = useRef<ConfirmDialogHandle>(null);
 
-  useWakeLock();
+  useWakeLock(() => toast.error("Lo schermo potrebbe spegnersi automaticamente durante la cottura."));
 
   const step = steps[index];
   const isDone = index === steps.length;
-  const timer = useStepTimer(step?.timerMinutes ?? null);
 
-  // annunci discreti (cambio passaggio, timer terminato) calcolati durante il render, non in un
-  // effect, per evitare il pattern "setState sincrono dentro un effect" — stesso approccio di
-  // useStepTimer sopra
+  function handleTimerFinish(stepIndex: number) {
+    setAnnouncement(stepIndex === index ? "Timer terminato" : `Timer del passaggio ${stepIndex + 1} terminato`);
+  }
+  const cookTimers = useCookTimers(session.restored?.timers ?? {}, handleTimerFinish);
+  const remaining = cookTimers.remainingFor(index);
+  const timerPaused = cookTimers.isPaused(index);
+
+  // annuncio discreto di cambio passaggio, calcolato durante il render (non in un effect) per
+  // evitare il pattern "setState sincrono dentro un effect" — il timer segue la stessa logica
+  // dentro useCookTimers (vedi onFinish sopra)
   if (index !== trackedIndex) {
     setTrackedIndex(index);
     const p = requiredProgress(steps, Math.min(index, steps.length - 1));
     setAnnouncement(isDone ? "Ricetta completata" : `Passaggio ${p.current} di ${p.total}`);
   }
-  if (timer.remaining !== trackedRemaining) {
-    setTrackedRemaining(timer.remaining);
-    if (timer.remaining === 0) setAnnouncement("Timer terminato");
-  }
+
+  // sessione salvata per ricetta (passaggio corrente + timer), cancellata solo all'uscita esplicita
+  // (bottone chiudi, "Torna alla ricetta", o al termine della cottura) — così sopravvive a
+  // ricarica/passaggio in background ma non resta appesa dopo che l'hai davvero finita
+  useEffect(() => {
+    session.save({ index, timers: cookTimers.timers });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- session.save ha lo stesso comportamento ad ogni render, non serve nelle deps
+  }, [index, cookTimers.timers]);
 
   function next() {
     setIndex((i) => Math.min(i + 1, steps.length));
@@ -266,18 +386,32 @@ export function CookingModeViewer({
     setIndex(Math.min(Math.max(stepNumber - 1, 0), steps.length - 1));
   }
   function handleStartTimer() {
-    if (!step) return;
-    timer.start();
+    if (!step || step.timerMinutes === null) return;
+    cookTimers.start(index, step.timerMinutes);
     setAnnouncement(`Timer avviato: ${step.timerMinutes} minuti`);
   }
   function handleTogglePause() {
-    const willPause = !timer.paused;
-    timer.togglePause();
+    const willPause = !timerPaused;
+    cookTimers.togglePause(index);
     setAnnouncement(willPause ? "Timer in pausa" : "Timer ripreso");
   }
   function handleCancelTimer() {
-    timer.cancel();
+    cookTimers.cancel(index);
     setAnnouncement("Timer annullato");
+  }
+
+  async function handleExit() {
+    if (cookTimers.active.length > 0) {
+      const confirmed = await exitDialogRef.current?.open();
+      if (!confirmed) return;
+    }
+    session.clear();
+    router.push(`/recipes/${recipeId}`);
+  }
+
+  function exitNow() {
+    session.clear();
+    router.push(`/recipes/${recipeId}`);
   }
 
   useEffect(() => {
@@ -287,7 +421,7 @@ export function CookingModeViewer({
       else if (e.key === "ArrowLeft") prev();
       else if (e.key === " " && step) {
         e.preventDefault();
-        if (timer.remaining === null) handleStartTimer();
+        if (remaining === null) handleStartTimer();
         else handleTogglePause();
       }
     }
@@ -301,28 +435,36 @@ export function CookingModeViewer({
     setMarking(false);
     if (!log) return;
     setCookLogId(log.id);
+    session.clear();
     toast.success("Ricetta segnata come cucinata.");
   }
 
   async function patchCookLog(patch: { rating?: number | null; notes?: string | null }) {
     if (!cookLogId) return;
-    await cookLog.patchCookLog(cookLogId, patch);
+    const ok = await cookLog.patchCookLog(cookLogId, patch);
+    if (ok) toast.success("Salvato");
   }
 
   const voice = useVoiceControl({
     next,
     prev,
     startTimer: handleStartTimer,
+    pauseTimer: handleTogglePause,
+    cancelTimer: handleCancelTimer,
     repeat: () => step && speak(step.instruction),
     jump: jumpTo,
     timeLeft: () => {
-      if (timer.remaining === null) speak("Nessun timer attivo");
-      else speak(`Mancano ${Math.ceil(timer.remaining / 60)} minuti`);
+      if (remaining === null) speak("Nessun timer attivo");
+      else speak(`Mancano ${Math.ceil(remaining / 60)} minuti`);
     },
   });
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
+  }
+  function handleTouchMove(e: React.TouchEvent) {
+    if (touchStartX.current === null || reduceMotion) return;
+    setDragX(e.touches[0].clientX - touchStartX.current);
   }
   function handleTouchEnd(e: React.TouchEvent) {
     if (touchStartX.current === null) return;
@@ -332,16 +474,19 @@ export function CookingModeViewer({
       else prev();
     }
     touchStartX.current = null;
+    setDragX(0);
   }
 
-  const minutes = timer.remaining !== null ? Math.floor(timer.remaining / 60) : null;
-  const seconds = timer.remaining !== null ? timer.remaining % 60 : null;
+  const minutes = remaining !== null ? Math.floor(remaining / 60) : null;
+  const seconds = remaining !== null ? remaining % 60 : null;
   const progress = requiredProgress(steps, Math.min(index, steps.length - 1));
+  const otherActiveTimers = cookTimers.active.filter((t) => t.stepIndex !== index);
 
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col bg-background text-foreground"
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <div className="pointer-events-none absolute inset-0 z-0">
@@ -381,6 +526,25 @@ export function CookingModeViewer({
         )}
       </div>
 
+      {otherActiveTimers.length > 0 && (
+        <div className="relative z-10 flex gap-2 overflow-x-auto px-4 pt-2" role="group" aria-label="Timer attivi">
+          {otherActiveTimers.map((t) => (
+            <button
+              key={t.stepIndex}
+              type="button"
+              onClick={() => jumpTo(t.stepIndex + 1)}
+              className="flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium shadow-sm hover:bg-surface-secondary"
+            >
+              <span className="text-muted-foreground">Passaggio {t.stepIndex + 1}</span>
+              <span className="tabular-nums text-foreground">
+                {t.paused ? "· " : ""}
+                {String(Math.floor(t.remaining / 60)).padStart(2, "0")}:{String(t.remaining % 60).padStart(2, "0")}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="relative z-10 flex items-center justify-between gap-2 p-4">
         <div className="flex min-w-0 flex-col">
           <span className="truncate text-xs text-muted-foreground/70">{title}</span>
@@ -399,23 +563,41 @@ export function CookingModeViewer({
               <List className="h-6 w-6" aria-hidden="true" />
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => stepsModalRef.current?.open()}
+            aria-label="Tutti i passaggi"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <ListChecks className="h-6 w-6" aria-hidden="true" />
+          </button>
           {voice.supported && (
-            <button
-              type="button"
-              onClick={voice.toggle}
-              aria-label={voice.listening ? "Disattiva comandi vocali" : "Attiva comandi vocali"}
-              className={`flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${voice.listening ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"}`}
-            >
-              {voice.listening ? (
-                <Mic className="h-6 w-6" aria-hidden="true" />
-              ) : (
-                <MicOff className="h-6 w-6" aria-hidden="true" />
-              )}
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={voice.toggle}
+                aria-label={voice.listening ? "Disattiva comandi vocali" : "Attiva comandi vocali"}
+                className={`flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${voice.listening ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"}`}
+              >
+                {voice.listening ? (
+                  <Mic className="h-6 w-6" aria-hidden="true" />
+                ) : (
+                  <MicOff className="h-6 w-6" aria-hidden="true" />
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => voiceHelpModalRef.current?.open()}
+                aria-label="Comandi vocali disponibili"
+                className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                <HelpCircle className="h-6 w-6" aria-hidden="true" />
+              </button>
+            </>
           )}
           <button
             type="button"
-            onClick={() => router.push(`/recipes/${recipeId}`)}
+            onClick={handleExit}
             aria-label="Chiudi modalità cottura"
             className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
@@ -445,7 +627,7 @@ export function CookingModeViewer({
               />
               <button
                 type="button"
-                onClick={() => router.push(`/recipes/${recipeId}`)}
+                onClick={exitNow}
                 className={`w-full rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
               >
                 Torna alla ricetta
@@ -463,7 +645,7 @@ export function CookingModeViewer({
               </button>
               <button
                 type="button"
-                onClick={() => router.push(`/recipes/${recipeId}`)}
+                onClick={exitNow}
                 className={`rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
               >
                 Torna alla ricetta
@@ -472,7 +654,14 @@ export function CookingModeViewer({
           )}
         </div>
       ) : (
-        <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center">
+        <div
+          className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center"
+          style={
+            dragX !== 0
+              ? { transform: `translateX(${dragX * 0.4}px)` }
+              : { transform: "translateX(0)", transition: "transform 150ms ease-out" }
+          }
+        >
           {step.imageFilename && (
             <UploadedImage
               filename={step.imageFilename}
@@ -489,7 +678,7 @@ export function CookingModeViewer({
 
           {step.timerMinutes !== null && (
             <div className="flex flex-col items-center gap-3">
-              {timer.remaining !== null ? (
+              {remaining !== null ? (
                 <>
                   <span className="text-4xl font-bold tabular-nums sm:text-5xl">
                     {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
@@ -498,15 +687,15 @@ export function CookingModeViewer({
                     <button
                       type="button"
                       onClick={handleTogglePause}
-                      aria-label={timer.paused ? "Riprendi timer" : "Metti in pausa timer"}
+                      aria-label={timerPaused ? "Riprendi timer" : "Metti in pausa timer"}
                       className={`flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
                     >
-                      {timer.paused ? (
+                      {timerPaused ? (
                         <Play className="h-4 w-4" aria-hidden="true" />
                       ) : (
                         <Pause className="h-4 w-4" aria-hidden="true" />
                       )}
-                      {timer.paused ? "Riprendi" : "Pausa"}
+                      {timerPaused ? "Riprendi" : "Pausa"}
                     </button>
                     <button
                       type="button"
@@ -555,6 +744,64 @@ export function CookingModeViewer({
       <Modal ref={ingredientsModalRef} variant="sheet" title="Ingredienti">
         <ServingsAdjuster recipeId={recipeId} baseServings={baseServings} ingredients={ingredients} />
       </Modal>
+
+      <Modal ref={stepsModalRef} variant="sheet" title="Tutti i passaggi">
+        <ol className="space-y-1">
+          {steps.map((s, i) => (
+            <li key={s.id}>
+              <button
+                type="button"
+                onClick={() => {
+                  jumpTo(i + 1);
+                  stepsModalRef.current?.close();
+                }}
+                className={`flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-surface-secondary ${i === index ? "bg-accent" : ""}`}
+              >
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                    i === index
+                      ? "bg-primary text-primary-foreground"
+                      : i < index
+                        ? "bg-primary/20 text-primary"
+                        : "bg-surface-sunken text-muted-foreground"
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 text-sm text-foreground">{s.instruction}</span>
+                  {s.optional && (
+                    <Badge variant="neutral" size="sm" className="mt-1">
+                      facoltativo
+                    </Badge>
+                  )}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </Modal>
+
+      <Modal ref={voiceHelpModalRef} variant="sheet" title="Comandi vocali">
+        <ul className="space-y-3">
+          {VOICE_COMMANDS_HELP.map((c) => (
+            <li
+              key={c.phrase}
+              className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 border-b border-border/60 pb-3 last:border-0 last:pb-0"
+            >
+              <span className="font-medium text-foreground">{c.phrase}</span>
+              <span className="text-sm text-muted-foreground">{c.description}</span>
+            </li>
+          ))}
+        </ul>
+      </Modal>
+
+      <ConfirmDialog
+        ref={exitDialogRef}
+        title="Un timer è in corso"
+        description="Uscire adesso lo interrompe."
+        confirmLabel="Esci"
+      />
     </div>
   );
 }
