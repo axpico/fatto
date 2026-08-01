@@ -9,7 +9,7 @@ export function useSuggestions<T>(url: string, pick: (row: T) => string): string
     fetch(url)
       .then((res) => res.json())
       .then((rows: T[]) => setSuggestions(rows.map(pick)))
-      .catch(() => {});
+      .catch((err) => console.error(`useSuggestions(${url}) failed`, err));
     // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per mount, url is expected static per call site
   }, [url]);
 

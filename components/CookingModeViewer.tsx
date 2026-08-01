@@ -433,6 +433,7 @@ export function CookingModeViewer({
               />
               <textarea
                 placeholder="Note (opzionale)"
+                aria-label="Note"
                 onBlur={(e) => patchCookLog({ notes: e.target.value || null })}
                 rows={2}
                 className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-foreground"

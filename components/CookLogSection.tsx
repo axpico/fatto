@@ -89,6 +89,7 @@ export function CookLogSection({
               </div>
               <textarea
                 placeholder="Note (opzionale)"
+                aria-label="Note"
                 defaultValue={log.notes ?? ""}
                 onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
                 rows={1}

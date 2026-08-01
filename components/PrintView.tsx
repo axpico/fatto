@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
@@ -46,6 +48,9 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
 
   return (
     <div className="mx-auto min-h-screen max-w-3xl bg-surface p-5 text-foreground sm:my-8 sm:rounded-xl sm:border sm:border-border sm:p-8 sm:shadow-sm print:my-0 print:max-w-none print:p-0">
+      <Link href={`/recipes/${recipe.id}`} className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground print:hidden">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Torna alla ricetta
+      </Link>
       <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
         <ServingsStepper servings={servings} onChange={setServings} />
         <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />

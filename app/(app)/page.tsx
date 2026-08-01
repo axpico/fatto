@@ -53,8 +53,11 @@ export default async function HomePage({
     recipes = await prisma.recipe.findMany({ include: baseInclude, orderBy: { createdAt: "desc" } });
   }
 
-  // eslint-disable-next-line react-hooks/purity -- scelta casuale intenzionale ad ogni richiesta (server component, non un hook)
-  const highlight = recipes.length > 0 ? recipes[Math.floor(Math.random() * recipes.length)] : null;
+  // stabile per tutto il giorno (stesso seed finché la data non cambia), non ad ogni richiesta
+  const today = new Date().toISOString().slice(0, 10);
+  let seed = 0;
+  for (let i = 0; i < today.length; i++) seed = (seed * 31 + today.charCodeAt(i)) >>> 0;
+  const highlight = recipes.length > 0 ? recipes[seed % recipes.length] : null;
 
   return (
     <div className="page-shell max-w-3xl space-y-6">

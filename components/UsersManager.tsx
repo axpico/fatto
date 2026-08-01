@@ -19,7 +19,8 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const dialogRef = useRef<ConfirmDialogHandle>(null);
+  const deleteDialogRef = useRef<ConfirmDialogHandle>(null);
+  const demoteDialogRef = useRef<ConfirmDialogHandle>(null);
 
   function load() {
     fetch("/api/users")
@@ -39,15 +40,19 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
     });
     setCreating(false);
     if (await reportIfFailed(res, toast)) return;
+    const created: UserSummary = await res.json();
     toast.success("Utente creato");
     setName("");
     setEmail("");
     setPassword("");
-    setUsers(null);
-    load();
+    setUsers((prev) => (prev ? [...prev, created] : [created]));
   }
 
   async function toggleAdmin(u: UserSummary) {
+    if (u.isAdmin) {
+      const confirmed = await demoteDialogRef.current?.open();
+      if (!confirmed) return;
+    }
     setPendingId(u.id);
     const res = await fetch(`/api/users/${u.id}`, {
       method: "PATCH",
@@ -57,20 +62,18 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
     setPendingId(null);
     if (await reportIfFailed(res, toast)) return;
     toast.success(u.isAdmin ? "Admin rimosso" : "Utente promosso ad admin");
-    setUsers(null);
-    load();
+    setUsers((prev) => prev?.map((x) => (x.id === u.id ? { ...x, isAdmin: !u.isAdmin } : x)) ?? prev);
   }
 
   async function deleteUser(u: UserSummary) {
-    const confirmed = await dialogRef.current?.open();
+    const confirmed = await deleteDialogRef.current?.open();
     if (!confirmed) return;
     setPendingId(u.id);
     const res = await fetch(`/api/users/${u.id}`, { method: "DELETE" });
     setPendingId(null);
     if (await reportIfFailed(res, toast)) return;
     toast.success("Utente eliminato");
-    setUsers(null);
-    load();
+    setUsers((prev) => prev?.filter((x) => x.id !== u.id) ?? prev);
   }
 
   return (
@@ -146,10 +149,16 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
       )}
 
       <ConfirmDialog
-        ref={dialogRef}
+        ref={deleteDialogRef}
         title="Eliminare questo utente?"
         description="L'operazione non è reversibile."
         confirmLabel="Elimina"
+      />
+      <ConfirmDialog
+        ref={demoteDialogRef}
+        title="Rimuovere i permessi di admin?"
+        description="L'utente perderà l'accesso alle impostazioni di amministrazione."
+        confirmLabel="Rimuovi admin"
       />
     </>
   );
