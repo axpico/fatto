@@ -4,11 +4,13 @@ import { createContext, useCallback, useContext, useState, type ReactNode } from
 import { CheckCircle2, XCircle } from "lucide-react";
 
 type ToastVariant = "success" | "error";
-type ToastItem = { id: number; message: string; variant: ToastVariant };
+type ToastAction = { label: string; onClick: () => void };
+type ToastItem = { id: number; message: string; variant: ToastVariant; action?: ToastAction };
 
 type ToastContextValue = {
   success: (message: string) => void;
   error: (message: string) => void;
+  withAction: (message: string, action: ToastAction, opts?: { duration?: number }) => void;
 };
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -18,15 +20,16 @@ let nextId = 0;
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
 
-  const push = useCallback((message: string, variant: ToastVariant) => {
+  const push = useCallback((message: string, variant: ToastVariant, action?: ToastAction, duration = 4000) => {
     const id = nextId++;
-    setToasts((prev) => [...prev, { id, message, variant }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 4000);
+    setToasts((prev) => [...prev, { id, message, variant, action }]);
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration);
   }, []);
 
   const value: ToastContextValue = {
     success: (message) => push(message, "success"),
     error: (message) => push(message, "error"),
+    withAction: (message, action, opts) => push(message, "success", action, opts?.duration ?? 5500),
   };
 
   return (
@@ -50,6 +53,18 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
             )}
             {t.message}
+            {t.action && (
+              <button
+                type="button"
+                onClick={() => {
+                  setToasts((prev) => prev.filter((item) => item.id !== t.id));
+                  t.action?.onClick();
+                }}
+                className="ml-1 shrink-0 text-sm font-medium underline underline-offset-2"
+              >
+                {t.action.label}
+              </button>
+            )}
           </div>
         ))}
       </div>

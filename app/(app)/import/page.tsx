@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link2, Image as ImageIcon, Video, Upload, CheckCircle2, TriangleAlert } from "lucide-react";
 import { RecipeForm, type RecipeFormData } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/ai/schema";
@@ -13,6 +13,7 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { SectionIntro } from "@/components/ui/SectionIntro";
 
 const LANGUAGES = [
   { code: "italiano", label: "Italiano" },
@@ -51,8 +52,9 @@ async function runImportStream(
   url: string,
   init: RequestInit,
   onStage: (stage: string) => void,
+  signal?: AbortSignal,
 ): Promise<ImportedRecipe & { provider?: string }> {
-  const res = await fetch(url, init);
+  const res = await fetch(url, { ...init, signal });
   if (!res.ok || !res.body) {
     throw new Error("Importazione fallita");
   }
@@ -140,12 +142,15 @@ export default function ImportPage() {
   const [targetLanguage, setTargetLanguage] = useState(LANGUAGES[0].code);
   const [translating, setTranslating] = useState(false);
   const [formKey, setFormKey] = useState(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   async function importFromUrl(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       const data = await runImportStream(
         "/api/import/link",
@@ -155,11 +160,16 @@ export default function ImportPage() {
           body: JSON.stringify({ url }),
         },
         (stage) => setStageIndex(LINK_STAGES.indexOf(stage)),
+        controller.signal,
       );
       setProvider(data.provider ?? null);
       setExtracted(mapExtractedToFormData(data, { url }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Importazione fallita");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStageIndex(-1);
+      } else {
+        setError(err instanceof Error ? err.message : "Importazione fallita");
+      }
     } finally {
       setLoading(false);
     }
@@ -169,16 +179,25 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       const body = new FormData();
       body.set("file", file);
-      const data = await runImportStream("/api/import/file", { method: "POST", body }, (stage) =>
-        setStageIndex(FILE_STAGES.indexOf(stage)),
+      const data = await runImportStream(
+        "/api/import/file",
+        { method: "POST", body },
+        (stage) => setStageIndex(FILE_STAGES.indexOf(stage)),
+        controller.signal,
       );
       setProvider(data.provider ?? null);
       setExtracted(mapExtractedToFormData(data));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Importazione fallita");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStageIndex(-1);
+      } else {
+        setError(err instanceof Error ? err.message : "Importazione fallita");
+      }
     } finally {
       setLoading(false);
     }
@@ -189,6 +208,8 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     try {
       const data = await runImportStream(
         "/api/import/reel",
@@ -198,11 +219,16 @@ export default function ImportPage() {
           body: JSON.stringify({ url: reelUrl, notes: reelNotes || undefined }),
         },
         (stage) => setStageIndex(REEL_STAGES.indexOf(stage)),
+        controller.signal,
       );
       setProvider(data.provider ?? null);
       setExtracted(mapExtractedToFormData(data, { url: reelUrl, isVideo: true }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Importazione fallita");
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStageIndex(-1);
+      } else {
+        setError(err instanceof Error ? err.message : "Importazione fallita");
+      }
     } finally {
       setLoading(false);
     }
@@ -330,18 +356,22 @@ export default function ImportPage() {
       )}
 
       <div className="rounded-xl border border-border bg-surface p-2 shadow-sm">
-        <Tabs tabs={IMPORT_TABS} value={activeTab} onChange={setActiveTab} aria-label="Metodo di importazione" />
+        <Tabs
+          tabs={IMPORT_TABS.map((tab) => ({ ...tab, disabled: loading && tab.value !== activeTab }))}
+          value={activeTab}
+          onChange={setActiveTab}
+          aria-label="Metodo di importazione"
+        />
       </div>
 
       <div role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden={activeTab !== "link"}>
         <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Link2 className="h-5 w-5" aria-hidden="true" /></span>
-            <div>
-              <h2 className="font-display text-xl font-semibold text-foreground">Da un link</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla l&apos;URL di una ricetta online e noi estrarremo i dettagli.</p>
-            </div>
-          </div>
+          <SectionIntro
+            icon={Link2}
+            size="lg"
+            title="Da un link"
+            description="Incolla l'URL di una ricetta online e noi estrarremo i dettagli."
+          />
           <form onSubmit={importFromUrl} className="space-y-3">
             <Input
               type="url"
@@ -355,10 +385,15 @@ export default function ImportPage() {
               {loading && activeTab === "link" ? <Spinner /> : "Importa"}
             </Button>
             {loading && activeTab === "link" && (
-              <ProgressBar
-                value={((stageIndex + 1) / LINK_STAGES.length) * 100}
-                label={LINK_STAGES[stageIndex] ?? "Avvio..."}
-              />
+              <>
+                <ProgressBar
+                  value={((stageIndex + 1) / LINK_STAGES.length) * 100}
+                  label={LINK_STAGES[stageIndex] ?? "Avvio..."}
+                />
+                <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
+                  Annulla
+                </Button>
+              </>
             )}
           </form>
         </Card>
@@ -366,13 +401,12 @@ export default function ImportPage() {
 
       <div role="tabpanel" id="panel-file" aria-labelledby="tab-file" hidden={activeTab !== "file"}>
         <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><ImageIcon className="h-5 w-5" aria-hidden="true" /></span>
-            <div>
-              <h2 className="font-display text-xl font-semibold text-foreground">Da un file</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Carica uno screenshot o un PDF: leggeremo il testo della ricetta per te.</p>
-            </div>
-          </div>
+          <SectionIntro
+            icon={ImageIcon}
+            size="lg"
+            title="Da un file"
+            description="Carica uno screenshot o un PDF: leggeremo il testo della ricetta per te."
+          />
           <label
             htmlFor="import-file"
             className={buttonClasses(
@@ -405,11 +439,14 @@ export default function ImportPage() {
             </p>
           )}
           {loading && activeTab === "file" && (
-            <div className="mt-3">
+            <div className="mt-3 space-y-3">
               <ProgressBar
                 value={((stageIndex + 1) / FILE_STAGES.length) * 100}
                 label={FILE_STAGES[stageIndex] ?? "Avvio..."}
               />
+              <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
+                Annulla
+              </Button>
             </div>
           )}
         </Card>
@@ -417,13 +454,12 @@ export default function ImportPage() {
 
       <div role="tabpanel" id="panel-reel" aria-labelledby="tab-reel" hidden={activeTab !== "reel"}>
         <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-accent text-primary"><Video className="h-5 w-5" aria-hidden="true" /></span>
-            <div>
-              <h2 className="font-display text-xl font-semibold text-foreground">Da un Reel</h2>
-              <p className="mt-1 text-sm leading-6 text-muted-foreground">Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video.</p>
-            </div>
-          </div>
+          <SectionIntro
+            icon={Video}
+            size="lg"
+            title="Da un Reel"
+            description="Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video."
+          />
           <form onSubmit={importFromReel} className="space-y-3">
             <Input
               type="url"
@@ -444,10 +480,15 @@ export default function ImportPage() {
               {loading && activeTab === "reel" ? <Spinner /> : "Importa dal Reel"}
             </Button>
             {loading && activeTab === "reel" && (
-              <ProgressBar
-                value={((stageIndex + 1) / REEL_STAGES.length) * 100}
-                label={REEL_STAGES[stageIndex] ?? "Avvio..."}
-              />
+              <>
+                <ProgressBar
+                  value={((stageIndex + 1) / REEL_STAGES.length) * 100}
+                  label={REEL_STAGES[stageIndex] ?? "Avvio..."}
+                />
+                <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
+                  Annulla
+                </Button>
+              </>
             )}
           </form>
         </Card>

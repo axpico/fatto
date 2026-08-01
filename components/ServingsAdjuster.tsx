@@ -5,6 +5,7 @@ import { Minus, Plus } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
+import { useRecipeServings } from "@/lib/recipeServings";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -24,13 +25,15 @@ export function formatQuantity(n: number) {
 }
 
 export function ServingsAdjuster({
+  recipeId,
   baseServings,
   ingredients,
 }: {
+  recipeId: string;
   baseServings: number;
   ingredients: Ingredient[];
 }) {
-  const [servings, setServings] = useState(baseServings);
+  const [servings, setServings] = useRecipeServings(recipeId, baseServings);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [useMetric, toggleUnit] = useUnitPreference();
 
@@ -55,8 +58,8 @@ export function ServingsAdjuster({
           type="button"
           variant="secondary"
           size="sm"
-          onClick={() => setServings((s) => Math.max(1, s - 1))}
-          className="h-9 w-9 px-0"
+          onClick={() => setServings(Math.max(1, servings - 1))}
+          className="h-11 w-11 px-0"
           aria-label="Diminuisci porzioni"
         >
           <Minus className="h-4 w-4" aria-hidden="true" />
@@ -66,14 +69,14 @@ export function ServingsAdjuster({
           min={1}
           value={servings}
           onChange={(e) => setServings(Math.max(1, Number(e.target.value) || 1))}
-          className={`h-9 w-14 py-1 text-center font-semibold tabular-nums ${inputClasses}`}
+          className={`h-11 w-14 py-1 text-center font-semibold tabular-nums ${inputClasses}`}
         />
         <Button
           type="button"
           variant="secondary"
           size="sm"
-          onClick={() => setServings((s) => s + 1)}
-          className="h-9 w-9 px-0"
+          onClick={() => setServings(servings + 1)}
+          className="h-11 w-11 px-0"
           aria-label="Aumenta porzioni"
         >
           <Plus className="h-4 w-4" aria-hidden="true" />
@@ -136,7 +139,7 @@ export function ServingsStepper({
         variant="secondary"
         size="sm"
         onClick={() => onChange(Math.max(1, servings - 1))}
-        className="h-9 w-9 px-0"
+        className="h-11 w-11 px-0"
         aria-label="Diminuisci porzioni"
       >
         <Minus className="h-4 w-4" aria-hidden="true" />
@@ -153,7 +156,7 @@ export function ServingsStepper({
         variant="secondary"
         size="sm"
         onClick={() => onChange(servings + 1)}
-        className="h-9 w-9 px-0"
+        className="h-11 w-11 px-0"
         aria-label="Aumenta porzioni"
       >
         <Plus className="h-4 w-4" aria-hidden="true" />

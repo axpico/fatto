@@ -9,7 +9,7 @@ export default function NewRecipePage() {
           <p className="page-description">Aggiungi i dettagli essenziali, poi completa il resto quando vuoi.</p>
         </div>
       </div>
-      <RecipeForm />
+      <RecipeForm backHref="/" />
     </div>
   );
 }

@@ -49,13 +49,13 @@ export function ReorderableRows<T>({
           className={`rounded-lg bg-surface-sunken p-2 transition-opacity ${dragIndex === index ? "opacity-40" : ""}`}
         >
           <div className="flex items-start gap-2">
-            <div className="flex shrink-0 flex-col pt-2">
+            <div className="flex shrink-0 flex-col">
               <button
                 type="button"
                 onClick={() => onChange(moveItem(items, index, index - 1))}
                 disabled={index === 0}
                 aria-label={`Sposta ${itemLabel} su`}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="flex min-h-11 min-w-11 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
                 <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
@@ -64,7 +64,7 @@ export function ReorderableRows<T>({
                 onClick={() => onChange(moveItem(items, index, index + 1))}
                 disabled={index === items.length - 1}
                 aria-label={`Sposta ${itemLabel} giù`}
-                className="text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="flex min-h-11 min-w-11 items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-30"
               >
                 <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
@@ -76,7 +76,7 @@ export function ReorderableRows<T>({
               size="sm"
               onClick={() => remove(index)}
               aria-label={`Rimuovi ${itemLabel}`}
-              className="px-2 hover:text-destructive"
+              className="min-h-11 min-w-11 justify-center px-2 hover:text-destructive"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </Button>

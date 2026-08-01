@@ -1,6 +1,4 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { RecipeForm } from "@/components/RecipeForm";
 
@@ -21,9 +19,6 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
 
   return (
     <div className="page-shell pb-0">
-      <Link href={`/recipes/${recipe.id}`} className="mb-2 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Torna alla ricetta
-      </Link>
       <div className="page-header mb-2">
         <div>
           <h1 className="page-title">Modifica ricetta</h1>
@@ -32,6 +27,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
       </div>
       <RecipeForm
         recipeId={recipe.id}
+        backHref={`/recipes/${recipe.id}`}
         initialData={{
           title: recipe.title,
           description: recipe.description ?? "",

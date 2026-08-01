@@ -17,6 +17,7 @@ export default async function CookModePage({ params }: { params: Promise<{ id: s
   return (
     <CookingModeViewer
       recipeId={recipe.id}
+      title={recipe.title}
       steps={recipe.steps}
       ingredients={recipe.ingredients}
       baseServings={recipe.servingsBase}

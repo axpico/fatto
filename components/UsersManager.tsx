@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { loadJson, reportIfFailed } from "@/lib/apiError";
 import type { UserSummary } from "@/app/api/users/route";
 
 export function UsersManager({ currentUserId }: { currentUserId: string }) {
@@ -21,13 +21,13 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const deleteDialogRef = useRef<ConfirmDialogHandle>(null);
   const demoteDialogRef = useRef<ConfirmDialogHandle>(null);
+  const promoteDialogRef = useRef<ConfirmDialogHandle>(null);
 
   function load() {
-    fetch("/api/users")
-      .then((res) => res.json())
-      .then(setUsers);
+    loadJson<UserSummary[]>("/api/users", toast, setUsers);
   }
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is stable, omitted to avoid re-running the load on every render
   useEffect(load, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -49,10 +49,9 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
   }
 
   async function toggleAdmin(u: UserSummary) {
-    if (u.isAdmin) {
-      const confirmed = await demoteDialogRef.current?.open();
-      if (!confirmed) return;
-    }
+    const dialog = u.isAdmin ? demoteDialogRef : promoteDialogRef;
+    const confirmed = await dialog.current?.open();
+    if (!confirmed) return;
     setPendingId(u.id);
     const res = await fetch(`/api/users/${u.id}`, {
       method: "PATCH",
@@ -159,6 +158,13 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
         title="Rimuovere i permessi di admin?"
         description="L'utente perderà l'accesso alle impostazioni di amministrazione."
         confirmLabel="Rimuovi admin"
+      />
+      <ConfirmDialog
+        ref={promoteDialogRef}
+        title="Rendere questo utente admin?"
+        description="Otterrà accesso completo alle impostazioni di amministrazione, inclusa la gestione degli altri utenti."
+        confirmLabel="Rendi admin"
+        confirmVariant="primary"
       />
     </>
   );

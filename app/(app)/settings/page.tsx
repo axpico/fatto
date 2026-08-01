@@ -17,52 +17,64 @@ export default async function SettingsPage() {
         </div>
       </div>
 
-      <div className="panel space-y-1">
-        <p className="text-sm font-medium text-foreground">{user.name}</p>
-        <p className="text-sm text-muted-foreground">{user.email}</p>
-      </div>
-
-      <div className="panel flex items-center justify-between gap-4">
-        <div>
-          <p className="font-medium text-foreground">Aspetto</p>
-          <p className="text-sm text-muted-foreground">Passa dal tema chiaro a quello scuro.</p>
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Account</h2>
+        <div className="panel space-y-1">
+          <p className="text-sm font-medium text-foreground">{user.name}</p>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
-        <ThemeToggle />
-      </div>
+      </section>
 
-      <div className="panel flex items-center justify-between gap-4">
-        <div>
-          <p className="font-medium text-foreground">Unità di misura</p>
-          <p className="text-sm text-muted-foreground">Converti le quantità in grammi e millilitri.</p>
-        </div>
-        <UnitPreferenceToggle />
-      </div>
-
-      <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
-        <div>
-          <p className="font-medium text-foreground">Tag simili</p>
-          <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
-        </div>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-      </Link>
-
-      {user.isAdmin && (
-        <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+      <section className="space-y-6">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preferenze</h2>
+        <div className="panel flex items-center justify-between gap-4">
           <div>
-            <p className="font-medium text-foreground">Utenti</p>
-            <p className="text-sm text-muted-foreground">Crea nuovi account per la famiglia.</p>
+            <p className="font-medium text-foreground">Aspetto</p>
+            <p className="text-sm text-muted-foreground">Passa dal tema chiaro a quello scuro.</p>
+          </div>
+          <ThemeToggle />
+        </div>
+
+        <div className="panel flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-foreground">Unità di misura</p>
+            <p className="text-sm text-muted-foreground">Converti le quantità in grammi e millilitri.</p>
+          </div>
+          <UnitPreferenceToggle />
+        </div>
+      </section>
+
+      <section className="space-y-6">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Amministrazione</h2>
+        <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+          <div>
+            <p className="font-medium text-foreground">Tag simili</p>
+            <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
           </div>
           <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         </Link>
-      )}
 
-      <div className="panel flex items-center justify-between gap-4">
-        <div>
-          <p className="font-medium text-foreground">Sessione</p>
-          <p className="text-sm text-muted-foreground">Esci dall&apos;account su questo dispositivo.</p>
+        {user.isAdmin && (
+          <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+            <div>
+              <p className="font-medium text-foreground">Utenti</p>
+              <p className="text-sm text-muted-foreground">Crea nuovi account per la famiglia.</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Link>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sessione</h2>
+        <div className="panel flex items-center justify-between gap-4">
+          <div>
+            <p className="font-medium text-foreground">Sessione</p>
+            <p className="text-sm text-muted-foreground">Esci dall&apos;account su questo dispositivo.</p>
+          </div>
+          <LogoutButton />
         </div>
-        <LogoutButton />
-      </div>
+      </section>
     </div>
   );
 }

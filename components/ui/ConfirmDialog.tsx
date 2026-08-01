@@ -6,10 +6,16 @@ import { Modal, type ModalHandle } from "@/components/ui/Modal";
 
 export type ConfirmDialogHandle = { open: () => Promise<boolean> };
 
-type Props = { title: string; description?: string; confirmLabel?: string };
+type Props = {
+  title: string;
+  description?: string;
+  confirmLabel?: string;
+  /** "destructive" (default) for delete/remove actions, "primary" for non-destructive confirmations (e.g. granting a permission). */
+  confirmVariant?: "destructive" | "primary";
+};
 
 export const ConfirmDialog = forwardRef<ConfirmDialogHandle, Props>(
-  ({ title, description, confirmLabel = "Conferma" }, ref) => {
+  ({ title, description, confirmLabel = "Conferma", confirmVariant = "destructive" }, ref) => {
     const modalRef = useRef<ModalHandle>(null);
     const resolveRef = useRef<((value: boolean) => void) | null>(null);
 
@@ -34,7 +40,7 @@ export const ConfirmDialog = forwardRef<ConfirmDialogHandle, Props>(
           <Button type="button" variant="secondary" size="sm" onClick={() => close(false)}>
             Annulla
           </Button>
-          <Button type="button" variant="destructive" size="sm" onClick={() => close(true)}>
+          <Button type="button" variant={confirmVariant} size="sm" onClick={() => close(true)}>
             {confirmLabel}
           </Button>
         </div>

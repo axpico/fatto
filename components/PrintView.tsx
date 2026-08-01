@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
+import { useRecipeServings } from "@/lib/recipeServings";
 import { formatQuantity, ServingsStepper } from "@/components/ServingsAdjuster";
 import { UnitToggle } from "@/components/UnitToggle";
 import { Button } from "@/components/ui/Button";
@@ -39,7 +39,7 @@ type Recipe = {
 };
 
 export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: string }) {
-  const [servings, setServings] = useState(recipe.servingsBase);
+  const [servings, setServings] = useRecipeServings(recipe.id, recipe.servingsBase);
   const [useMetric, toggleUnit] = useUnitPreference();
   const totalMinutes =
     recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null

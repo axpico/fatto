@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import { X, ChevronLeft, ChevronRight, ArrowLeft } from "lucide-react";
 import { IngredientRows, type IngredientRow } from "@/components/IngredientRows";
 import { StepRows, type StepRow } from "@/components/StepRows";
 import { TagPicker } from "@/components/TagPicker";
@@ -13,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { UploadedImage } from "@/components/UploadedImage";
 import { NUTRITION_FIELDS } from "@/lib/nutrition";
 
@@ -89,9 +91,11 @@ const fileInputClasses =
 export function RecipeForm({
   recipeId,
   initialData,
+  backHref = "/",
 }: {
   recipeId?: string;
   initialData?: Partial<RecipeFormData>;
+  backHref?: string;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<RecipeFormData>({ ...EMPTY, ...initialData });
@@ -99,25 +103,48 @@ export function RecipeForm({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("base");
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const backDialogRef = useRef<ConfirmDialogHandle>(null);
+  // sticky flag (not state — doesn't need to trigger a render on its own): title should be
+  // focused once the "base" tab panel remounts after a validation failure
+  const focusTitleRef = useRef(false);
 
-  // baseline snapshot for the unsaved-changes check below; captured once at mount
-  const initialFormRef = useRef(form);
+  // baseline snapshot for the unsaved-changes check below; frozen at mount (useState ignores
+  // the initializer on later renders), safe to read during render unlike a ref
+  const [initialForm] = useState(form);
   const formRef = useRef(form);
   useEffect(() => {
     formRef.current = form;
   }, [form]);
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
 
   useEffect(() => {
-    // ponytail: only guards browser unload, not in-app navigation (no stable
-    // App Router hook for that without experimental APIs)
+    // ponytail: only guards browser unload, not in-app navigation (see
+    // handleBackClick below for the in-app case, via ConfirmDialog)
     function handleBeforeUnload(e: BeforeUnloadEvent) {
-      if (JSON.stringify(formRef.current) !== JSON.stringify(initialFormRef.current)) {
+      if (JSON.stringify(formRef.current) !== JSON.stringify(initialForm)) {
         e.preventDefault();
       }
     }
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
+  }, [initialForm]);
+
+  // tabs unmount inactive panels, so switching to "base" on validation failure
+  // needs a tick before the title input exists in the DOM to focus
+  useEffect(() => {
+    if (focusTitleRef.current && activeSection === "base") {
+      titleInputRef.current?.focus();
+      focusTitleRef.current = false;
+    }
+  }, [activeSection]);
+
+  async function handleBackClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    if (!isDirty) return;
+    e.preventDefault();
+    const confirmed = await backDialogRef.current?.open();
+    if (confirmed) router.push(backHref);
+  }
 
   function set<K extends keyof RecipeFormData>(key: K, value: RecipeFormData[K]) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -153,6 +180,14 @@ export function RecipeForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!form.title.trim()) {
+      setError("Titolo obbligatorio");
+      focusTitleRef.current = true;
+      setActiveSection("base");
+      return;
+    }
+
     setSaving(true);
     setError(null);
 
@@ -211,6 +246,20 @@ export function RecipeForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pb-24">
+      <Link
+        href={backHref}
+        onClick={handleBackClick}
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {recipeId ? "Torna alla ricetta" : "Torna alle ricette"}
+      </Link>
+      <ConfirmDialog
+        ref={backDialogRef}
+        title="Uscire senza salvare?"
+        description="Hai modifiche non salvate. Uscire senza salvare?"
+        confirmLabel="Esci senza salvare"
+      />
+
       {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <Tabs tabs={SECTIONS} value={activeSection} onChange={setActiveSection} aria-label="Sezioni ricetta" />
@@ -218,6 +267,7 @@ export function RecipeForm({
       {activeSection === "base" && (
         <Card role="tabpanel" id="panel-base" aria-labelledby="tab-base" className="space-y-4 p-4">
           <Input
+            ref={titleInputRef}
             label="Titolo"
             id="title"
             type="text"

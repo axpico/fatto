@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { RecipeList } from "@/components/RecipeList";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SectionIntro } from "@/components/ui/SectionIntro";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
@@ -124,6 +125,17 @@ function SearchPageContent() {
     servingsMin !== "" ||
     ratingMin !== "";
 
+  const activeFilterCount =
+    selectedTagIds.length +
+    ingredients.length +
+    (prepMax ? 1 : 0) +
+    (cookMax ? 1 : 0) +
+    (servingsMin ? 1 : 0) +
+    (ratingMin ? 1 : 0);
+
+  // aperto di default se l'utente ha già dei filtri attivi al mount, altrimenti chiuso su mobile
+  const [filtersOpen, setFiltersOpen] = useState(hasActiveFilters);
+
   function clearFilters() {
     setQuery("");
     setSelectedTagIds([]);
@@ -161,13 +173,7 @@ function SearchPageContent() {
       </div>
 
       <Card className="space-y-5 p-4 sm:p-5">
-        <div className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
-          <div>
-            <h2 className="font-medium text-foreground">Trova la ricetta giusta</h2>
-            <p className="text-sm text-muted-foreground">Cerca per nome o restringi i risultati con i filtri.</p>
-          </div>
-        </div>
+        <SectionIntro icon={SlidersHorizontal} title="Trova la ricetta giusta" description="Cerca per nome o restringi i risultati con i filtri." />
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
@@ -179,15 +185,47 @@ function SearchPageContent() {
           />
         </div>
 
+        <button
+          type="button"
+          onClick={() => setFiltersOpen((o) => !o)}
+          aria-expanded={filtersOpen}
+          aria-controls="search-filters-panel"
+          className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground sm:hidden"
+        >
+          <span className="flex items-center gap-1.5">
+            <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
+            Filtri
+            {activeFilterCount > 0 && (
+              <Badge variant="accent" size="sm">
+                {activeFilterCount}
+              </Badge>
+            )}
+          </span>
+          {filtersOpen ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+        </button>
+
+      <div id="search-filters-panel" className={`space-y-5 ${filtersOpen ? "" : "hidden sm:block"}`}>
       {tags.length > 0 && (
         <div className="border-t border-border pt-4">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-sm font-medium text-foreground">Filtra per tag</p>
-            <div className="flex gap-1.5">
-              <button type="button" onClick={() => setTagMode("all")} className={pillButtonClasses(tagMode === "all")}>
+            <div className="flex gap-1.5" role="radiogroup" aria-label="Modalità filtro tag">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={tagMode === "all"}
+                onClick={() => setTagMode("all")}
+                className={pillButtonClasses(tagMode === "all")}
+              >
                 Tutti
               </button>
-              <button type="button" onClick={() => setTagMode("any")} className={pillButtonClasses(tagMode === "any")}>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={tagMode === "any"}
+                onClick={() => setTagMode("any")}
+                className={pillButtonClasses(tagMode === "any")}
+              >
                 Almeno uno
               </button>
             </div>
@@ -197,6 +235,7 @@ function SearchPageContent() {
               <button
                 key={tag.id}
                 type="button"
+                aria-pressed={selectedTagIds.includes(tag.id)}
                 onClick={() => toggleTag(tag.id)}
                 className={pillButtonClasses(selectedTagIds.includes(tag.id))}
               >
@@ -280,6 +319,7 @@ function SearchPageContent() {
             <button
               key={r}
               type="button"
+              aria-pressed={ratingMin === String(r)}
               onClick={() => setRatingMin(ratingMin === String(r) ? "" : String(r))}
               className={pillButtonClasses(ratingMin === String(r))}
             >
@@ -287,6 +327,7 @@ function SearchPageContent() {
             </button>
           ))}
         </div>
+      </div>
       </div>
       </Card>
 

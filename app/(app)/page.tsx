@@ -6,6 +6,7 @@ import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
 import { pillButtonClasses } from "@/components/ui/Badge";
+import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SortPillLabel } from "@/components/SortPillLabel";
 import { Reveal } from "@/components/motion/Reveal";
 
@@ -75,13 +76,7 @@ export default async function HomePage({
       {highlight && (
         <Reveal>
           <section>
-            <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><Shuffle className="h-4 w-4" aria-hidden="true" /></span>
-              <div>
-                <h2 className="font-medium text-foreground">Sorpresa del giorno</h2>
-                <p className="text-sm text-muted-foreground">Una ricetta a caso dalla tua raccolta.</p>
-              </div>
-            </div>
+            <SectionIntro icon={Shuffle} title="Sorpresa del giorno" description="Una ricetta a caso dalla tua raccolta." />
             <RecipeCard recipe={highlight} variant="featured" />
           </section>
         </Reveal>
@@ -89,18 +84,13 @@ export default async function HomePage({
 
       <Reveal>
         <div className="panel">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-primary"><SlidersHorizontal className="h-4 w-4" aria-hidden="true" /></span>
-            <div>
-              <h2 className="font-medium text-foreground">Ordina la raccolta</h2>
-              <p className="text-sm text-muted-foreground">Scegli cosa vuoi ritrovare per prima.</p>
-            </div>
-          </div>
+          <SectionIntro icon={SlidersHorizontal} title="Ordina la raccolta" description="Scegli cosa vuoi ritrovare per prima." />
         <div className="flex gap-2 overflow-x-auto pb-1">
           {SORTS.map((s) => (
             <Link
               key={s.value}
               href={s.value === "recent" ? "/" : `/?sort=${s.value}`}
+              aria-current={sort === s.value ? "true" : undefined}
               className={pillButtonClasses(sort === s.value)}
             >
               <SortPillLabel label={s.label} />
@@ -115,7 +105,12 @@ export default async function HomePage({
           <EmptyState
             title="Nessuna ricetta ancora"
             description='Aggiungine una dalla tab "Importa" o crea una ricetta manualmente.'
-            action={<Link href="/import" className={buttonClasses("primary", "sm")}><BookOpen className="h-4 w-4" aria-hidden="true" /> Importa una ricetta</Link>}
+            action={
+              <div className="flex flex-wrap justify-center gap-2">
+                <Link href="/import" className={buttonClasses("primary", "sm")}><BookOpen className="h-4 w-4" aria-hidden="true" /> Importa una ricetta</Link>
+                <Link href="/recipes/new" className={buttonClasses("secondary", "sm")}><Plus className="h-4 w-4" aria-hidden="true" /> Crea manualmente</Link>
+              </div>
+            }
           />
         </div>
       ) : (

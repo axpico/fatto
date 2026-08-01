@@ -3,7 +3,7 @@
 import { useRef, type KeyboardEvent } from "react";
 import { pillButtonClasses } from "@/components/ui/Badge";
 
-export type Tab = { value: string; label: string };
+export type Tab = { value: string; label: string; disabled?: boolean };
 
 type Props = {
   tabs: Tab[];
@@ -17,11 +17,14 @@ export function Tabs({ tabs, value, onChange, ...rest }: Props) {
 
   function onKeyDown(e: KeyboardEvent<HTMLDivElement>) {
     const idx = tabs.findIndex((t) => t.value === value);
+    const enabledIdxs = tabs.reduce<number[]>((acc, t, i) => (t.disabled ? acc : [...acc, i]), []);
+    if (enabledIdxs.length === 0) return;
+    const pos = enabledIdxs.indexOf(idx);
     let nextIdx = idx;
-    if (e.key === "ArrowRight") nextIdx = (idx + 1) % tabs.length;
-    else if (e.key === "ArrowLeft") nextIdx = (idx - 1 + tabs.length) % tabs.length;
-    else if (e.key === "Home") nextIdx = 0;
-    else if (e.key === "End") nextIdx = tabs.length - 1;
+    if (e.key === "ArrowRight") nextIdx = enabledIdxs[(pos + 1) % enabledIdxs.length];
+    else if (e.key === "ArrowLeft") nextIdx = enabledIdxs[(pos - 1 + enabledIdxs.length) % enabledIdxs.length];
+    else if (e.key === "Home") nextIdx = enabledIdxs[0];
+    else if (e.key === "End") nextIdx = enabledIdxs[enabledIdxs.length - 1];
     else return;
     e.preventDefault();
     onChange(tabs[nextIdx].value);
@@ -40,9 +43,10 @@ export function Tabs({ tabs, value, onChange, ...rest }: Props) {
             id={`tab-${tab.value}`}
             aria-selected={selected}
             aria-controls={`panel-${tab.value}`}
+            aria-disabled={tab.disabled || undefined}
             tabIndex={selected ? 0 : -1}
-            onClick={() => onChange(tab.value)}
-            className={pillButtonClasses(selected)}
+            onClick={() => !tab.disabled && onChange(tab.value)}
+            className={pillButtonClasses(selected) + (tab.disabled ? " pointer-events-none opacity-50" : "")}
           >
             {tab.label}
           </button>

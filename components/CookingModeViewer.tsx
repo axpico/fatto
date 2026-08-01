@@ -213,11 +213,13 @@ function useStepTimer(minutes: number | null) {
 
 export function CookingModeViewer({
   recipeId,
+  title,
   steps,
   ingredients,
   baseServings,
 }: {
   recipeId: string;
+  title: string;
   steps: Step[];
   ingredients: Ingredient[];
   baseServings: number;
@@ -360,7 +362,7 @@ export function CookingModeViewer({
                 onClick={() => jumpTo(i + 1)}
                 aria-label={`Vai al passaggio ${i + 1}`}
                 aria-current={i === index}
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center"
+                className="flex min-h-11 min-w-11 flex-1 items-center justify-center"
               >
                 <span
                   className={`h-2 w-2 rounded-full ${
@@ -379,11 +381,14 @@ export function CookingModeViewer({
         )}
       </div>
 
-      <div className="relative z-10 flex items-center justify-between p-4">
-        <span id="step-progress-label" className="text-sm text-muted-foreground">
-          {isDone ? "Ricetta completata" : `Passaggio ${progress.current} di ${progress.total}`}
-        </span>
-        <div className="flex items-center gap-1">
+      <div className="relative z-10 flex items-center justify-between gap-2 p-4">
+        <div className="flex min-w-0 flex-col">
+          <span className="truncate text-xs text-muted-foreground/70">{title}</span>
+          <span id="step-progress-label" className="text-sm text-muted-foreground">
+            {isDone ? "Ricetta completata" : `Passaggio ${progress.current} di ${progress.total}`}
+          </span>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           {ingredients.length > 0 && (
             <button
               type="button"
@@ -481,15 +486,6 @@ export function CookingModeViewer({
             </Badge>
           )}
           <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">{step.instruction}</p>
-          {step.optional && (
-            <button
-              type="button"
-              onClick={next}
-              className="text-sm font-medium text-muted-foreground underline-offset-2 hover:underline"
-            >
-              Salta passaggio
-            </button>
-          )}
 
           {step.timerMinutes !== null && (
             <div className="flex flex-col items-center gap-3">
@@ -557,7 +553,7 @@ export function CookingModeViewer({
       )}
 
       <Modal ref={ingredientsModalRef} variant="sheet" title="Ingredienti">
-        <ServingsAdjuster baseServings={baseServings} ingredients={ingredients} />
+        <ServingsAdjuster recipeId={recipeId} baseServings={baseServings} ingredients={ingredients} />
       </Modal>
     </div>
   );

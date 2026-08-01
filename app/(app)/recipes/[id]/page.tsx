@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChefHat, Printer, Pencil, Clock, ExternalLink, Video } from "lucide-react";
+import { ArrowLeft, ChefHat, Printer, Pencil, Clock, ExternalLink, Video } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
@@ -47,6 +47,9 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
 
   return (
     <div className="page-shell">
+      <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Torna alle ricette
+      </Link>
       {recipe.photoUrl ? (
         <TiltCard className="relative mb-6 h-72 w-full overflow-hidden shadow-md sm:h-96">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -76,7 +79,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "sm")}>
           <Pencil className="h-4 w-4" aria-hidden="true" /> Modifica
         </Link>
-        <div className="ml-auto pl-1">
+        <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">
           <DeleteRecipeButton recipeId={recipe.id} />
         </div>
       </div>
@@ -154,6 +157,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           <Card className="p-4 sm:p-5">
             <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Ingredienti</h2>
             <ServingsAdjuster
+              recipeId={recipe.id}
               baseServings={recipe.servingsBase}
               ingredients={recipe.ingredients}
             />
