@@ -11,6 +11,14 @@ const loginSchema = z.object({
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 30_000;
 
+// Oltre al limite per-email: senza reverse proxy garantito davanti all'app (vedi README, il deploy
+// può girare anche in solo-LAN), un IP client non è affidabile da leggere qui — un contatore
+// globale sui fallimenti impedisce comunque a un attaccante di aggirare il lockout per-email
+// distribuendo i tentativi su tante email diverse in parallelo.
+const GLOBAL_KEY = "login:__global__";
+const GLOBAL_MAX_FAILS = 20;
+const GLOBAL_WINDOW_MS = 60_000;
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
@@ -20,7 +28,7 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
   const key = `login:${email}`;
-  if (isRateLimited(key, MAX_FAILS, LOCKOUT_MS)) {
+  if (isRateLimited(key, MAX_FAILS, LOCKOUT_MS) || isRateLimited(GLOBAL_KEY, GLOBAL_MAX_FAILS, GLOBAL_WINDOW_MS)) {
     return Response.json(
       { error: "Troppi tentativi falliti. Riprova tra qualche secondo." },
       { status: 429 },
@@ -32,6 +40,7 @@ export async function POST(request: Request) {
 
   if (!user || !valid) {
     recordAttempt(key, LOCKOUT_MS);
+    recordAttempt(GLOBAL_KEY, GLOBAL_WINDOW_MS);
     return Response.json({ error: "Email o password errati" }, { status: 401 });
   }
 
