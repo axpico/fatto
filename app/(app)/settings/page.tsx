@@ -46,6 +46,16 @@ export default async function SettingsPage() {
         <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
       </Link>
 
+      {user.isAdmin && (
+        <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+          <div>
+            <p className="font-medium text-foreground">Utenti</p>
+            <p className="text-sm text-muted-foreground">Crea nuovi account per la famiglia.</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        </Link>
+      )}
+
       <div className="panel flex items-center justify-between gap-4">
         <div>
           <p className="font-medium text-foreground">Sessione</p>

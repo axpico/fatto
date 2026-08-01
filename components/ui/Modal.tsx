@@ -14,9 +14,12 @@ type Props = {
 };
 
 const variantClasses: Record<Variant, string> = {
-  center: "w-[calc(100%-2rem)] max-w-sm rounded-xl",
+  // dialog:modal centers itself natively via UA `margin: auto`, but Tailwind's preflight zeroes
+  // margin on every element — inset-0 + m-auto restores it explicitly so utilities (which win over
+  // preflight regardless of specificity) put it back in the middle of the viewport
+  center: "fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-xl",
   sheet: "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85vh] w-full overflow-y-auto rounded-t-xl sm:inset-auto sm:bottom-6 sm:max-w-lg sm:rounded-xl",
-  image: "w-[calc(100%-2rem)] max-w-2xl border-none bg-transparent p-0 shadow-none",
+  image: "fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-2xl border-none bg-transparent p-0 shadow-none",
 };
 
 export const Modal = forwardRef<ModalHandle, Props>(

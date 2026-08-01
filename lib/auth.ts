@@ -81,3 +81,13 @@ export async function requireApiUser() {
   }
   return { user, unauthorized: null };
 }
+
+/** Come requireApiUser, ma richiede anche isAdmin (403 invece di 401 se autenticato ma non admin). */
+export async function requireApiAdmin() {
+  const { user, unauthorized } = await requireApiUser();
+  if (unauthorized) return { user: null, unauthorized };
+  if (!user.isAdmin) {
+    return { user: null, unauthorized: Response.json({ error: "Non autorizzato" }, { status: 403 }) };
+  }
+  return { user, unauthorized: null };
+}

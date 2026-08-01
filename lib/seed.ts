@@ -18,8 +18,8 @@ export async function seedAdminUser() {
 
   await prisma.user.upsert({
     where: { email },
-    create: { email, passwordHash, name },
-    update: { passwordHash, name },
+    create: { email, passwordHash, name, isAdmin: true },
+    update: { passwordHash, name, isAdmin: true },
   });
 
   console.log(`[seed] Utente pronto: ${email}`);
