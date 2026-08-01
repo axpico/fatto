@@ -3,15 +3,24 @@ import { requireApiUser } from "@/lib/auth";
 import { importFromReel, ReelImportError } from "@/lib/reelImport";
 import { AiExtractionError } from "@/lib/ai/extractRecipe";
 import { streamNdjson } from "@/lib/ndjson";
+import { isRateLimited, recordAttempt } from "@/lib/rateLimit";
 
 const bodySchema = z.object({ url: z.string().url(), notes: z.string().optional() });
+const IMPORT_RATE_LIMIT = 6;
+const IMPORT_RATE_WINDOW_MS = 5 * 60_000;
 
 // Risposta NDJSON in streaming: una riga { stage } per ogni avanzamento, poi una riga finale
 // { done: true, ...ricetta } o { done: true, error }. Il client legge riga per riga per mostrare
 // un'etichetta di caricamento aggiornata durante un'operazione che può durare 60-120s+.
 export async function POST(request: Request) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
+
+  const rateKey = `import:${user.id}`;
+  if (isRateLimited(rateKey, IMPORT_RATE_LIMIT, IMPORT_RATE_WINDOW_MS)) {
+    return Response.json({ error: "Troppe importazioni, riprova tra qualche minuto." }, { status: 429 });
+  }
+  recordAttempt(rateKey, IMPORT_RATE_WINDOW_MS);
 
   const body = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(body);

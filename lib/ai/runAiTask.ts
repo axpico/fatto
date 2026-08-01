@@ -11,6 +11,7 @@ import {
 } from "@/lib/ai/openrouterProvider";
 import { env } from "@/lib/env";
 import type { VisionImage } from "@/lib/ai/visionImage";
+import { BoundedMap } from "@/lib/boundedCache";
 
 export class AiTaskError extends Error {}
 
@@ -23,9 +24,10 @@ export type AiTaskOptions<T> = {
 };
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // il contenuto di una ricetta non cambia, limita solo la staleness
-// ponytail: Map in memoria mai ripulita, cresce fino al riavvio del container — accettabile per
-// un deploy single-container come questo (stesso compromesso già accettato in openrouterProvider.ts)
-const resultCache = new Map<string, { result: unknown; provider: string; cachedAt: number }>();
+const CACHE_MAX_ENTRIES = 500;
+const resultCache = new BoundedMap<string, { result: unknown; provider: string; cachedAt: number }>(
+  CACHE_MAX_ENTRIES,
+);
 
 function cacheKey(input: string, opts: AiTaskOptions<unknown>, images?: VisionImage[]): string {
   const hash = createHash("sha256").update(opts.systemPrompt + opts.jsonInstructions + input);

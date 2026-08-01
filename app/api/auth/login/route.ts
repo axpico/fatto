@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { isRateLimited, recordAttempt, clearRateLimit } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -10,11 +11,6 @@ const loginSchema = z.object({
 const MAX_FAILS = 5;
 const LOCKOUT_MS = 30_000;
 
-// ponytail: lockout in-memory per email, single-instance — si azzera al riavvio del container e
-// non è condiviso tra repliche. Sufficiente per un'app familiare a singolo processo; se mai
-// diventasse multi-istanza, spostare su uno store condiviso (Redis).
-const failsByEmail = new Map<string, { fails: number; lockedUntil: number }>();
-
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
@@ -23,8 +19,8 @@ export async function POST(request: Request) {
   }
 
   const { email, password } = parsed.data;
-  const entry = failsByEmail.get(email);
-  if (entry && entry.lockedUntil > Date.now()) {
+  const key = `login:${email}`;
+  if (isRateLimited(key, MAX_FAILS, LOCKOUT_MS)) {
     return Response.json(
       { error: "Troppi tentativi falliti. Riprova tra qualche secondo." },
       { status: 429 },
@@ -35,15 +31,11 @@ export async function POST(request: Request) {
   const valid = user ? await verifyPassword(password, user.passwordHash) : false;
 
   if (!user || !valid) {
-    const fails = (entry?.fails ?? 0) + 1;
-    failsByEmail.set(
-      email,
-      fails >= MAX_FAILS ? { fails: 0, lockedUntil: Date.now() + LOCKOUT_MS } : { fails, lockedUntil: 0 },
-    );
+    recordAttempt(key, LOCKOUT_MS);
     return Response.json({ error: "Email o password errati" }, { status: 401 });
   }
 
-  failsByEmail.delete(email);
+  clearRateLimit(key);
   await createSession(user.id);
   return Response.json({ ok: true });
 }

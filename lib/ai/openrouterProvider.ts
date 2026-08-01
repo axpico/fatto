@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { env } from "@/lib/env";
 import type { VisionImage } from "@/lib/ai/visionImage";
+import { BoundedMap } from "@/lib/boundedCache";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
 const CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -22,7 +23,7 @@ interface OpenRouterModel {
 // upgrade a una tabella/KV solo se servirà persistenza tra restart (non il caso qui)
 let cachedModels: OpenRouterModel[] | null = null;
 let cachedAt = 0;
-const negativeCache = new Map<string, number>();
+const negativeCache = new BoundedMap<string, number>(200);
 
 export function rankFreeModels(models: OpenRouterModel[], opts?: { vision?: boolean }): string[] {
   return models

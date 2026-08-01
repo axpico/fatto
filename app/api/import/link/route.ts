@@ -6,8 +6,12 @@ import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
 import { fetchImageBuffer, saveUploadFromBuffer } from "@/lib/uploads";
 import { MAX_VISION_IMAGES, type VisionImage } from "@/lib/ai/visionImage";
 import { streamNdjson } from "@/lib/ndjson";
+import { assertPublicUrl } from "@/lib/urlSafety";
+import { isRateLimited, recordAttempt } from "@/lib/rateLimit";
 
 const bodySchema = z.object({ url: z.string().url() });
+const IMPORT_RATE_LIMIT = 6;
+const IMPORT_RATE_WINDOW_MS = 5 * 60_000;
 
 const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
   "image/jpeg",
@@ -19,8 +23,14 @@ const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
 // Risposta NDJSON in streaming, stesso pattern di app/api/import/reel/route.ts: una riga
 // { stage } per avanzamento, poi una riga finale { done: true, ...ricetta } o { done: true, error }.
 export async function POST(request: Request) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
+
+  const rateKey = `import:${user.id}`;
+  if (isRateLimited(rateKey, IMPORT_RATE_LIMIT, IMPORT_RATE_WINDOW_MS)) {
+    return Response.json({ error: "Troppe importazioni, riprova tra qualche minuto." }, { status: 429 });
+  }
+  recordAttempt(rateKey, IMPORT_RATE_WINDOW_MS);
 
   const body = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(body);
@@ -33,6 +43,7 @@ export async function POST(request: Request) {
       write({ stage: "Scaricando pagina..." });
       let html: string;
       try {
+        await assertPublicUrl(parsed.data.url);
         const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         html = await res.text();

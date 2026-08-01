@@ -53,6 +53,8 @@ model Recipe {
   cookLogs    CookLog[]
   images      RecipeImage[]
   nutrition   Nutrition?
+
+  @@index([createdById])
 }
 
 model Nutrition {
@@ -122,6 +124,7 @@ model CookLog {
   notes    String?
 
   @@index([recipeId])
+  @@index([userId])
 }
 
 model IngredientCatalog {

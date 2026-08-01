@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { useToast } from "@/components/ui/Toast";
 
 type Tag = { id: string; name: string };
 type TagMode = "all" | "any";
@@ -31,6 +32,7 @@ export default function SearchPage() {
 function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const toast = useToast();
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [tags, setTags] = useState<Tag[]>([]);
@@ -89,7 +91,9 @@ function SearchPageContent() {
           setStatus("done");
         })
         .catch((err) => {
-          if (err.name !== "AbortError") throw err;
+          if (err.name === "AbortError") return;
+          toast.error("Ricerca non riuscita, riprova.");
+          setStatus("done");
         });
     }, 200);
 
@@ -97,6 +101,7 @@ function SearchPageContent() {
       clearTimeout(handle);
       controller.abort();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is stable, omitted to avoid re-running the search on every render
   }, [query, selectedTagIds, tagMode, ingredients, prepMax, cookMax, servingsMin, ratingMin, explicitSort, sort, router]);
 
   function toggleTag(id: string) {

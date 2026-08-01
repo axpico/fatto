@@ -3,8 +3,10 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { env } from "@/lib/env";
+import { assertPublicUrl } from "@/lib/urlSafety";
 
 const MAX_WIDTH = 1600;
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 
 export async function saveUpload(file: File): Promise<string> {
   await mkdir(env.UPLOAD_DIR, { recursive: true });
@@ -30,12 +32,11 @@ export async function deleteUpload(filename: string | null | undefined) {
   }
 }
 
-const MAX_URL_IMAGE_BYTES = 8 * 1024 * 1024;
-
 // ponytail: usato per foto di copertina e immagini dei passaggi durante l'import — un bonus
 // best-effort, qualsiasi fallimento viene ignorato silenziosamente, non deve mai far fallire l'import
 export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
   try {
+    await assertPublicUrl(url);
     const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) {
       console.error(`[uploads] fetchImageBuffer: HTTP ${res.status} per ${url}`);
@@ -47,7 +48,7 @@ export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; c
       return null;
     }
     const buffer = Buffer.from(await res.arrayBuffer());
-    if (buffer.byteLength > MAX_URL_IMAGE_BYTES) {
+    if (buffer.byteLength > MAX_UPLOAD_BYTES) {
       console.error(`[uploads] fetchImageBuffer: immagine troppo grande (${buffer.byteLength} byte) per ${url}`);
       return null;
     }
