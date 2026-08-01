@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { inputClasses } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ReorderableRows } from "@/components/ui/ReorderableRows";
+import { UploadedImage } from "@/components/UploadedImage";
 
 export type StepRow = {
   instruction: string;
@@ -60,12 +61,7 @@ export function StepRows({
           />
           <div className="flex items-center gap-2">
             {row.imageFilename && !row.imageFile && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/api/uploads/${row.imageFilename}`}
-                alt=""
-                className="h-10 w-10 rounded object-cover"
-              />
+              <UploadedImage filename={row.imageFilename} alt="" className="h-10 w-10 rounded object-cover" />
             )}
             <input
               type="file"

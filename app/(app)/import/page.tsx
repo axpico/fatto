@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
 
 const LANGUAGES = [
   { code: "italiano", label: "Italiano" },
@@ -303,9 +304,7 @@ export default function ImportPage() {
             </div>
           </Card>
         )}
-        {error && (
-          <p className="mt-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-        )}
+        {error && <ErrorBanner className="mt-3">{error}</ErrorBanner>}
         <div className="mt-6">
           <RecipeForm key={formKey} initialData={extracted ?? undefined} />
         </div>
@@ -322,12 +321,12 @@ export default function ImportPage() {
       </div>
 
       {error && (
-        <div className="space-y-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <ErrorBanner className="space-y-2">
           <p>{error}</p>
           <button type="button" onClick={() => setManual(true)} className="font-medium underline">
             Inserisci manualmente
           </button>
-        </div>
+        </ErrorBanner>
       )}
 
       <div className="rounded-xl border border-border bg-surface p-2 shadow-sm">

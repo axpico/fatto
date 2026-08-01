@@ -1,7 +1,7 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { env } from "@/lib/env";
-import { getCurrentUser } from "@/lib/auth";
+import { requireApiUser } from "@/lib/auth";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -15,8 +15,8 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ filename: string }> },
 ) {
-  const user = await getCurrentUser();
-  if (!user) return new Response("Non autenticato", { status: 401 });
+  const { unauthorized } = await requireApiUser();
+  if (unauthorized) return unauthorized;
 
   const { filename } = await params;
   if (filename.includes("/") || filename.includes("..")) {

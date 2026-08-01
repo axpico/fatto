@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { inputClasses } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ReorderableRows } from "@/components/ui/ReorderableRows";
 import { CANONICAL_UNITS } from "@/lib/units";
+import { useSuggestions } from "@/lib/useSuggestions";
 
 export type IngredientRow = {
   name: string;
@@ -20,14 +20,7 @@ export function IngredientRows({
   value: IngredientRow[];
   onChange: (rows: IngredientRow[]) => void;
 }) {
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-
-  useEffect(() => {
-    fetch("/api/ingredients")
-      .then((res) => res.json())
-      .then((rows: { name: string }[]) => setSuggestions(rows.map((r) => r.name)))
-      .catch(() => {});
-  }, []);
+  const suggestions = useSuggestions<{ name: string }>("/api/ingredients", (r) => r.name);
 
   return (
     <>

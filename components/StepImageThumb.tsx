@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { Modal, type ModalHandle } from "@/components/ui/Modal";
+import { UploadedImage } from "@/components/UploadedImage";
 
 export function StepImageThumb({
   filename,
@@ -22,12 +23,10 @@ export function StepImageThumb({
         aria-label={`Ingrandisci foto: ${alt}`}
         className="shrink-0 overflow-hidden rounded-lg shadow-sm"
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/api/uploads/${filename}`} alt={alt} className={`${className} object-cover`} />
+        <UploadedImage filename={filename} alt={alt} className={`${className} object-cover`} />
       </button>
       <Modal ref={modalRef} variant="image">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={`/api/uploads/${filename}`} alt={alt} className="w-full rounded-xl object-contain" />
+        <UploadedImage filename={filename} alt={alt} className="w-full rounded-xl object-contain" />
       </Modal>
     </>
   );

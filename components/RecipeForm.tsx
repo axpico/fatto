@@ -12,6 +12,9 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
+import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { UploadedImage } from "@/components/UploadedImage";
+import { NUTRITION_FIELDS } from "@/lib/nutrition";
 
 export type NutritionData = {
   caloriesKcal: number | null;
@@ -72,17 +75,6 @@ const EMPTY: RecipeFormData = {
   photoUrl: null,
   gallery: [],
 };
-
-const NUTRITION_FIELDS: { key: keyof NutritionData; label: string }[] = [
-  { key: "caloriesKcal", label: "Calorie (kcal)" },
-  { key: "proteinG", label: "Proteine (g)" },
-  { key: "carbsG", label: "Carboidrati (g)" },
-  { key: "fatG", label: "Grassi (g)" },
-  { key: "fiberG", label: "Fibre (g)" },
-  { key: "sugarG", label: "Zuccheri (g)" },
-  { key: "saturatedFatG", label: "Grassi saturi (g)" },
-  { key: "sodiumMg", label: "Sodio (mg)" },
-];
 
 const SECTIONS = [
   { value: "base", label: "Base" },
@@ -219,9 +211,7 @@ export function RecipeForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 pb-24">
-      {error && (
-        <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>
-      )}
+      {error && <ErrorBanner>{error}</ErrorBanner>}
 
       <Tabs tabs={SECTIONS} value={activeSection} onChange={setActiveSection} aria-label="Sezioni ricetta" />
 
@@ -247,9 +237,8 @@ export function RecipeForm({
           <fieldset>
             <legend className="mb-1 text-sm font-medium">Foto</legend>
             {form.photoUrl && !photoFile && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/api/uploads/${form.photoUrl}`}
+              <UploadedImage
+                filename={form.photoUrl}
                 alt={form.title || "Foto ricetta"}
                 className="mb-2 h-40 w-40 rounded-lg object-cover"
               />
@@ -398,10 +387,10 @@ export function RecipeForm({
           <fieldset>
             <legend className="mb-1 text-sm font-medium">Valori nutrizionali (per porzione)</legend>
             <div className="grid grid-cols-3 gap-3">
-              {NUTRITION_FIELDS.map(({ key, label }) => (
+              {NUTRITION_FIELDS.map(({ key, label, unit }) => (
                 <Input
                   key={key}
-                  label={label}
+                  label={`${label} (${unit})`}
                   id={`nutrition-${key}`}
                   type="number"
                   min={0}

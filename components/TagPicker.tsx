@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { ChipInput } from "@/components/ui/ChipInput";
+import { useSuggestions } from "@/lib/useSuggestions";
 
 export function TagPicker({
   value,
@@ -10,14 +10,7 @@ export function TagPicker({
   value: string[];
   onChange: (tags: string[]) => void;
 }) {
-  const [existingTags, setExistingTags] = useState<string[]>([]);
-
-  useEffect(() => {
-    fetch("/api/tags")
-      .then((res) => res.json())
-      .then((tags: { name: string }[]) => setExistingTags(tags.map((t) => t.name)))
-      .catch(() => {});
-  }, []);
+  const existingTags = useSuggestions<{ name: string }>("/api/tags", (t) => t.name);
 
   return (
     <ChipInput

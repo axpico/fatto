@@ -59,38 +59,9 @@
   --shadow-md: var(--shadow-e2);
 }
 
-/* Dark theme — deep warm near-black with an amber ember glow.
-   ponytail: dark values are duplicated between the OS-preference query and the
-   manual [data-theme] override below — editing one means editing both. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: #14110d;
-    --foreground: #f3ece0;
-    --surface: #1c1813;
-    --surface-secondary: #241f18;
-    --surface-sunken: #100d09;
-    --border: #2e2820;
-    --border-strong: #443a2c;
-    --muted-foreground: #a1927b;
-    --primary: #f0a24b;
-    --primary-hover: #ffb968;
-    --primary-foreground: #1a140c;
-    --accent: #2c2116;
-    --success: #6bbf8f;
-    --warning: #e0a53c;
-    --destructive: #f2635a;
-    --destructive-hover: #ef4444;
-
-    --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.35);
-    --shadow-e2: 0 14px 44px rgb(0 0 0 / 0.55);
-    --glow: 0 0 0 1px rgb(240 162 75 / 0.28), 0 12px 44px rgb(240 162 75 / 0.20);
-
-    --grain-blend: soft-light;
-    --grain-opacity: 0.06;
-    --vignette: radial-gradient(130% 100% at 50% -10%, rgb(240 162 75 / 0.06), transparent 55%);
-  }
-}
-
+/* Dark theme — deep warm near-black with an amber ember glow. The init script in app/layout.tsx
+   resolves stored choice vs. OS preference into data-theme before paint, so this is the only
+   dark ruleset needed (no separate prefers-color-scheme block to keep in sync). */
 :root[data-theme="dark"] {
   --background: #14110d;
   --foreground: #f3ece0;

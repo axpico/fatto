@@ -10,7 +10,9 @@ import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { Badge } from "@/components/ui/Badge";
 import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { useCookLog } from "@/lib/useCookLog";
+import { UploadedImage } from "@/components/UploadedImage";
+import { pressableTransition } from "@/components/ui/Button";
 
 // ssr:false must be called from a client component — this file is one.
 const CookAmbientScene = dynamic(
@@ -222,6 +224,7 @@ export function CookingModeViewer({
 }) {
   const router = useRouter();
   const toast = useToast();
+  const cookLog = useCookLog(recipeId);
   const [index, setIndex] = useState(0);
   const [announcement, setAnnouncement] = useState("");
   const [trackedIndex, setTrackedIndex] = useState(0);
@@ -292,22 +295,16 @@ export function CookingModeViewer({
 
   async function markCooked() {
     setMarking(true);
-    const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
+    const log = await cookLog.markCooked<{ id: string }>();
     setMarking(false);
-    if (await reportIfFailed(res, toast)) return;
-    const log = await res.json();
+    if (!log) return;
     setCookLogId(log.id);
     toast.success("Ricetta segnata come cucinata.");
   }
 
   async function patchCookLog(patch: { rating?: number | null; notes?: string | null }) {
     if (!cookLogId) return;
-    const res = await fetch(`/api/cook-logs/${cookLogId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    await reportIfFailed(res, toast);
+    await cookLog.patchCookLog(cookLogId, patch);
   }
 
   const voice = useVoiceControl({
@@ -443,7 +440,7 @@ export function CookingModeViewer({
               <button
                 type="button"
                 onClick={() => router.push(`/recipes/${recipeId}`)}
-                className="w-full rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+                className={`w-full rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
               >
                 Torna alla ricetta
               </button>
@@ -454,14 +451,14 @@ export function CookingModeViewer({
                 type="button"
                 onClick={markCooked}
                 disabled={marking}
-                className="rounded-full bg-primary py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98] disabled:opacity-50"
+                className={`rounded-full bg-primary py-4 text-lg font-medium ${pressableTransition} hover:bg-primary-hover disabled:opacity-50`}
               >
                 Segna come cucinata
               </button>
               <button
                 type="button"
                 onClick={() => router.push(`/recipes/${recipeId}`)}
-                className="rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+                className={`rounded-xl border border-border bg-surface py-4 text-lg font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
               >
                 Torna alla ricetta
               </button>
@@ -471,9 +468,8 @@ export function CookingModeViewer({
       ) : (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto px-6 py-6 text-center">
           {step.imageFilename && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={`/api/uploads/${step.imageFilename}`}
+            <UploadedImage
+              filename={step.imageFilename}
               alt=""
               className="max-h-48 w-full max-w-sm rounded-xl object-cover"
             />
@@ -506,7 +502,7 @@ export function CookingModeViewer({
                       type="button"
                       onClick={handleTogglePause}
                       aria-label={timer.paused ? "Riprendi timer" : "Metti in pausa timer"}
-                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+                      className={`flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
                     >
                       {timer.paused ? (
                         <Play className="h-4 w-4" aria-hidden="true" />
@@ -519,7 +515,7 @@ export function CookingModeViewer({
                       type="button"
                       onClick={handleCancelTimer}
                       aria-label="Annulla timer"
-                      className="flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98]"
+                      className={`flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2 text-sm font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary`}
                     >
                       <Square className="h-4 w-4" aria-hidden="true" /> Annulla
                     </button>
@@ -529,7 +525,7 @@ export function CookingModeViewer({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className="rounded-full bg-primary px-6 py-4 text-lg font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98]"
+                  className={`rounded-full bg-primary px-6 py-4 text-lg font-medium ${pressableTransition} hover:bg-primary-hover`}
                 >
                   Avvia timer {step.timerMinutes} min
                 </button>
@@ -545,14 +541,14 @@ export function CookingModeViewer({
             type="button"
             onClick={prev}
             disabled={index === 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface py-6 text-xl font-medium text-foreground transition-[background-color,transform] duration-200 hover:bg-surface-secondary active:scale-[0.98] disabled:opacity-30"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface py-6 text-xl font-medium text-foreground ${pressableTransition} hover:bg-surface-secondary disabled:opacity-30`}
           >
             <ChevronLeft className="h-5 w-5" aria-hidden="true" /> Indietro
           </button>
           <button
             type="button"
             onClick={next}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium transition-[background-color,transform] duration-200 hover:bg-primary-hover active:scale-[0.98]"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium ${pressableTransition} hover:bg-primary-hover`}
           >
             Avanti <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </button>

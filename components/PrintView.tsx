@@ -8,17 +8,8 @@ import { formatQuantity, ServingsStepper } from "@/components/ServingsAdjuster";
 import { UnitToggle } from "@/components/UnitToggle";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-
-const NUTRITION_FIELDS: { key: "caloriesKcal" | "proteinG" | "carbsG" | "fatG" | "fiberG" | "sugarG" | "saturatedFatG" | "sodiumMg"; label: string; unit: string }[] = [
-  { key: "caloriesKcal", label: "Calorie", unit: " kcal" },
-  { key: "proteinG", label: "Proteine", unit: " g" },
-  { key: "carbsG", label: "Carboidrati", unit: " g" },
-  { key: "fatG", label: "Grassi", unit: " g" },
-  { key: "fiberG", label: "Fibre", unit: " g" },
-  { key: "sugarG", label: "Zuccheri", unit: " g" },
-  { key: "saturatedFatG", label: "di cui saturi", unit: " g" },
-  { key: "sodiumMg", label: "Sodio", unit: " mg" },
-];
+import { UploadedImage } from "@/components/UploadedImage";
+import { NUTRITION_FIELDS } from "@/lib/nutrition";
 
 type Recipe = {
   id: string;
@@ -64,9 +55,8 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
       </div>
 
       {recipe.photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={`/api/uploads/${recipe.photoUrl}`}
+        <UploadedImage
+          filename={recipe.photoUrl}
           alt={recipe.title}
           className="mb-4 h-56 w-full rounded-lg object-cover print:break-inside-avoid"
         />
@@ -142,8 +132,7 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
                 <div key={key} className="flex justify-between gap-2">
                   <dt className="text-muted-foreground">{label}</dt>
                   <dd className="font-medium text-foreground">
-                    {value}
-                    {unit}
+                    {value} {unit}
                   </dd>
                 </div>
               );

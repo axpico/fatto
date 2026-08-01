@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Clock, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { TiltCard } from "@/components/motion/TiltCard";
+import { UploadedImage } from "@/components/UploadedImage";
 
 export type RecipeCardData = {
   id: string;
@@ -74,8 +75,7 @@ export function RecipeCard({
           <Card className="relative aspect-[16/9] overflow-hidden transition-shadow duration-200 hover:shadow-md sm:aspect-[21/9]">
             {recipe.photoUrl ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/uploads/${recipe.photoUrl}`} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
+                <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
                 <Overlay recipe={recipe} big />
               </>
             ) : (
@@ -94,8 +94,7 @@ export function RecipeCard({
           <Card className="relative aspect-[4/5] h-full overflow-hidden transition-shadow duration-200 hover:shadow-md">
             {recipe.photoUrl ? (
               <>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/uploads/${recipe.photoUrl}`} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
+                <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
                 <Overlay recipe={recipe} />
               </>
             ) : (
@@ -113,8 +112,7 @@ export function RecipeCard({
     <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
       <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
         {recipe.photoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={`/api/uploads/${recipe.photoUrl}`} alt={recipe.title} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
+          <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
         ) : (
           <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-muted-foreground">
             <UtensilsCrossed className="h-6 w-6" aria-hidden="true" />

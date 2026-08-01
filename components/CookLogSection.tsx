@@ -8,8 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { StarRating } from "@/components/ui/StarRating";
-import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { useCookLog } from "@/lib/useCookLog";
 import { formatDate } from "@/lib/formatDate";
 
 type CookLog = {
@@ -30,26 +29,19 @@ export function CookLogSection({
   const [logs, setLogs] = useState(initialLogs);
   const [marking, setMarking] = useState(false);
   const dialogRef = useRef<ConfirmDialogHandle>(null);
-  const toast = useToast();
+  const cookLog = useCookLog(recipeId);
 
   async function markCooked() {
     setMarking(true);
-    const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
+    const log = await cookLog.markCooked<CookLog>();
     setMarking(false);
-    if (await reportIfFailed(res, toast)) return;
-    const log = await res.json();
-    setLogs((prev) => [log, ...prev]);
+    if (log) setLogs((prev) => [log, ...prev]);
   }
 
   async function patchLog(id: string, patch: Partial<Pick<CookLog, "rating" | "notes">>) {
     const previous = logs;
     setLogs((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
-    const res = await fetch(`/api/cook-logs/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    if (await reportIfFailed(res, toast)) setLogs(previous);
+    if (!(await cookLog.patchCookLog(id, patch))) setLogs(previous);
   }
 
   async function removeLog(id: string) {
@@ -57,8 +49,7 @@ export function CookLogSection({
     if (!confirmed) return;
     const previous = logs;
     setLogs((prev) => prev.filter((l) => l.id !== id));
-    const res = await fetch(`/api/cook-logs/${id}`, { method: "DELETE" });
-    if (await reportIfFailed(res, toast)) setLogs(previous);
+    if (!(await cookLog.deleteCookLog(id))) setLogs(previous);
   }
 
   return (

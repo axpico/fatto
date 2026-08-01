@@ -3,6 +3,10 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
 type Variant = "primary" | "secondary" | "destructive" | "ghost";
 type Size = "sm" | "md" | "lg";
 
+// Shared with hand-rolled buttons (e.g. CookingModeViewer's large touch-friendly CTAs) that don't
+// fit the sm/md/lg size scale but still want the same press/hover feel as ui/Button.
+export const pressableTransition = "transition-[background-color,transform] duration-200 active:scale-[0.98]";
+
 const base =
   "inline-flex min-h-10 items-center justify-center gap-1.5 rounded-md font-medium transition-[background-color,border-color,color,box-shadow,transform] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50";
 
