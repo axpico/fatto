@@ -11,6 +11,6 @@ export async function findIngredientMatches(terms: string[]): Promise<Ingredient
     FROM unnest(${cleaned}::text[]) AS t(term)
     JOIN "Ingredient" i
       ON i.name ILIKE '%' || t.term || '%'
-      OR similarity(i.name, t.term) > 0.3
+      OR similarity(i.name, t.term) > 0.4
   `;
 }

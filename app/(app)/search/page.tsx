@@ -318,7 +318,7 @@ function SearchPageContent() {
               <button
                 type="button"
                 onClick={() => setTagsExpanded((v) => !v)}
-                className={pillButtonClasses(false)}
+                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 {tagsExpanded ? "Mostra meno" : `Mostra tutti (${tags.length})`}
               </button>
