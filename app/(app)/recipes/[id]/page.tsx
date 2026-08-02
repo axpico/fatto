@@ -62,7 +62,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
             width={800}
             height={256}
             loading="eager"
-            className="h-full w-full object-cover"
+            className="hero-parallax h-full w-full object-cover"
           />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
             <h1 className="max-w-3xl font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">{recipe.title}</h1>

@@ -1,15 +1,44 @@
 "use client";
 
-import { useRef, type HTMLAttributes, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, type HTMLAttributes, type PointerEvent as ReactPointerEvent } from "react";
 
 const MAX_TILT_DEG = 6;
 
 // Interactive "lit depth" for cards: pointer-tracked 3D tilt plus a specular
 // glare that follows the cursor, so cards feel physically lit in the dark.
 // ponytail: pure CSS 3D transforms + a gradient glare layer — a WebGL canvas
-// per card would tank perf for the same look. Mouse only; touch gets nothing.
+// per card would tank perf for the same look.
 export function TiltCard({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   const ref = useRef<HTMLDivElement>(null);
+
+  // Touch has no cursor to track, so give it a scroll-driven tilt instead:
+  // the card rotates from the pointer's-eye perspective as it passes through
+  // the middle of the screen. rAF-throttled scroll listener, no glare (no
+  // point of contact to anchor it to).
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!window.matchMedia("(pointer: coarse)").matches) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    function update() {
+      raf = 0;
+      const rect = el!.getBoundingClientRect();
+      const offset = (rect.top + rect.height / 2 - window.innerHeight / 2) / (window.innerHeight / 2);
+      const rotateX = Math.max(-1, Math.min(1, offset)) * MAX_TILT_DEG;
+      el!.style.transform = `perspective(800px) rotateX(${rotateX.toFixed(2)}deg)`;
+    }
+    function onScroll() {
+      if (!raf) raf = requestAnimationFrame(update);
+    }
+    update();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
 
   function handlePointerMove(e: ReactPointerEvent<HTMLDivElement>) {
     if (e.pointerType !== "mouse") return;

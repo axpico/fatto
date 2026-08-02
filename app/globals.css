@@ -195,6 +195,25 @@ body > * {
   .favorite-pulse { animation: favorite-pop 320ms ease-out; }
   .value-pulse { animation: value-pulse 220ms ease-out; }
   .img-fade-in { animation: img-fade-in 400ms ease-out; }
+
+  /* Recede/lift for grid siblings: hovering any card in the grid nudges the
+     others back so the hovered one reads as lifted forward. */
+  .tilt-grid > * { transition: transform 200ms ease, opacity 200ms ease; }
+  .tilt-grid:hover > *:not(:hover) { transform: scale(0.97); opacity: 0.85; }
+}
+
+/* Scroll-linked depth on the recipe hero image; browsers without scroll-driven
+   animations just keep the static image, no fallback needed. */
+@supports (animation-timeline: view()) {
+  .hero-parallax {
+    animation: hero-parallax linear both;
+    animation-timeline: view();
+    animation-range: cover 0% cover 100%;
+  }
+}
+@keyframes hero-parallax {
+  from { transform: translateY(-6%) scale(1.08); }
+  to { transform: translateY(6%) scale(1.08); }
 }
 
 @media (prefers-reduced-motion: reduce) {

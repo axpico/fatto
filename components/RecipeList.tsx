@@ -41,7 +41,7 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
           </button>
         ))}
       </div>
-      <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
+      <div className={view === "grid" ? "tilt-grid grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
         {recipes.map((recipe, index) => (
           <Reveal key={recipe.id} delay={Math.min(index, 8) * 40}>
             <RecipeCard recipe={recipe} variant={view} />

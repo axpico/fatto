@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +12,12 @@ import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/Confirm
 import { StarRating } from "@/components/ui/StarRating";
 import { useCookLog } from "@/lib/useCookLog";
 import { formatDate } from "@/lib/formatDate";
+
+// ssr:false must be called from a client component — this file is one.
+const CookedCelebration = dynamic(
+  () => import("@/components/motion/CookedCelebration").then((m) => m.CookedCelebration),
+  { ssr: false },
+);
 
 type CookLog = {
   id: string;
@@ -29,6 +36,7 @@ export function CookLogSection({
 }) {
   const [logs, setLogs] = useState(initialLogs);
   const [marking, setMarking] = useState(false);
+  const [celebrating, setCelebrating] = useState(false);
   const dialogRef = useRef<ConfirmDialogHandle>(null);
   const cookLog = useCookLog(recipeId);
 
@@ -36,7 +44,10 @@ export function CookLogSection({
     setMarking(true);
     const log = await cookLog.markCooked<CookLog>();
     setMarking(false);
-    if (log) setLogs((prev) => [log, ...prev]);
+    if (log) {
+      setLogs((prev) => [log, ...prev]);
+      setCelebrating(true);
+    }
   }
 
   async function patchLog(id: string, patch: Partial<Pick<CookLog, "rating" | "notes">>) {
@@ -55,7 +66,7 @@ export function CookLogSection({
 
   return (
     <section className="mt-10 border-t border-border pt-8">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-semibold text-foreground">
           Storico{" "}
           {logs.length > 0 && (
@@ -67,6 +78,7 @@ export function CookLogSection({
         <Button type="button" size="sm" onClick={markCooked} disabled={marking}>
           {marking ? "Aggiornamento..." : "Segna come cucinata"}
         </Button>
+        {celebrating && <CookedCelebration onDone={() => setCelebrating(false)} />}
       </div>
 
       {logs.length === 0 ? (
