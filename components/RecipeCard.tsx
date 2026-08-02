@@ -57,11 +57,28 @@ function Overlay({ recipe, big = false }: { recipe: RecipeCardData; big?: boolea
   );
 }
 
-function NoPhoto({ title, tall }: { title: string; tall?: boolean }) {
+function NoPhoto({ recipe, tall, big = false }: { recipe: RecipeCardData; tall?: boolean; big?: boolean }) {
+  const { totalTime, parts } = metaLine(recipe, big ? 3 : 1);
   return (
     <div className={`flex ${tall ? "flex-col" : ""} h-full w-full items-center justify-center gap-3 bg-surface-secondary p-4 text-center`}>
       <UtensilsCrossed className="h-7 w-7 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <h3 className="font-display text-lg font-semibold text-foreground">{title}</h3>
+      <div>
+        <h3 className={`font-display font-semibold text-foreground ${big ? "text-2xl sm:text-3xl" : "text-lg"}`}>{recipe.title}</h3>
+        {(totalTime > 0 || parts.length > 0) && (
+          <div className="mt-1 flex flex-wrap items-center justify-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+            {totalTime > 0 && (
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {totalTime} min
+              </span>
+            )}
+            {parts.map((name) => (
+              <span key={name} className="before:mr-2 before:content-['\00b7'] first:before:hidden">
+                {name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -84,7 +101,7 @@ export function RecipeCard({
                 <Overlay recipe={recipe} big />
               </>
             ) : (
-              <NoPhoto title={recipe.title} tall />
+              <NoPhoto recipe={recipe} tall big />
             )}
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
@@ -104,7 +121,7 @@ export function RecipeCard({
                 <Overlay recipe={recipe} />
               </>
             ) : (
-              <NoPhoto title={recipe.title} tall />
+              <NoPhoto recipe={recipe} tall />
             )}
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
