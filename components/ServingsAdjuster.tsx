@@ -110,7 +110,7 @@ export function ServingsAdjuster({
       <ul className="space-y-2" aria-label={`Ingredienti per ${servings} porzioni`}>
         {ingredients.map((ing) => {
           const scaled = scaleQuantity(ing.quantity, baseServings, servings);
-          const display = scaled !== null ? applyUnitPreference(scaled, ing.unit, useMetric) : null;
+          const display = scaled !== null ? applyUnitPreference(scaled, ing.unit, useMetric, ing.name) : null;
           const checked = checkedIds.has(ing.id);
           return (
             <li key={ing.id}>

@@ -48,4 +48,20 @@ describe("applyUnitPreference", () => {
     expect(applyUnitPreference(3, null, true)).toEqual({ quantity: 3, unit: null });
     expect(applyUnitPreference(2, "pizzico", true)).toEqual({ quantity: 2, unit: "pizzico" });
   });
+
+  it("uses ingredient density to convert volume units of known solids to grams", () => {
+    expect(applyUnitPreference(0.5, "cup", true, "cioccolato, tritato")).toEqual({
+      quantity: 76.8,
+      unit: "g",
+    });
+    expect(applyUnitPreference(1, "cucchiaio", true, "farina 00")).toEqual({
+      quantity: 7.95,
+      unit: "g",
+    });
+  });
+
+  it("ignores density for unmatched ingredients or non-volume units", () => {
+    expect(applyUnitPreference(1, "cup", true, "acqua frizzante")).toEqual({ quantity: 240, unit: "ml" });
+    expect(applyUnitPreference(1, "kg", true, "farina 00")).toEqual({ quantity: 1000, unit: "g" });
+  });
 });

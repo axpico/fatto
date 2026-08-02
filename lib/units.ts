@@ -61,6 +61,30 @@ function dimensionOf(unit: string): { table: Record<string, number>; factor: num
   return null;
 }
 
+// g per ml, for ingredients typically measured by volume (cup/tbsp/tsp) but better shown in grams.
+// ponytail: substring match over a handful of common baking ingredients, not a full food-density db.
+// Upgrade path: per-recipe density override, or a real ingredient density table if mismatches show up.
+const DENSITY_BY_INGREDIENT: Record<string, number> = {
+  farina: 0.53,
+  zucchero: 0.85,
+  burro: 0.96,
+  cioccolato: 0.64,
+  cacao: 0.5,
+  riso: 0.75,
+  sale: 1.2,
+  miele: 1.42,
+  latte: 1.03,
+  panna: 1.0,
+};
+
+function densityFor(ingredientName: string): number | null {
+  const name = ingredientName.toLowerCase();
+  for (const key in DENSITY_BY_INGREDIENT) {
+    if (name.includes(key)) return DENSITY_BY_INGREDIENT[key];
+  }
+  return null;
+}
+
 export const CANONICAL_UNITS = [...new Set([...Object.keys(MASS), ...Object.keys(VOLUME), ...Object.keys(ALIASES)])];
 
 // ponytail: nessuna conversione massa<->volume, dipende dalla densità dell'ingrediente
@@ -75,8 +99,16 @@ export function applyUnitPreference(
   quantity: number,
   unit: string | null,
   useMetric: boolean,
+  ingredientName?: string,
 ): { quantity: number; unit: string | null } {
   if (!useMetric || !unit) return { quantity, unit };
+  if (ingredientName) {
+    const density = densityFor(ingredientName);
+    if (density !== null) {
+      const ml = convert(quantity, unit, "ml");
+      if (ml !== null) return { quantity: ml * density, unit: "g" };
+    }
+  }
   const grams = convert(quantity, unit, "g");
   if (grams !== null) return { quantity: grams, unit: "g" };
   const ml = convert(quantity, unit, "ml");

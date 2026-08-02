@@ -100,7 +100,7 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
       <ul className="mt-2 list-disc space-y-1 pl-5">
         {recipe.ingredients.map((ing) => {
           const scaled = scaleQuantity(ing.quantity, recipe.servingsBase, servings);
-          const display = scaled != null ? applyUnitPreference(scaled, ing.unit, useMetric) : null;
+          const display = scaled != null ? applyUnitPreference(scaled, ing.unit, useMetric, ing.name) : null;
           return (
             <li key={ing.id} className="break-inside-avoid">
               {display != null && (
