@@ -34,7 +34,12 @@ export const ConfirmDialog = forwardRef<ConfirmDialogHandle, Props>(
     }
 
     return (
-      <Modal ref={modalRef} title={title} onCancel={() => close(false)}>
+      <Modal
+        ref={modalRef}
+        title={title}
+        onCancel={() => close(false)}
+        className={confirmVariant === "destructive" ? "dialog-shake" : undefined}
+      >
         {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
         <div className="mt-4 flex justify-end gap-2">
           <Button type="button" variant="secondary" size="sm" onClick={() => close(false)}>

@@ -260,7 +260,7 @@ export function RecipeForm({
         confirmLabel="Esci senza salvare"
       />
 
-      {error && <ErrorBanner>{error}</ErrorBanner>}
+      {error && <ErrorBanner className="animate-[shake_400ms_ease-in-out]">{error}</ErrorBanner>}
 
       <Tabs tabs={SECTIONS} value={activeSection} onChange={setActiveSection} aria-label="Sezioni ricetta" />
 

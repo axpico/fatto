@@ -72,7 +72,7 @@ export function RecipeCard({
     return (
       <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
         <TiltCard>
-          <Card className="relative aspect-[16/9] overflow-hidden transition-shadow duration-200 hover:shadow-md sm:aspect-[21/9]">
+          <Card className="relative aspect-[16/9] overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md sm:aspect-[21/9]">
             {recipe.photoUrl ? (
               <>
                 <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -91,7 +91,7 @@ export function RecipeCard({
     return (
       <Link href={`/recipes/${recipe.id}`} className={`${linkClasses} h-full`}>
         <TiltCard className="h-full">
-          <Card className="relative aspect-[4/5] h-full overflow-hidden transition-shadow duration-200 hover:shadow-md">
+          <Card className="relative aspect-[4/5] h-full overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md">
             {recipe.photoUrl ? (
               <>
                 <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -110,7 +110,7 @@ export function RecipeCard({
   const { totalTime, parts } = metaLine(recipe);
   return (
     <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
-      <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
+      <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:border-border-strong hover:shadow-md">
         {recipe.photoUrl ? (
           <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
         ) : (

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   X,
   ChevronLeft,
@@ -316,6 +316,12 @@ function useCookTimers(initial: CookTimersState, onFinish: (stepIndex: number) =
 
 type CookSessionData = { index: number; timers: CookTimersState };
 
+const stepVariants = {
+  enter: (dir: 1 | -1) => ({ opacity: 0, x: dir * 24 }),
+  center: { opacity: 1, x: 0 },
+  exit: (dir: 1 | -1) => ({ opacity: 0, x: dir * -24 }),
+};
+
 export function CookingModeViewer({
   recipeId,
   title,
@@ -342,6 +348,7 @@ export function CookingModeViewer({
   const [rating, setRating] = useState<number | null>(null);
   const [dragX, setDragX] = useState(0);
   const touchStartX = useRef<number | null>(null);
+  const [direction, setDirection] = useState<1 | -1>(1);
   const ingredientsModalRef = useRef<ModalHandle>(null);
   const stepsModalRef = useRef<ModalHandle>(null);
   const voiceHelpModalRef = useRef<ModalHandle>(null);
@@ -377,13 +384,17 @@ export function CookingModeViewer({
   }, [index, cookTimers.timers]);
 
   function next() {
+    setDirection(1);
     setIndex((i) => Math.min(i + 1, steps.length));
   }
   function prev() {
+    setDirection(-1);
     setIndex((i) => Math.max(i - 1, 0));
   }
   function jumpTo(stepNumber: number) {
-    setIndex(Math.min(Math.max(stepNumber - 1, 0), steps.length - 1));
+    const target = Math.min(Math.max(stepNumber - 1, 0), steps.length - 1);
+    setDirection(target >= index ? 1 : -1);
+    setIndex(target);
   }
   function handleStartTimer() {
     if (!step || step.timerMinutes === null) return;
@@ -510,9 +521,9 @@ export function CookingModeViewer({
                 className="flex min-h-11 min-w-11 flex-1 items-center justify-center"
               >
                 <span
-                  className={`h-2 w-2 rounded-full ${
+                  className={`h-2 w-2 rounded-full transition-[background-color,transform] duration-300 ${
                     i === index
-                      ? "bg-primary"
+                      ? "scale-125 bg-primary"
                       : i < index
                         ? "bg-primary/40"
                         : s.optional
@@ -577,10 +588,13 @@ export function CookingModeViewer({
                 type="button"
                 onClick={voice.toggle}
                 aria-label={voice.listening ? "Disattiva comandi vocali" : "Attiva comandi vocali"}
-                className={`flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${voice.listening ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"}`}
+                className={`relative flex min-h-11 min-w-11 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${voice.listening ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"}`}
               >
+                {voice.listening && (
+                  <span className="absolute inset-0 animate-ping rounded-full bg-primary/30" aria-hidden="true" />
+                )}
                 {voice.listening ? (
-                  <Mic className="h-6 w-6" aria-hidden="true" />
+                  <Mic className="relative h-6 w-6" aria-hidden="true" />
                 ) : (
                   <MicOff className="h-6 w-6" aria-hidden="true" />
                 )}
@@ -606,6 +620,17 @@ export function CookingModeViewer({
         </div>
       </div>
 
+      <AnimatePresence mode="wait" initial={false} custom={direction}>
+      <motion.div
+        key={isDone ? "done" : step.id}
+        custom={direction}
+        variants={stepVariants}
+        initial={reduceMotion ? false : "enter"}
+        animate="center"
+        exit={reduceMotion ? undefined : "exit"}
+        transition={{ duration: reduceMotion ? 0 : 0.2, ease: "easeOut" }}
+        className="flex flex-1 flex-col"
+      >
       {isDone ? (
         <div className="relative z-10 flex flex-1 flex-col items-center justify-center gap-8 overflow-y-auto px-6 py-6 text-center">
           <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">Ricetta completata!</p>
@@ -680,7 +705,11 @@ export function CookingModeViewer({
             <div className="flex flex-col items-center gap-3">
               {remaining !== null ? (
                 <>
-                  <span className="text-4xl font-bold tabular-nums sm:text-5xl">
+                  <span
+                    className={`text-4xl font-bold tabular-nums sm:text-5xl ${
+                      remaining !== null && remaining <= 10 ? "text-destructive animate-pulse" : ""
+                    }`}
+                  >
                     {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
                   </span>
                   <div className="flex gap-2">
@@ -720,6 +749,8 @@ export function CookingModeViewer({
           )}
         </div>
       )}
+      </motion.div>
+      </AnimatePresence>
 
       {!isDone && (
         <div className="relative z-10 flex gap-3 p-4 pb-8">

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
 
 export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
@@ -25,8 +26,22 @@ export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = 
                   active ? "text-primary" : "text-muted-foreground hover:text-primary"
                 }`}
               >
-                <span className={`flex h-7 w-9 items-center justify-center rounded-full transition-all duration-200 ${active ? "bg-accent" : "group-hover:bg-surface-secondary"}`}>
-                  <Icon className={`h-5 w-5 transition-transform duration-200 ${active ? "scale-110" : ""}`} strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
+                <span className="relative flex h-7 w-9 items-center justify-center rounded-full">
+                  {active && (
+                    <motion.span
+                      layoutId="mobile-nav-pill"
+                      className="absolute inset-0 rounded-full bg-accent"
+                      transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    />
+                  )}
+                  {!active && (
+                    <span className="absolute inset-0 rounded-full transition-colors duration-200 group-hover:bg-surface-secondary" />
+                  )}
+                  <Icon
+                    className={`relative h-5 w-5 transition-transform duration-200 ${active ? "scale-110" : ""}`}
+                    strokeWidth={active ? 2.25 : 1.75}
+                    aria-hidden="true"
+                  />
                 </span>
                 {tab.label}
               </Link>

@@ -134,6 +134,25 @@ body > * {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
+@keyframes shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
+/* Combined into one keyframe (rather than layering .dialog-surface's animation with a separate
+   shake) because two animations touching the same `transform` property don't compose — only the
+   last-declared one would apply. */
+@keyframes dialog-enter-shake {
+  0% { opacity: 0; transform: translateY(10px) scale(0.985); }
+  40% { opacity: 1; transform: translateY(0) scale(1); }
+  55% { transform: translateX(-6px); }
+  70% { transform: translateX(5px); }
+  85% { transform: translateX(-3px); }
+  100% { transform: translateX(0); }
+}
+
 @layer components {
   .page-shell { @apply mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8; }
   .page-header { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
@@ -142,6 +161,7 @@ body > * {
   .panel { @apply rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5; }
   .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md; }
   .dialog-surface { animation: dialog-enter 180ms ease-out both; }
+  .dialog-shake { animation: dialog-enter-shake 480ms ease-out both; }
 
   /* Section eyebrow: small uppercase amber label used above page titles. */
   .eyebrow { @apply flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary; }

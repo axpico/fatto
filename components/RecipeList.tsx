@@ -2,6 +2,7 @@
 
 import { LayoutGrid, List as ListIcon } from "lucide-react";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
+import { Reveal } from "@/components/motion/Reveal";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
 const VIEW_STORAGE_KEY = "fatto-recipe-view";
@@ -41,8 +42,10 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
         ))}
       </div>
       <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
-        {recipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} variant={view} />
+        {recipes.map((recipe, index) => (
+          <Reveal key={recipe.id} delay={Math.min(index, 8) * 40}>
+            <RecipeCard recipe={recipe} variant={view} />
+          </Reveal>
         ))}
       </div>
     </div>

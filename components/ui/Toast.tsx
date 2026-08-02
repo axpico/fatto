@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 type ToastVariant = "success" | "error";
@@ -36,37 +37,44 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={value}>
       {children}
       <div className="pointer-events-none fixed inset-x-0 bottom-16 z-40 flex flex-col items-center gap-2 px-4 print:hidden md:bottom-6">
-        {toasts.map((t) => (
-          <div
-            key={t.id}
-            role={t.variant === "error" ? "alert" : "status"}
-            aria-live={t.variant === "error" ? "assertive" : "polite"}
-            className={`pointer-events-auto flex w-full max-w-sm animate-[enter_200ms_ease-out] items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-md ${
-              t.variant === "error"
-                ? "border-destructive/30 bg-surface text-destructive"
-                : "border-success/30 bg-surface text-success"
-            }`}
-          >
-            {t.variant === "error" ? (
-              <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            ) : (
-              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-            )}
-            {t.message}
-            {t.action && (
-              <button
-                type="button"
-                onClick={() => {
-                  setToasts((prev) => prev.filter((item) => item.id !== t.id));
-                  t.action?.onClick();
-                }}
-                className="ml-1 shrink-0 text-sm font-medium underline underline-offset-2"
-              >
-                {t.action.label}
-              </button>
-            )}
-          </div>
-        ))}
+        <AnimatePresence initial={false}>
+          {toasts.map((t) => (
+            <motion.div
+              key={t.id}
+              layout
+              initial={{ opacity: 0, y: 12, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              role={t.variant === "error" ? "alert" : "status"}
+              aria-live={t.variant === "error" ? "assertive" : "polite"}
+              className={`pointer-events-auto flex w-full max-w-sm items-center gap-2 rounded-xl border px-4 py-3 text-sm shadow-md ${
+                t.variant === "error"
+                  ? "border-destructive/30 bg-surface text-destructive"
+                  : "border-success/30 bg-surface text-success"
+              }`}
+            >
+              {t.variant === "error" ? (
+                <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden="true" />
+              )}
+              {t.message}
+              {t.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setToasts((prev) => prev.filter((item) => item.id !== t.id));
+                    t.action?.onClick();
+                  }}
+                  className="ml-1 shrink-0 text-sm font-medium underline underline-offset-2"
+                >
+                  {t.action.label}
+                </button>
+              )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </ToastContext.Provider>
   );

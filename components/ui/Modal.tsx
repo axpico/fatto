@@ -12,6 +12,7 @@ type Props = {
   title?: string;
   onCancel?: () => void;
   children: ReactNode;
+  className?: string;
 };
 
 const variantClasses: Record<Variant, string> = {
@@ -24,7 +25,7 @@ const variantClasses: Record<Variant, string> = {
 };
 
 export const Modal = forwardRef<ModalHandle, Props>(
-  ({ variant = "center", title, onCancel, children }, ref) => {
+  ({ variant = "center", title, onCancel, children, className }, ref) => {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const titleId = title ? "modal-title" : undefined;
 
@@ -65,7 +66,7 @@ export const Modal = forwardRef<ModalHandle, Props>(
           if (e.target === dialogRef.current) close();
         }}
         aria-labelledby={titleId}
-        className={`dialog-surface border border-border bg-surface p-5 text-foreground shadow-md backdrop:bg-black/40 ${variantClasses[variant]}`}
+        className={`dialog-surface border border-border bg-surface p-5 text-foreground shadow-md backdrop:bg-black/40 ${variantClasses[variant]} ${className ?? ""}`}
       >
         {variant === "image" ? (
           closeButton
