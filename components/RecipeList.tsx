@@ -5,16 +5,16 @@ import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
-const VIEW_STORAGE_KEY = "fatto-recipe-view";
-const VIEW_EVENT = "fatto-recipe-view-change";
-type View = "list" | "grid";
+export const VIEW_STORAGE_KEY = "fatto-recipe-view";
+export const VIEW_EVENT = "fatto-recipe-view-change";
+export type View = "list" | "grid";
 
-function resolve(stored: string | null): View {
+export function resolveRecipeView(stored: string | null): View {
   return stored === "grid" ? "grid" : "list";
 }
 
 export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
-  const [view, setView] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolve, "list");
+  const [view, setView] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView, "list");
 
   function select(next: View) {
     setView(next);

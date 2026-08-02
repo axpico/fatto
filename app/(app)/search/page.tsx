@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronUp, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
-import { RecipeList } from "@/components/RecipeList";
+import { RecipeList, VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView } from "@/components/RecipeList";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
@@ -17,6 +17,7 @@ import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson } from "@/lib/apiError";
 import { useSuggestions } from "@/lib/useSuggestions";
+import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
 
 type Tag = { id: string; name: string };
@@ -56,6 +57,8 @@ function SearchPageContent() {
   const [explicitSort, setExplicitSort] = useState<Sort | null>(() => (searchParams.get("sort") as Sort) ?? null);
   const [results, setResults] = useState<RecipeCardData[]>([]);
   const [status, setStatus] = useState<"loading" | "done">("loading");
+  const [view] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView, "list");
+  const queryInputRef = useRef<HTMLInputElement>(null);
 
   // finché l'utente non sceglie un sort esplicito, lo deriviamo dal filtro più specifico attivo
   const sort: Sort = explicitSort ?? (ingredients.length > 0 ? "best-match" : query.trim() ? "relevance" : "recent");
@@ -129,6 +132,28 @@ function SearchPageContent() {
     (servingsMin ? 1 : 0) +
     (ratingMin ? 1 : 0);
 
+  // Riepilogo di tutti i filtri attivi (query esclusa: è già visibile/modificabile nel campo di
+  // ricerca) — sempre mostrato, indipendentemente dal fatto che il pannello filtri sia aperto,
+  // così su mobile si vede cosa è attivo senza doverlo riaprire.
+  const activeFilters: { key: string; label: string; onRemove: () => void }[] = [
+    ...selectedTagIds.map((id) => ({
+      key: `tag-${id}`,
+      label: tags.find((t) => t.id === id)?.name ?? id,
+      onRemove: () => toggleTag(id),
+    })),
+    ...ingredients.map((term) => ({
+      key: `ingredient-${term}`,
+      label: term,
+      onRemove: () => setIngredients((prev) => prev.filter((t) => t !== term)),
+    })),
+    ...(prepMax ? [{ key: "prepMax", label: `Prep. ≤ ${prepMax} min`, onRemove: () => setPrepMax("") }] : []),
+    ...(cookMax ? [{ key: "cookMax", label: `Cottura ≤ ${cookMax} min`, onRemove: () => setCookMax("") }] : []),
+    ...(servingsMin
+      ? [{ key: "servingsMin", label: `Porzioni ≥ ${servingsMin}`, onRemove: () => setServingsMin("") }]
+      : []),
+    ...(ratingMin ? [{ key: "ratingMin", label: `${ratingMin}+ ★`, onRemove: () => setRatingMin("") }] : []),
+  ];
+
   // aperto di default se l'utente ha già dei filtri attivi al mount, altrimenti chiuso su mobile
   const [filtersOpen, setFiltersOpen] = useState(hasActiveFilters);
 
@@ -173,13 +198,46 @@ function SearchPageContent() {
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
+            ref={queryInputRef}
             type="search"
+            autoFocus
             placeholder="Cerca per titolo o descrizione"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 pr-10 [&::-webkit-search-cancel-button]:hidden"
           />
+          {query && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                queryInputRef.current?.focus();
+              }}
+              aria-label="Cancella ricerca"
+              className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
+
+        {activeFilters.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilters.map((f) => (
+              <Badge key={f.key} variant="accent" size="md">
+                {f.label}
+                <button
+                  type="button"
+                  onClick={f.onRemove}
+                  aria-label={`Rimuovi filtro ${f.label}`}
+                  className="text-primary/70 hover:text-primary"
+                >
+                  <X className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </Badge>
+            ))}
+          </div>
+        )}
 
         <button
           type="button"
@@ -320,6 +378,10 @@ function SearchPageContent() {
           ))}
         </div>
       </div>
+
+      <Button type="button" onClick={() => setFiltersOpen(false)} className="w-full sm:hidden">
+        {status === "done" ? `Mostra ${results.length} ${results.length === 1 ? "ricetta" : "ricette"}` : "Mostra risultati"}
+      </Button>
       </div>
       </Card>
 
@@ -343,7 +405,14 @@ function SearchPageContent() {
           </div>
         </div>
       <div>
-        {status === "loading" && (
+        {status === "loading" && view === "grid" && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} className="aspect-[4/5] border-transparent shadow-none" />
+            ))}
+          </div>
+        )}
+        {status === "loading" && view === "list" && (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="list-row h-[88px] border-transparent shadow-none" />
@@ -351,7 +420,19 @@ function SearchPageContent() {
           </div>
         )}
         {status === "done" && results.length > 0 && <RecipeList recipes={results} />}
-        {status === "done" && results.length === 0 && <EmptyState title="Nessuna ricetta trovata" description="Prova a cambiare i filtri o cerca un ingrediente diverso." />}
+        {status === "done" && results.length === 0 && (
+          <EmptyState
+            title="Nessuna ricetta trovata"
+            description="Prova a cambiare i filtri o cerca un ingrediente diverso."
+            action={
+              hasActiveFilters ? (
+                <Button type="button" variant="secondary" size="sm" onClick={clearFilters}>
+                  Cancella filtri
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
       </div>
       </section>
     </div>
