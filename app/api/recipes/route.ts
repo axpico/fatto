@@ -12,7 +12,7 @@ const SORTS = ["relevance", "best-match", "recent", "most-cooked", "prep-time"] 
 type Sort = (typeof SORTS)[number];
 
 export async function GET(request: Request) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 
   const { searchParams } = new URL(request.url);
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
   const cookMax = numberParam(searchParams, "cookMax");
   const servingsMin = numberParam(searchParams, "servingsMin");
   const ratingMin = numberParam(searchParams, "ratingMin");
+  const favoritesOnly = searchParams.get("favorites") === "1";
   const sortParam = searchParams.get("sort");
   const sort: Sort = SORTS.includes(sortParam as Sort) ? (sortParam as Sort) : "recent";
 
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
     ...(prepMax != null && { prepTimeMinutes: { lte: prepMax } }),
     ...(cookMax != null && { cookTimeMinutes: { lte: cookMax } }),
     ...(servingsMin != null && { servingsBase: { gte: servingsMin } }),
+    ...(favoritesOnly && { favorites: { some: { userId: user.id } } }),
     ...(idConstraints.length > 0 && {
       id: { in: idConstraints.reduce((a, b) => a.filter((id) => b.includes(id))) },
     }),
@@ -75,7 +77,7 @@ export async function GET(request: Request) {
   const recipes = await prisma.recipe.findMany({
     where,
     orderBy: dbOrderBy,
-    include: { tags: true, _count: { select: { cookLogs: true } } },
+    include: { tags: true, _count: { select: { cookLogs: true } }, favorites: { where: { userId: user.id }, select: { id: true } } },
   });
 
   // relevance/best-match sono calcolati in JS sopra la base order del DB, e ricadono su di
@@ -86,7 +88,7 @@ export async function GET(request: Request) {
     recipes.sort((a, b) => textRankByRecipeId!.get(b.id)! - textRankByRecipeId!.get(a.id)!);
   }
 
-  return Response.json(recipes);
+  return Response.json(recipes.map(({ favorites, ...r }) => ({ ...r, favorite: favorites.length > 0 })));
 }
 
 function numberParam(params: URLSearchParams, key: string): number | null {

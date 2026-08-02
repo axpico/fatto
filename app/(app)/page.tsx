@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles } from "lucide-react";
+import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles, Star } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import { RecipeCard } from "@/components/RecipeCard";
 import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,6 +10,7 @@ import { pillButtonClasses } from "@/components/ui/Badge";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SortPillLabel } from "@/components/SortPillLabel";
 import { Reveal } from "@/components/motion/Reveal";
+import type { Prisma } from "@/lib/generated/prisma/client";
 
 const SORTS = [
   { value: "recent", label: "Recenti" },
@@ -18,27 +20,43 @@ const SORTS = [
 
 type Sort = (typeof SORTS)[number]["value"];
 
+function homeHref(sort: Sort, favoritesOnly: boolean) {
+  const params = new URLSearchParams();
+  if (sort !== "recent") params.set("sort", sort);
+  if (favoritesOnly) params.set("favorite", "1");
+  const qs = params.toString();
+  return qs ? `/?${qs}` : "/";
+}
+
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string }>;
+  searchParams: Promise<{ sort?: string; favorite?: string }>;
 }) {
-  const { sort: rawSort } = await searchParams;
+  const user = await requireUser();
+  const { sort: rawSort, favorite: rawFavorite } = await searchParams;
   const sort: Sort = SORTS.some((s) => s.value === rawSort) ? (rawSort as Sort) : "recent";
+  const favoritesOnly = rawFavorite === "1";
 
   const baseInclude = {
     tags: true,
     _count: { select: { cookLogs: true } },
+    favorites: { where: { userId: user.id }, select: { id: true } },
   } as const;
+  const favWhere: Prisma.RecipeWhereInput | undefined = favoritesOnly
+    ? { favorites: { some: { userId: user.id } } }
+    : undefined;
 
   let recipes;
   if (sort === "most-cooked") {
     recipes = await prisma.recipe.findMany({
+      where: favWhere,
       include: baseInclude,
       orderBy: { cookLogs: { _count: "desc" } },
     });
   } else if (sort === "stale") {
     const all = await prisma.recipe.findMany({
+      where: favWhere,
       include: { ...baseInclude, cookLogs: { orderBy: { cookedAt: "desc" }, take: 1 } },
     });
     // mai cucinate = più "da rifare" di tutte, vengono prima
@@ -51,8 +69,10 @@ export default async function HomePage({
       return aDate.getTime() - bDate.getTime();
     });
   } else {
-    recipes = await prisma.recipe.findMany({ include: baseInclude, orderBy: { createdAt: "desc" } });
+    recipes = await prisma.recipe.findMany({ where: favWhere, include: baseInclude, orderBy: { createdAt: "desc" } });
   }
+
+  recipes = recipes.map((r) => ({ ...r, favorite: r.favorites.length > 0 }));
 
   // stabile per tutto il giorno (stesso seed finché la data non cambia), non ad ogni richiesta
   const today = new Date().toISOString().slice(0, 10);
@@ -89,13 +109,20 @@ export default async function HomePage({
           {SORTS.map((s) => (
             <Link
               key={s.value}
-              href={s.value === "recent" ? "/" : `/?sort=${s.value}`}
+              href={homeHref(s.value, favoritesOnly)}
               aria-current={sort === s.value ? "true" : undefined}
               className={pillButtonClasses(sort === s.value)}
             >
               <SortPillLabel label={s.label} />
             </Link>
           ))}
+          <Link
+            href={homeHref(sort, !favoritesOnly)}
+            aria-pressed={favoritesOnly}
+            className={pillButtonClasses(favoritesOnly)}
+          >
+            <Star className="h-3.5 w-3.5" aria-hidden="true" /> <SortPillLabel label="Preferiti" />
+          </Link>
         </div>
         </div>
       </Reveal>
@@ -103,13 +130,19 @@ export default async function HomePage({
       {recipes.length === 0 ? (
           <div>
           <EmptyState
-            title="Nessuna ricetta ancora"
-            description='Aggiungine una dalla tab "Importa" o crea una ricetta manualmente.'
+            title={favoritesOnly ? "Nessuna ricetta preferita" : "Nessuna ricetta ancora"}
+            description={
+              favoritesOnly
+                ? "Tocca la stella su una ricetta per aggiungerla qui."
+                : 'Aggiungine una dalla tab "Importa" o crea una ricetta manualmente.'
+            }
             action={
-              <div className="flex flex-wrap justify-center gap-2">
-                <Link href="/import" className={buttonClasses("primary", "sm")}><BookOpen className="h-4 w-4" aria-hidden="true" /> Importa una ricetta</Link>
-                <Link href="/recipes/new" className={buttonClasses("secondary", "sm")}><Plus className="h-4 w-4" aria-hidden="true" /> Crea manualmente</Link>
-              </div>
+              favoritesOnly ? undefined : (
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Link href="/import" className={buttonClasses("primary", "sm")}><BookOpen className="h-4 w-4" aria-hidden="true" /> Importa una ricetta</Link>
+                  <Link href="/recipes/new" className={buttonClasses("secondary", "sm")}><Plus className="h-4 w-4" aria-hidden="true" /> Crea manualmente</Link>
+                </div>
+              )
             }
           />
         </div>

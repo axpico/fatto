@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ChefHat, Printer, Pencil, Clock, ExternalLink, Video } from "lucide-react";
 import { prisma } from "@/lib/db";
+import { requireUser } from "@/lib/auth";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { CookLogSection } from "@/components/CookLogSection";
 import { StepImageThumb } from "@/components/StepImageThumb";
 import { Badge } from "@/components/ui/Badge";
@@ -29,6 +31,7 @@ const NUTRITION_FIELDS = BASE_NUTRITION_FIELDS.map((field) => ({
 }));
 
 export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await requireUser();
   const { id } = await params;
   const recipe = await prisma.recipe.findUnique({
     where: { id },
@@ -39,6 +42,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       images: { orderBy: { sortOrder: "asc" } },
       nutrition: true,
       createdBy: { select: { name: true } },
+      favorites: { where: { userId: user.id }, select: { id: true } },
     },
   });
 
@@ -79,6 +83,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           <Pencil className="h-4 w-4" aria-hidden="true" /> Modifica
         </Link>
         <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">
+          <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorites.length > 0} />
           <DeleteRecipeButton recipeId={recipe.id} />
         </div>
       </div>

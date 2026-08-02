@@ -3,6 +3,7 @@ import { Clock, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { TiltCard } from "@/components/motion/TiltCard";
 import { UploadedImage } from "@/components/UploadedImage";
+import { FavoriteButton } from "@/components/FavoriteButton";
 
 export type RecipeCardData = {
   id: string;
@@ -12,7 +13,11 @@ export type RecipeCardData = {
   prepTimeMinutes: number | null;
   cookTimeMinutes: number | null;
   tags: { id: string; name: string }[];
+  favorite: boolean;
 };
+
+const overlayFavoriteClasses =
+  "absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50";
 
 const linkClasses =
   "block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -81,6 +86,7 @@ export function RecipeCard({
             ) : (
               <NoPhoto title={recipe.title} tall />
             )}
+            <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
         </TiltCard>
       </Link>
@@ -100,6 +106,7 @@ export function RecipeCard({
             ) : (
               <NoPhoto title={recipe.title} tall />
             )}
+            <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
         </TiltCard>
       </Link>
@@ -133,6 +140,7 @@ export function RecipeCard({
             ))}
           </div>
         </div>
+        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground" />
       </Card>
     </Link>
   );
