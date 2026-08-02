@@ -1,14 +1,13 @@
 import Link from "next/link";
-import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles, Star } from "lucide-react";
+import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { RecipeCard } from "@/components/RecipeCard";
 import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
-import { pillButtonClasses } from "@/components/ui/Badge";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { SortPillLabel } from "@/components/SortPillLabel";
+import { SortFilterBar } from "@/components/SortFilterBar";
 import { Reveal } from "@/components/motion/Reveal";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
@@ -105,25 +104,12 @@ export default async function HomePage({
       <Reveal>
         <div className="panel">
           <SectionIntro icon={SlidersHorizontal} title="Ordina la raccolta" description="Scegli cosa vuoi ritrovare per prima." />
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {SORTS.map((s) => (
-            <Link
-              key={s.value}
-              href={homeHref(s.value, favoritesOnly)}
-              aria-current={sort === s.value ? "true" : undefined}
-              className={pillButtonClasses(sort === s.value)}
-            >
-              <SortPillLabel label={s.label} />
-            </Link>
-          ))}
-          <Link
-            href={homeHref(sort, !favoritesOnly)}
-            aria-pressed={favoritesOnly}
-            className={pillButtonClasses(favoritesOnly)}
-          >
-            <Star className="h-3.5 w-3.5" aria-hidden="true" /> <SortPillLabel label="Preferiti" />
-          </Link>
-        </div>
+          <SortFilterBar
+            sorts={SORTS.map((s) => ({ value: s.value, label: s.label, href: homeHref(s.value, favoritesOnly) }))}
+            activeSort={sort}
+            favoriteHref={homeHref(sort, !favoritesOnly)}
+            favoritesOnly={favoritesOnly}
+          />
         </div>
       </Reveal>
 
