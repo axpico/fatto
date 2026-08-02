@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, Search, SlidersHorizontal, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Search, SlidersHorizontal, Sparkles, Star, Tag as TagIcon, Users, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { RecipeList, VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView } from "@/components/RecipeList";
 import { Input } from "@/components/ui/Input";
@@ -25,6 +25,7 @@ type TagMode = "all" | "any";
 type Sort = "relevance" | "best-match" | "recent" | "most-cooked" | "prep-time";
 
 const RATING_OPTIONS = [3, 4, 5];
+const TIME_OPTIONS = [15, 30, 45, 60];
 
 export default function SearchPage() {
   return (
@@ -54,6 +55,7 @@ function SearchPageContent() {
   const [cookMax, setCookMax] = useState(() => searchParams.get("cookMax") ?? "");
   const [servingsMin, setServingsMin] = useState(() => searchParams.get("servingsMin") ?? "");
   const [ratingMin, setRatingMin] = useState(() => searchParams.get("ratingMin") ?? "");
+  const [favoritesOnly, setFavoritesOnly] = useState(() => searchParams.get("favorites") === "1");
   const [explicitSort, setExplicitSort] = useState<Sort | null>(() => (searchParams.get("sort") as Sort) ?? null);
   const [results, setResults] = useState<RecipeCardData[]>([]);
   const [status, setStatus] = useState<"loading" | "done">("loading");
@@ -78,6 +80,7 @@ function SearchPageContent() {
     if (cookMax) params.set("cookMax", cookMax);
     if (servingsMin) params.set("servingsMin", servingsMin);
     if (ratingMin) params.set("ratingMin", ratingMin);
+    if (favoritesOnly) params.set("favorites", "1");
     if (explicitSort) params.set("sort", explicitSort);
 
     const controller = new AbortController();
@@ -102,7 +105,7 @@ function SearchPageContent() {
       controller.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is stable, omitted to avoid re-running the search on every render
-  }, [query, selectedTagIds, tagMode, ingredients, prepMax, cookMax, servingsMin, ratingMin, explicitSort, sort, router]);
+  }, [query, selectedTagIds, tagMode, ingredients, prepMax, cookMax, servingsMin, ratingMin, favoritesOnly, explicitSort, sort, router]);
 
   function toggleTag(id: string) {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
@@ -122,7 +125,8 @@ function SearchPageContent() {
     prepMax !== "" ||
     cookMax !== "" ||
     servingsMin !== "" ||
-    ratingMin !== "";
+    ratingMin !== "" ||
+    favoritesOnly;
 
   const activeFilterCount =
     selectedTagIds.length +
@@ -130,7 +134,8 @@ function SearchPageContent() {
     (prepMax ? 1 : 0) +
     (cookMax ? 1 : 0) +
     (servingsMin ? 1 : 0) +
-    (ratingMin ? 1 : 0);
+    (ratingMin ? 1 : 0) +
+    (favoritesOnly ? 1 : 0);
 
   // Riepilogo di tutti i filtri attivi (query esclusa: è già visibile/modificabile nel campo di
   // ricerca) — sempre mostrato, indipendentemente dal fatto che il pannello filtri sia aperto,
@@ -152,10 +157,15 @@ function SearchPageContent() {
       ? [{ key: "servingsMin", label: `Porzioni ≥ ${servingsMin}`, onRemove: () => setServingsMin("") }]
       : []),
     ...(ratingMin ? [{ key: "ratingMin", label: `${ratingMin}+ ★`, onRemove: () => setRatingMin("") }] : []),
+    ...(favoritesOnly ? [{ key: "favorites", label: "Solo preferiti", onRemove: () => setFavoritesOnly(false) }] : []),
   ];
 
   // aperto di default se l'utente ha già dei filtri attivi al mount, altrimenti chiuso su mobile
   const [filtersOpen, setFiltersOpen] = useState(hasActiveFilters);
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  // i tag già selezionati restano visibili anche oltre il troncamento, altrimenti un filtro
+  // impostato da URL potrebbe sparire silenziosamente dalla vista
+  const visibleTags = tagsExpanded ? tags : tags.filter((t, i) => i < 8 || selectedTagIds.includes(t.id));
 
   function clearFilters() {
     setQuery("");
@@ -167,6 +177,7 @@ function SearchPageContent() {
     setCookMax("");
     setServingsMin("");
     setRatingMin("");
+    setFavoritesOnly(false);
     setExplicitSort(null);
   }
 
@@ -254,6 +265,11 @@ function SearchPageContent() {
                 {activeFilterCount}
               </Badge>
             )}
+            {filtersOpen && status === "done" && (
+              <span className="font-normal text-muted-foreground">
+                · {results.length} {results.length === 1 ? "ricetta" : "ricette"}
+              </span>
+            )}
           </span>
           {filtersOpen ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
         </button>
@@ -262,7 +278,9 @@ function SearchPageContent() {
       {tags.length > 0 && (
         <div className="border-t border-border pt-4">
           <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium text-foreground">Filtra per tag</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+              <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Filtra per tag
+            </p>
             <div className="flex gap-1.5" role="radiogroup" aria-label="Modalità filtro tag">
               <button
                 type="button"
@@ -285,7 +303,7 @@ function SearchPageContent() {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
+            {visibleTags.map((tag) => (
               <button
                 key={tag.id}
                 type="button"
@@ -296,6 +314,15 @@ function SearchPageContent() {
                 {tag.name}
               </button>
             ))}
+            {tags.length > 8 && (
+              <button
+                type="button"
+                onClick={() => setTagsExpanded((v) => !v)}
+                className={pillButtonClasses(false)}
+              >
+                {tagsExpanded ? "Mostra meno" : `Mostra tutti (${tags.length})`}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -336,24 +363,62 @@ function SearchPageContent() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Prep. entro (min)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {TIME_OPTIONS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={prepMax === String(v)}
+                onClick={() => setPrepMax(prepMax === String(v) ? "" : String(v))}
+                className={pillButtonClasses(prepMax === String(v))}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <Input
+            type="number"
+            min={0}
+            placeholder="o minuti esatti"
+            value={prepMax}
+            onChange={(e) => setPrepMax(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Cottura entro (min)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {TIME_OPTIONS.map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={cookMax === String(v)}
+                onClick={() => setCookMax(cookMax === String(v) ? "" : String(v))}
+                className={pillButtonClasses(cookMax === String(v))}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <Input
+            type="number"
+            min={0}
+            placeholder="o minuti esatti"
+            value={cookMax}
+            onChange={(e) => setCookMax(e.target.value)}
+          />
+        </div>
         <Input
-          label="Prep. entro (min)"
-          type="number"
-          min={0}
-          placeholder="es. 30"
-          value={prepMax}
-          onChange={(e) => setPrepMax(e.target.value)}
-        />
-        <Input
-          label="Cottura entro (min)"
-          type="number"
-          min={0}
-          placeholder="es. 30"
-          value={cookMax}
-          onChange={(e) => setCookMax(e.target.value)}
-        />
-        <Input
-          label="Porzioni almeno"
+          label={
+            <span className="flex items-center gap-1.5">
+              <Users className="h-3.5 w-3.5" aria-hidden="true" /> Porzioni almeno
+            </span>
+          }
           type="number"
           min={1}
           placeholder="es. 4"
@@ -376,6 +441,14 @@ function SearchPageContent() {
               {r}+
             </button>
           ))}
+          <button
+            type="button"
+            aria-pressed={favoritesOnly}
+            onClick={() => setFavoritesOnly((v) => !v)}
+            className={pillButtonClasses(favoritesOnly)}
+          >
+            <Star className="h-3.5 w-3.5" aria-hidden="true" /> Solo preferiti
+          </button>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { forwardRef, type InputHTMLAttributes } from "react";
+import { forwardRef, type InputHTMLAttributes, type ReactNode } from "react";
 
 // niente "w-full" qui: molti usi (IngredientRows, StepRows, ServingsAdjuster, ...) affiancano una
 // larghezza fissa (w-16/w-20) concatenando questa stringa — se "w-full" fosse già dentro, le due
@@ -7,7 +7,7 @@ import { forwardRef, type InputHTMLAttributes } from "react";
 export const inputClasses =
   "min-h-10 rounded-md border border-border bg-surface px-3 py-2 text-base text-foreground shadow-sm transition-[border-color,box-shadow] duration-200 placeholder:text-muted-foreground focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:cursor-not-allowed disabled:bg-surface-secondary disabled:opacity-70";
 
-type Props = InputHTMLAttributes<HTMLInputElement> & { label?: string };
+type Props = InputHTMLAttributes<HTMLInputElement> & { label?: ReactNode };
 
 export const Input = forwardRef<HTMLInputElement, Props>(
   ({ label, id, className, ...props }, ref) => {
