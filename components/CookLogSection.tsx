@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
@@ -56,7 +57,12 @@ export function CookLogSection({
     <section className="mt-10 border-t border-border pt-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-display text-xl font-semibold text-foreground">
-          Storico {logs.length > 0 && <span className="text-muted-foreground">· cucinata {logs.length} volte</span>}
+          Storico{" "}
+          {logs.length > 0 && (
+            <span key={logs.length} className="value-pulse inline-block text-muted-foreground">
+              · cucinata {logs.length} volte
+            </span>
+          )}
         </h2>
         <Button type="button" size="sm" onClick={markCooked} disabled={marking}>
           {marking ? "Aggiornamento..." : "Segna come cucinata"}
@@ -67,36 +73,47 @@ export function CookLogSection({
         <EmptyState title="Non ancora cucinata" />
       ) : (
         <ul className="space-y-3">
-          {logs.map((log) => (
-            <Card key={log.id} className="p-4">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-medium text-muted-foreground">
-                  {formatDate(log.cookedAt)} · {log.user.name}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeLog(log.id)}
-                  aria-label="Rimuovi voce"
-                  className="px-2 hover:text-destructive"
-                >
-                  <X className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              </div>
-              <div className="mt-3">
-                <StarRating value={log.rating} onChange={(rating) => patchLog(log.id, { rating })} />
-              </div>
-              <textarea
-                placeholder="Note (opzionale)"
-                aria-label="Note"
-                defaultValue={log.notes ?? ""}
-                onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
-                rows={1}
-                className={`mt-3 w-full text-sm ${inputClasses}`}
-              />
-            </Card>
-          ))}
+          <AnimatePresence initial={false}>
+            {logs.map((log) => (
+              <motion.li
+                key={log.id}
+                layout
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                <Card className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {formatDate(log.cookedAt)} · {log.user.name}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeLog(log.id)}
+                      aria-label="Rimuovi voce"
+                      className="px-2 hover:text-destructive"
+                    >
+                      <X className="h-4 w-4" aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <div className="mt-3">
+                    <StarRating value={log.rating} onChange={(rating) => patchLog(log.id, { rating })} />
+                  </div>
+                  <textarea
+                    placeholder="Note (opzionale)"
+                    aria-label="Note"
+                    defaultValue={log.notes ?? ""}
+                    onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
+                    rows={1}
+                    className={`mt-3 w-full text-sm ${inputClasses}`}
+                  />
+                </Card>
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       )}
 

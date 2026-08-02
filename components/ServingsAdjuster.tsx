@@ -131,7 +131,10 @@ export function ServingsAdjuster({
                   </span>
                 </span>
                 {display !== null && (
-                  <span className={`shrink-0 rounded-md bg-surface-secondary px-2 py-1 text-sm font-semibold tabular-nums ${checked ? "text-muted-foreground" : "text-foreground"}`}>
+                  <span
+                    key={servings}
+                    className={`value-pulse shrink-0 rounded-md bg-surface-secondary px-2 py-1 text-sm font-semibold tabular-nums ${checked ? "text-muted-foreground" : "text-foreground"}`}
+                  >
                     {formatQuantity(display.quantity)} <span className="text-xs font-medium text-muted-foreground">{display.unit ?? ""}</span>
                   </span>
                 )}

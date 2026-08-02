@@ -8,5 +8,11 @@ export function UploadedImage({
   className?: string;
 }) {
   // eslint-disable-next-line @next/next/no-img-element -- served locally via /api/uploads, next/image's remote-loader machinery doesn't apply
-  return <img src={`/api/uploads/${filename}`} alt={alt} className={className} />;
+  return (
+    <img
+      src={`/api/uploads/${filename}`}
+      alt={alt}
+      className={[className, "img-fade-in"].filter(Boolean).join(" ")}
+    />
+  );
 }

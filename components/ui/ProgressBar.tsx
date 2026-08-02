@@ -11,7 +11,7 @@ export function ProgressBar({ value, label }: { value: number; label?: string })
         aria-label={label}
         className="h-1.5 w-full overflow-hidden rounded-full bg-surface-sunken"
       >
-        <div className="h-full bg-primary transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-primary transition-[width] duration-500 ease-out" style={{ width: `${pct}%` }} />
       </div>
     </div>
   );

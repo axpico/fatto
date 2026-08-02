@@ -141,6 +141,22 @@ body > * {
   40%, 60% { transform: translateX(4px); }
 }
 
+@keyframes favorite-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+
+@keyframes value-pulse {
+  from { opacity: 0.4; transform: scale(0.94); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes img-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* Combined into one keyframe (rather than layering .dialog-surface's animation with a separate
    shake) because two animations touching the same `transform` property don't compose — only the
    last-declared one would apply. */
@@ -175,6 +191,10 @@ body > * {
     opacity: 1;
     transform: translateY(0);
   }
+
+  .favorite-pulse { animation: favorite-pop 320ms ease-out; }
+  .value-pulse { animation: value-pulse 220ms ease-out; }
+  .img-fade-in { animation: img-fade-in 400ms ease-out; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -206,5 +226,10 @@ body > * {
 
   .tilt-card {
     transform: none !important;
+  }
+
+  .img-fade-in {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }

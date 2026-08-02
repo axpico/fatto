@@ -16,6 +16,7 @@ export function FavoriteButton({
 }) {
   const [favorite, setFavorite] = useState(initialFavorite);
   const [pending, setPending] = useState(false);
+  const [pulse, setPulse] = useState(false);
   const toast = useToast();
 
   async function toggle(e: MouseEvent) {
@@ -24,6 +25,7 @@ export function FavoriteButton({
     if (pending) return;
     const next = !favorite;
     setFavorite(next);
+    setPulse(true);
     setPending(true);
     const res = await fetch(`/api/recipes/${recipeId}/favorite`, {
       method: "PATCH",
@@ -46,7 +48,11 @@ export function FavoriteButton({
         "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground"
       }
     >
-      <Star className={favorite ? "h-4 w-4 fill-primary text-primary" : "h-4 w-4"} aria-hidden="true" />
+      <Star
+        className={`h-4 w-4 ${favorite ? "fill-primary text-primary" : ""} ${pulse ? "favorite-pulse" : ""}`}
+        onAnimationEnd={() => setPulse(false)}
+        aria-hidden="true"
+      />
     </button>
   );
 }
