@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Link2, Image as ImageIcon, Video, Upload, CheckCircle2, TriangleAlert } from "lucide-react";
+import { Link2, Image as ImageIcon, Video, Upload, CheckCircle2, TriangleAlert, FileText } from "lucide-react";
 import { RecipeForm, type RecipeFormData } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/ai/schema";
 import { Input } from "@/components/ui/Input";
@@ -27,6 +27,7 @@ const IMPORT_TABS = [
   { value: "link", label: "Link" },
   { value: "file", label: "Screenshot/PDF" },
   { value: "reel", label: "Reel" },
+  { value: "text", label: "Testo" },
 ];
 
 const LINK_STAGES = ["Scaricando pagina...", "Estraendo ricetta..."];
@@ -37,6 +38,7 @@ const REEL_STAGES = [
   "Estraendo fotogrammi...",
   "Estraendo ricetta...",
 ];
+const TEXT_STAGES = ["Estraendo ricetta..."];
 
 type ImportedRecipe = Omit<ExtractedRecipe, "steps"> & {
   photoUrl?: string | null;
@@ -132,6 +134,7 @@ export default function ImportPage() {
   const [url, setUrl] = useState("");
   const [reelUrl, setReelUrl] = useState("");
   const [reelNotes, setReelNotes] = useState("");
+  const [pastedText, setPastedText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [stageIndex, setStageIndex] = useState(-1);
@@ -223,6 +226,37 @@ export default function ImportPage() {
       );
       setProvider(data.provider ?? null);
       setExtracted(mapExtractedToFormData(data, { url: reelUrl, isVideo: true }));
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setStageIndex(-1);
+      } else {
+        setError(err instanceof Error ? err.message : "Importazione fallita");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function importFromText(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setStageIndex(-1);
+    setError(null);
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+    try {
+      const data = await runImportStream(
+        "/api/import/text",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: pastedText }),
+        },
+        (stage) => setStageIndex(TEXT_STAGES.indexOf(stage)),
+        controller.signal,
+      );
+      setProvider(data.provider ?? null);
+      setExtracted(mapExtractedToFormData(data));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setStageIndex(-1);
@@ -484,6 +518,41 @@ export default function ImportPage() {
                 <ProgressBar
                   value={((stageIndex + 1) / REEL_STAGES.length) * 100}
                   label={REEL_STAGES[stageIndex] ?? "Avvio..."}
+                />
+                <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
+                  Annulla
+                </Button>
+              </>
+            )}
+          </form>
+        </Card>
+      </div>
+
+      <div role="tabpanel" id="panel-text" aria-labelledby="tab-text" hidden={activeTab !== "text"}>
+        <Card className="p-5 sm:p-6">
+          <SectionIntro
+            icon={FileText}
+            size="lg"
+            title="Da un testo incollato"
+            description="Incolla il testo di una ricetta (da un sito, una chat, un file markdown) e la estrarremo per te."
+          />
+          <form onSubmit={importFromText} className="space-y-3">
+            <Textarea
+              required
+              placeholder="Incolla qui il testo della ricetta..."
+              aria-label="Testo della ricetta"
+              value={pastedText}
+              onChange={(e) => setPastedText(e.target.value)}
+              rows={10}
+            />
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading && activeTab === "text" ? <Spinner /> : "Importa"}
+            </Button>
+            {loading && activeTab === "text" && (
+              <>
+                <ProgressBar
+                  value={((stageIndex + 1) / TEXT_STAGES.length) * 100}
+                  label={TEXT_STAGES[stageIndex] ?? "Avvio..."}
                 />
                 <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
                   Annulla
