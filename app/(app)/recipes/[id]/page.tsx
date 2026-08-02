@@ -12,29 +12,28 @@ import { buttonClasses } from "@/components/ui/Button";
 import { formatDate, formatRelativeDate } from "@/lib/formatDate";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/motion/TiltCard";
+import { NUTRITION_FIELDS as BASE_NUTRITION_FIELDS } from "@/lib/nutrition";
+import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
 
 // ponytail: 60s di margine assorbe lo scarto tra createdAt (orologio DB) e updatedAt
 // (orologio Prisma) su una riga appena creata; una modifica vera arriva quasi sempre dopo
 const EDIT_THRESHOLD_MS = 60_000;
 
-const NUTRITION_FIELDS: { key: "caloriesKcal" | "proteinG" | "carbsG" | "fatG" | "fiberG" | "sugarG" | "saturatedFatG" | "sodiumMg"; label: string; unit: string }[] = [
-  { key: "caloriesKcal", label: "Calorie", unit: " kcal" },
-  { key: "proteinG", label: "Proteine", unit: " g" },
-  { key: "carbsG", label: "Carboidrati", unit: " g" },
-  { key: "fatG", label: "Grassi", unit: " g" },
-  { key: "fiberG", label: "Fibre", unit: " g" },
-  { key: "sugarG", label: "Zuccheri", unit: " g" },
-  { key: "saturatedFatG", label: "di cui saturi", unit: " g" },
-  { key: "sodiumMg", label: "Sodio", unit: " mg" },
-];
+// stessi campi/ordine di lib/nutrition.ts: unità con spazio iniziale (qui {value}{unit} si
+// scrivono senza spazio in JSX) e "di cui saturi" al posto di "Grassi saturi", perché qui il
+// grasso saturo segue subito il grasso totale nella stessa lista invece che nel form dedicato
+const NUTRITION_FIELDS = BASE_NUTRITION_FIELDS.map((field) => ({
+  ...field,
+  label: field.key === "saturatedFatG" ? "di cui saturi" : field.label,
+  unit: ` ${field.unit}`,
+}));
 
 export default async function RecipeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const recipe = await prisma.recipe.findUnique({
     where: { id },
     include: {
-      ingredients: { orderBy: { sortOrder: "asc" } },
-      steps: { orderBy: { sortOrder: "asc" } },
+      ...orderedIngredientsAndSteps,
       tags: true,
       cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
       images: { orderBy: { sortOrder: "asc" } },

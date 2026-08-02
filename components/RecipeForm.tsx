@@ -17,6 +17,7 @@ import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { UploadedImage } from "@/components/UploadedImage";
 import { NUTRITION_FIELDS } from "@/lib/nutrition";
+import { readErrorMessage } from "@/lib/apiError";
 
 export type NutritionData = {
   caloriesKcal: number | null;
@@ -233,8 +234,7 @@ export function RecipeForm({
     });
 
     if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Errore durante il salvataggio");
+      setError(await readErrorMessage(res, "Errore durante il salvataggio"));
       setSaving(false);
       return;
     }

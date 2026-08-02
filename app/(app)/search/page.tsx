@@ -15,6 +15,9 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
+import { loadJson } from "@/lib/apiError";
+import { useSuggestions } from "@/lib/useSuggestions";
+import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
 
 type Tag = { id: string; name: string };
 type TagMode = "all" | "any";
@@ -45,7 +48,7 @@ function SearchPageContent() {
   const [ingredients, setIngredients] = useState<string[]>(
     () => searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [],
   );
-  const [ingredientSuggestions, setIngredientSuggestions] = useState<string[]>([]);
+  const ingredientSuggestions = useSuggestions<{ name: string }>("/api/ingredients", (r) => r.name);
   const [prepMax, setPrepMax] = useState(() => searchParams.get("prepMax") ?? "");
   const [cookMax, setCookMax] = useState(() => searchParams.get("cookMax") ?? "");
   const [servingsMin, setServingsMin] = useState(() => searchParams.get("servingsMin") ?? "");
@@ -58,15 +61,8 @@ function SearchPageContent() {
   const sort: Sort = explicitSort ?? (ingredients.length > 0 ? "best-match" : query.trim() ? "relevance" : "recent");
 
   useEffect(() => {
-    fetch("/api/tags")
-      .then((res) => res.json())
-      .then(setTags);
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/ingredients")
-      .then((res) => res.json())
-      .then((rows: { name: string }[]) => setIngredientSuggestions(rows.map((r) => r.name)));
+    loadJson<Tag[]>("/api/tags", toast, setTags);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetch once per mount, toast identity is stable
   }, []);
 
   useEffect(() => {
@@ -278,11 +274,7 @@ function SearchPageContent() {
           }}
           onBlur={addIngredient}
         />
-        <datalist id="search-ingredient-suggestions">
-          {ingredientSuggestions.map((name) => (
-            <option key={name} value={name} />
-          ))}
-        </datalist>
+        <SuggestionDatalist id="search-ingredient-suggestions" options={ingredientSuggestions} />
       </div>
 
       <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">

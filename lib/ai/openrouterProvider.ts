@@ -2,6 +2,7 @@ import { z } from "zod";
 import { env } from "@/lib/env";
 import type { VisionImage } from "@/lib/ai/visionImage";
 import { BoundedMap } from "@/lib/boundedCache";
+import { chatCompletionBody, postChatCompletion, extractChatContent, parseJsonResponse } from "@/lib/ai/openaiCompatChat";
 
 const MODELS_URL = "https://openrouter.ai/api/v1/models";
 const CHAT_URL = "https://openrouter.ai/api/v1/chat/completions";
@@ -61,20 +62,6 @@ export function markFailed(modelId: string): void {
   negativeCache.set(modelId, Date.now());
 }
 
-export function parseJsonResponse<T>(content: string, schema: z.ZodType<T>): T {
-  const stripped = content
-    .trim()
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "");
-
-  const parsed = JSON.parse(stripped);
-  const result = schema.safeParse(parsed);
-  if (!result.success) {
-    throw new Error(`OpenRouter: risposta non conforme allo schema (${result.error.message})`);
-  }
-  return result.data;
-}
-
 export async function callOpenRouter<T>(
   text: string,
   modelId: string,
@@ -93,27 +80,13 @@ export async function callOpenRouter<T>(
       ]
     : text;
 
-  const res = await fetch(CHAT_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: modelId,
-      messages: [
-        { role: "system", content: `${systemPrompt}\n\n${jsonInstructions}` },
-        { role: "user", content: userContent },
-      ],
-      // niente strict: true — lo schema può avere minItems (es. tags.min(1)), non supportato in
-      // strict mode. Resta comunque un forte suggerimento; safeParse sotto è l'enforcement vero
-      response_format: {
-        type: "json_schema",
-        json_schema: { name: "response", schema: z.toJSONSchema(schema) },
-      },
-    }),
-    signal: AbortSignal.timeout(40000),
-  });
+  // niente strict: true — lo schema può avere minItems (es. tags.min(1)), non supportato in
+  // strict mode. Resta comunque un forte suggerimento; safeParse sotto è l'enforcement vero
+  const res = await postChatCompletion(
+    CHAT_URL,
+    env.OPENROUTER_API_KEY,
+    chatCompletionBody({ model: modelId, systemPrompt, jsonInstructions, userContent, schema }),
+  );
 
   if (res.status === 401) {
     throw new OpenRouterAuthError("OpenRouter: chiave API non valida");
@@ -122,8 +95,7 @@ export async function callOpenRouter<T>(
     throw new Error(`OpenRouter ${modelId}: HTTP ${res.status}`);
   }
 
-  const body = await res.json();
-  const content: string | undefined = body?.choices?.[0]?.message?.content;
+  const content = extractChatContent(await res.json());
   if (!content) {
     throw new Error(`OpenRouter ${modelId}: risposta vuota`);
   }

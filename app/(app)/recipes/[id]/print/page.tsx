@@ -3,14 +3,14 @@ import { headers } from "next/headers";
 import QRCode from "qrcode";
 import { prisma } from "@/lib/db";
 import { PrintView } from "@/components/PrintView";
+import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
 
 export default async function PrintRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const recipe = await prisma.recipe.findUnique({
     where: { id },
     include: {
-      ingredients: { orderBy: { sortOrder: "asc" } },
-      steps: { orderBy: { sortOrder: "asc" } },
+      ...orderedIngredientsAndSteps,
       tags: true,
       nutrition: true,
     },

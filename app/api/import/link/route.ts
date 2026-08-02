@@ -5,13 +5,11 @@ import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
 import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
 import { fetchImageBuffer, saveUploadFromBuffer } from "@/lib/uploads";
 import { MAX_VISION_IMAGES, type VisionImage } from "@/lib/ai/visionImage";
-import { streamNdjson } from "@/lib/ndjson";
-import { assertPublicUrl } from "@/lib/urlSafety";
-import { isRateLimited, recordAttempt } from "@/lib/rateLimit";
+import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
+import { fetchPublic } from "@/lib/urlSafety";
+import { checkImportRateLimit } from "@/lib/rateLimit";
 
 const bodySchema = z.object({ url: z.string().url() });
-const IMPORT_RATE_LIMIT = 6;
-const IMPORT_RATE_WINDOW_MS = 5 * 60_000;
 
 const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
   "image/jpeg",
@@ -26,11 +24,8 @@ export async function POST(request: Request) {
   const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 
-  const rateKey = `import:${user.id}`;
-  if (isRateLimited(rateKey, IMPORT_RATE_LIMIT, IMPORT_RATE_WINDOW_MS)) {
-    return Response.json({ error: "Troppe importazioni, riprova tra qualche minuto." }, { status: 429 });
-  }
-  recordAttempt(rateKey, IMPORT_RATE_WINDOW_MS);
+  const rateLimited = checkImportRateLimit(user.id);
+  if (rateLimited) return rateLimited;
 
   const body = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(body);
@@ -43,8 +38,7 @@ export async function POST(request: Request) {
       write({ stage: "Scaricando pagina..." });
       let html: string;
       try {
-        await assertPublicUrl(parsed.data.url);
-        const res = await fetch(parsed.data.url, { signal: AbortSignal.timeout(10000) });
+        const res = await fetchPublic(parsed.data.url, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         html = await res.text();
       } catch {
@@ -87,11 +81,7 @@ export async function POST(request: Request) {
         provider,
       });
     } catch (err) {
-      if (err instanceof AiExtractionError) {
-        write({ done: true, error: err.message });
-      } else {
-        write({ done: true, error: "Estrazione AI non riuscita" });
-      }
+      writeExtractionError(write, err, AiExtractionError);
     }
   });
 }

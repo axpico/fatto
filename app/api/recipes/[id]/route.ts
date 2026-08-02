@@ -1,21 +1,22 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { saveUpload, deleteUpload, UploadError } from "@/lib/uploads";
+import { deleteUpload, UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
-import { resolveTagNames } from "@/lib/tagDedupe";
+import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
+import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
-type Params = { params: Promise<{ id: string }> };
+type Params = RouteParams<{ id: string }>;
 
 export async function PATCH(request: Request, { params }: Params) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const existing = await prisma.recipe.findUnique({
-    where: { id },
-    include: { images: true, nutrition: true, steps: true },
-  });
-  if (!existing) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
+  const { record: existing, notFound } = await findOrNotFound(
+    () => prisma.recipe.findUnique({ where: { id }, include: { images: true, nutrition: true, steps: true } }),
+    "Ricetta non trovata",
+  );
+  if (notFound) return notFound;
 
   const formData = await request.formData();
   const parsed = parseRecipeFormData(formData);
@@ -28,15 +29,17 @@ export async function PATCH(request: Request, { params }: Params) {
   // da nessuna delle due parti vengono cancellati da disco — un fotogramma reel può comparire
   // sia in galleria che come immagine di uno step, quindi va risolto tutto prima di cancellare
   // qualsiasi cosa, altrimenti si rischia di cancellare un file ancora usato dall'altra parte
-  let photoUrl = existing.photoUrl;
+  let photoUrl: string | null;
   let newFilenames: string[];
   let stepImageFilenames: (string | null)[];
   try {
-    if (photo) photoUrl = await saveUpload(photo);
-    newFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
-    stepImageFilenames = await Promise.all(
-      data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
-    );
+    ({ photoUrl, galleryFilenames: newFilenames, stepImageFilenames } = await uploadRecipeImages(
+      photo,
+      existing.photoUrl,
+      galleryPhotos,
+      data.steps,
+      stepImages,
+    ));
   } catch (err) {
     if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
@@ -53,8 +56,7 @@ export async function PATCH(request: Request, { params }: Params) {
   const oldFilenames = new Set([...existing.images.map((img) => img.filename), ...oldStepImages]);
   await Promise.all([...oldFilenames].filter((f) => !stillReferenced.has(f)).map(deleteUpload));
 
-  const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
-  const resolvedTagNames = await resolveTagNames(data.tags);
+  const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
 
   const recipe = await prisma.recipe.update({
     where: { id },
@@ -99,10 +101,7 @@ export async function PATCH(request: Request, { params }: Params) {
     },
   });
 
-  await prisma.ingredientCatalog.createMany({
-    data: data.ingredients.map((i) => ({ name: i.name.trim().toLowerCase() })),
-    skipDuplicates: true,
-  });
+  await syncIngredientCatalog(data.ingredients);
 
   return Response.json(recipe);
 }
@@ -112,8 +111,11 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const existing = await prisma.recipe.findUnique({ where: { id } });
-  if (!existing) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
+  const { record: existing, notFound } = await findOrNotFound(
+    () => prisma.recipe.findUnique({ where: { id } }),
+    "Ricetta non trovata",
+  );
+  if (notFound) return notFound;
 
   await deleteUpload(existing.photoUrl);
   await prisma.recipe.delete({ where: { id } });

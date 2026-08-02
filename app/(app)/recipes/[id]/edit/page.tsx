@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { RecipeForm } from "@/components/RecipeForm";
+import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
 
 export default async function EditRecipePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const recipe = await prisma.recipe.findUnique({
     where: { id },
     include: {
-      ingredients: { orderBy: { sortOrder: "asc" } },
-      steps: { orderBy: { sortOrder: "asc" } },
+      ...orderedIngredientsAndSteps,
       tags: true,
       images: { orderBy: { sortOrder: "asc" } },
       nutrition: true,

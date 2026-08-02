@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { env } from "@/lib/env";
-import { assertPublicUrl } from "@/lib/urlSafety";
+import { fetchPublic } from "@/lib/urlSafety";
 
 const MAX_WIDTH = 1600;
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -47,8 +47,7 @@ export async function deleteUpload(filename: string | null | undefined) {
 // best-effort, qualsiasi fallimento viene ignorato silenziosamente, non deve mai far fallire l'import
 export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
   try {
-    await assertPublicUrl(url);
-    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const res = await fetchPublic(url, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) {
       console.error(`[uploads] fetchImageBuffer: HTTP ${res.status} per ${url}`);
       return null;

@@ -1,18 +1,9 @@
 "use client";
 
 import { useGlobalUnitPreference } from "@/lib/unitPreference";
-import { Button } from "@/components/ui/Button";
+import { UnitToggle } from "@/components/UnitToggle";
 
 export function UnitPreferenceToggle() {
   const [metric, setMetric] = useGlobalUnitPreference();
-
-  function toggle() {
-    setMetric(!metric);
-  }
-
-  return (
-    <Button type="button" variant="secondary" onClick={toggle}>
-      {metric ? "Unità originali" : "Converti in g/ml"}
-    </Button>
-  );
+  return <UnitToggle useMetric={metric} onToggle={() => setMetric(!metric)} size="md" offLabel="Converti in g/ml" />;
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS } from "@/lib/navItems";
+import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
 
 export function DesktopNav() {
   const pathname = usePathname();
@@ -10,7 +10,7 @@ export function DesktopNav() {
   return (
     <nav aria-label="Navigazione desktop" className="hidden items-center gap-1 md:flex">
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+        const active = isNavActive(pathname, href);
         return (
           <Link
             key={href}

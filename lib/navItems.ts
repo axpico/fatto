@@ -6,3 +6,8 @@ export const NAV_ITEMS = [
   { href: "/import", label: "Importa", icon: Plus },
   { href: "/settings", label: "Impostazioni", icon: Settings },
 ] as const;
+
+/** "/" è attiva solo su match esatto, le altre voci anche sulle loro sottopagine. */
+export function isNavActive(pathname: string, href: string): boolean {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}

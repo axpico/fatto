@@ -2,6 +2,7 @@ import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { env } from "@/lib/env";
 import { requireApiUser } from "@/lib/auth";
+import type { RouteParams } from "@/lib/apiRoute";
 
 const MIME_BY_EXT: Record<string, string> = {
   ".jpg": "image/jpeg",
@@ -11,10 +12,7 @@ const MIME_BY_EXT: Record<string, string> = {
   ".gif": "image/gif",
 };
 
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ filename: string }> },
-) {
+export async function GET(_request: Request, { params }: RouteParams<{ filename: string }>) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 

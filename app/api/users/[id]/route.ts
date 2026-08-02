@@ -2,8 +2,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiAdmin } from "@/lib/auth";
 import { userSelect } from "@/app/api/users/route";
+import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
-type Params = { params: Promise<{ id: string }> };
+type Params = RouteParams<{ id: string }>;
 
 const patchSchema = z.object({ isAdmin: z.boolean() });
 
@@ -22,8 +23,8 @@ export async function PATCH(request: Request, { params }: Params) {
     return Response.json({ error: "Dati non validi" }, { status: 400 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { id } });
-  if (!existing) return Response.json({ error: "Utente non trovato" }, { status: 404 });
+  const { notFound } = await findOrNotFound(() => prisma.user.findUnique({ where: { id } }), "Utente non trovato");
+  if (notFound) return notFound;
 
   const updated = await prisma.user.update({
     where: { id },
@@ -42,8 +43,8 @@ export async function DELETE(_request: Request, { params }: Params) {
     return Response.json({ error: "Non puoi eliminare il tuo account" }, { status: 400 });
   }
 
-  const existing = await prisma.user.findUnique({ where: { id } });
-  if (!existing) return Response.json({ error: "Utente non trovato" }, { status: 404 });
+  const { notFound } = await findOrNotFound(() => prisma.user.findUnique({ where: { id } }), "Utente non trovato");
+  if (notFound) return notFound;
 
   const [recipeCount, cookLogCount] = await Promise.all([
     prisma.recipe.count({ where: { createdById: id } }),

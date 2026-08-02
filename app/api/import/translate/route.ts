@@ -2,6 +2,7 @@ import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { translateRecipe, TranslationError } from "@/lib/ai/translateRecipe";
 import { nutritionInputSchema } from "@/lib/recipeSchema";
+import { checkImportRateLimit } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
   title: z.string(),
@@ -35,8 +36,11 @@ const bodySchema = z.object({
 });
 
 export async function POST(request: Request) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
+
+  const rateLimited = checkImportRateLimit(user.id);
+  if (rateLimited) return rateLimited;
 
   const parsed = bodySchema.safeParse(await request.json());
   if (!parsed.success) {

@@ -24,6 +24,50 @@ export function formatQuantity(n: number) {
   return Number(n.toFixed(2)).toString().replace(".", ",");
 }
 
+// stepper -/input/+ condiviso da ServingsAdjuster (pagina ricetta) e ServingsStepper (modalità
+// cottura), che differiscono solo per lo stile dell'input e per un'etichetta opzionale
+function ServingsStepperCore({
+  servings,
+  onChange,
+  inputClassName = "w-16 py-1.5 text-center",
+}: {
+  servings: number;
+  onChange: (servings: number) => void;
+  inputClassName?: string;
+}) {
+  return (
+    <>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => onChange(Math.max(1, servings - 1))}
+        className="h-11 w-11 px-0"
+        aria-label="Diminuisci porzioni"
+      >
+        <Minus className="h-4 w-4" aria-hidden="true" />
+      </Button>
+      <input
+        type="number"
+        min={1}
+        value={servings}
+        onChange={(e) => onChange(Math.max(1, Number(e.target.value) || 1))}
+        className={`${inputClassName} ${inputClasses}`}
+      />
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => onChange(servings + 1)}
+        className="h-11 w-11 px-0"
+        aria-label="Aumenta porzioni"
+      >
+        <Plus className="h-4 w-4" aria-hidden="true" />
+      </Button>
+    </>
+  );
+}
+
 export function ServingsAdjuster({
   recipeId,
   baseServings,
@@ -54,33 +98,11 @@ export function ServingsAdjuster({
           <p className="text-xs text-muted-foreground">Le quantità si aggiornano automaticamente.</p>
         </div>
         <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setServings(Math.max(1, servings - 1))}
-          className="h-11 w-11 px-0"
-          aria-label="Diminuisci porzioni"
-        >
-          <Minus className="h-4 w-4" aria-hidden="true" />
-        </Button>
-        <input
-          type="number"
-          min={1}
-          value={servings}
-          onChange={(e) => setServings(Math.max(1, Number(e.target.value) || 1))}
-          className={`h-11 w-14 py-1 text-center font-semibold tabular-nums ${inputClasses}`}
-        />
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={() => setServings(servings + 1)}
-          className="h-11 w-11 px-0"
-          aria-label="Aumenta porzioni"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-        </Button>
+          <ServingsStepperCore
+            servings={servings}
+            onChange={setServings}
+            inputClassName="h-11 w-14 py-1 text-center font-semibold tabular-nums"
+          />
         </div>
         <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />
       </div>
@@ -134,33 +156,7 @@ export function ServingsStepper({
   return (
     <div className="flex items-center gap-2">
       <label className="text-sm font-medium text-foreground">Porzioni</label>
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => onChange(Math.max(1, servings - 1))}
-        className="h-11 w-11 px-0"
-        aria-label="Diminuisci porzioni"
-      >
-        <Minus className="h-4 w-4" aria-hidden="true" />
-      </Button>
-      <input
-        type="number"
-        min={1}
-        value={servings}
-        onChange={(e) => onChange(Math.max(1, Number(e.target.value) || 1))}
-        className={`w-16 py-1.5 text-center ${inputClasses}`}
-      />
-      <Button
-        type="button"
-        variant="secondary"
-        size="sm"
-        onClick={() => onChange(servings + 1)}
-        className="h-11 w-11 px-0"
-        aria-label="Aumenta porzioni"
-      >
-        <Plus className="h-4 w-4" aria-hidden="true" />
-      </Button>
+      <ServingsStepperCore servings={servings} onChange={onChange} />
     </div>
   );
 }

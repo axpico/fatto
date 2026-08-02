@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { saveUpload, UploadError } from "@/lib/uploads";
+import { UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { findIngredientMatches } from "@/lib/ingredientSearch";
 import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
 import { searchRecipesByText } from "@/lib/recipeSearch";
-import { resolveTagNames } from "@/lib/tagDedupe";
+import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 const SORTS = ["relevance", "best-match", "recent", "most-cooked", "prep-time"] as const;
@@ -111,17 +111,18 @@ export async function POST(request: Request) {
   let galleryFilenames: string[];
   let stepImageFilenames: (string | null)[];
   try {
-    photoUrl = photo ? await saveUpload(photo) : existingPhotoUrl;
-    galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
-    stepImageFilenames = await Promise.all(
-      data.steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
-    );
+    ({ photoUrl, galleryFilenames, stepImageFilenames } = await uploadRecipeImages(
+      photo,
+      existingPhotoUrl,
+      galleryPhotos,
+      data.steps,
+      stepImages,
+    ));
   } catch (err) {
     if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
   }
-  const hasNutrition = Object.values(data.nutrition).some((v) => v !== null);
-  const resolvedTagNames = await resolveTagNames(data.tags);
+  const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
 
   const recipe = await prisma.recipe.create({
     data: {
@@ -158,10 +159,7 @@ export async function POST(request: Request) {
     },
   });
 
-  await prisma.ingredientCatalog.createMany({
-    data: data.ingredients.map((i) => ({ name: i.name.trim().toLowerCase() })),
-    skipDuplicates: true,
-  });
+  await syncIngredientCatalog(data.ingredients);
 
   return Response.json(recipe, { status: 201 });
 }

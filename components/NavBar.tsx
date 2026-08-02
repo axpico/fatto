@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { NAV_ITEMS } from "@/lib/navItems";
+import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
 
 export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
   const pathname = usePathname();
@@ -14,7 +14,7 @@ export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = 
     >
       <ul className="flex justify-around">
         {NAV_ITEMS.map((tab) => {
-          const active = tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);
+          const active = isNavActive(pathname, tab.href);
           const Icon = tab.icon;
           return (
             <li key={tab.href} className="flex-1">

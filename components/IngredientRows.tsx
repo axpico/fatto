@@ -3,6 +3,7 @@
 import { inputClasses } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ReorderableRows } from "@/components/ui/ReorderableRows";
+import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { useSuggestions } from "@/lib/useSuggestions";
 
@@ -69,16 +70,8 @@ export function IngredientRows({
           />
         )}
       />
-      <datalist id="ingredient-suggestions">
-        {suggestions.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
-      <datalist id="unit-suggestions">
-        {CANONICAL_UNITS.map((unit) => (
-          <option key={unit} value={unit} />
-        ))}
-      </datalist>
+      <SuggestionDatalist id="ingredient-suggestions" options={suggestions} />
+      <SuggestionDatalist id="unit-suggestions" options={CANONICAL_UNITS} />
     </>
   );
 }

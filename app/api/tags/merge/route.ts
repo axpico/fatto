@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
+import { findOrNotFound } from "@/lib/apiRoute";
 
 const mergeSchema = z.object({ keepId: z.string().min(1), mergeId: z.string().min(1) });
 
@@ -15,8 +16,11 @@ export async function POST(request: Request) {
   }
   const { keepId, mergeId } = parsed.data;
 
-  const mergeTag = await prisma.tag.findUnique({ where: { id: mergeId }, include: { recipes: { select: { id: true } } } });
-  if (!mergeTag) return Response.json({ error: "Tag non trovato" }, { status: 404 });
+  const { record: mergeTag, notFound } = await findOrNotFound(
+    () => prisma.tag.findUnique({ where: { id: mergeId }, include: { recipes: { select: { id: true } } } }),
+    "Tag non trovato",
+  );
+  if (notFound) return notFound;
 
   await prisma.$transaction([
     ...mergeTag.recipes.map((recipe) =>

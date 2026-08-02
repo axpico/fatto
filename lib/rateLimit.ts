@@ -26,3 +26,16 @@ export function recordAttempt(key: string, windowMs: number): void {
 export function clearRateLimit(key: string): void {
   store.delete(key);
 }
+
+const IMPORT_RATE_LIMIT = 6;
+const IMPORT_RATE_WINDOW_MS = 5 * 60_000;
+
+/** 429 pronta da restituire se l'utente ha superato il limite di importazioni AI, altrimenti registra il tentativo e torna null. */
+export function checkImportRateLimit(userId: string): Response | null {
+  const key = `import:${userId}`;
+  if (isRateLimited(key, IMPORT_RATE_LIMIT, IMPORT_RATE_WINDOW_MS)) {
+    return Response.json({ error: "Troppe importazioni, riprova tra qualche minuto." }, { status: 429 });
+  }
+  recordAttempt(key, IMPORT_RATE_WINDOW_MS);
+  return null;
+}
