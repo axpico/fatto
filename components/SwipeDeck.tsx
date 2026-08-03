@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChefHat, Clock, Shuffle, Tag as TagIcon, X } from "lucide-react";
+import { ChefHat, Clock, Shuffle, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { SwipeCard, type SwipeCardHandle } from "@/components/SwipeCard";
+import { TagFilterPanel } from "@/components/TagFilterPanel";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -155,30 +156,15 @@ export function SwipeDeck() {
         <Card className="space-y-5 p-4 sm:p-5">
           <SectionIntro icon={Shuffle} title="Decidi cosa cucinare" description="Scarta quello che non ti va, tieni quello che ti convince. Filtri opzionali, oppure parti subito." />
 
-          {tags.length > 0 && (
-            <div className="border-t border-border pt-4">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                  <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Tag
-                </p>
-                <div className="flex gap-1.5" role="radiogroup" aria-label="Modalità filtro tag">
-                  <button type="button" role="radio" aria-checked={tagMode === "all"} onClick={() => setTagMode("all")} className={pillButtonClasses(tagMode === "all")}>
-                    Tutti
-                  </button>
-                  <button type="button" role="radio" aria-checked={tagMode === "any"} onClick={() => setTagMode("any")} className={pillButtonClasses(tagMode === "any")}>
-                    Almeno uno
-                  </button>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag) => (
-                  <button key={tag.id} type="button" aria-pressed={selectedTagIds.includes(tag.id)} onClick={() => toggleTag(tag.id)} className={pillButtonClasses(selectedTagIds.includes(tag.id))}>
-                    {tag.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <div className="border-t border-border pt-4">
+            <TagFilterPanel
+              tags={tags}
+              selectedTagIds={selectedTagIds}
+              tagMode={tagMode}
+              onToggleTag={toggleTag}
+              onModeChange={setTagMode}
+            />
+          </div>
 
           <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
             <div className="space-y-1.5">

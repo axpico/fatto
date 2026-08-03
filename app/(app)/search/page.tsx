@@ -2,9 +2,10 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, Clock, Search, SlidersHorizontal, Sparkles, Star, Tag as TagIcon, Users, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Search, SlidersHorizontal, Sparkles, Star, Users, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { RecipeList, VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView } from "@/components/RecipeList";
+import { TagFilterPanel } from "@/components/TagFilterPanel";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
@@ -162,10 +163,6 @@ function SearchPageContent() {
 
   // aperto di default se l'utente ha già dei filtri attivi al mount, altrimenti chiuso su mobile
   const [filtersOpen, setFiltersOpen] = useState(hasActiveFilters);
-  const [tagsExpanded, setTagsExpanded] = useState(false);
-  // i tag già selezionati restano visibili anche oltre il troncamento, altrimenti un filtro
-  // impostato da URL potrebbe sparire silenziosamente dalla vista
-  const visibleTags = tagsExpanded ? tags : tags.filter((t, i) => i < 8 || selectedTagIds.includes(t.id));
 
   function clearFilters() {
     setQuery("");
@@ -275,57 +272,15 @@ function SearchPageContent() {
         </button>
 
       <div id="search-filters-panel" className={`space-y-5 ${filtersOpen ? "" : "hidden sm:block"}`}>
-      {tags.length > 0 && (
-        <div className="border-t border-border pt-4">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-              <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Filtra per tag
-            </p>
-            <div className="flex gap-1.5" role="radiogroup" aria-label="Modalità filtro tag">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={tagMode === "all"}
-                onClick={() => setTagMode("all")}
-                className={pillButtonClasses(tagMode === "all")}
-              >
-                Tutti
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={tagMode === "any"}
-                onClick={() => setTagMode("any")}
-                className={pillButtonClasses(tagMode === "any")}
-              >
-                Almeno uno
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {visibleTags.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                aria-pressed={selectedTagIds.includes(tag.id)}
-                onClick={() => toggleTag(tag.id)}
-                className={pillButtonClasses(selectedTagIds.includes(tag.id))}
-              >
-                {tag.name}
-              </button>
-            ))}
-            {tags.length > 8 && (
-              <button
-                type="button"
-                onClick={() => setTagsExpanded((v) => !v)}
-                className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {tagsExpanded ? "Mostra meno" : `Mostra tutti (${tags.length})`}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <div className="border-t border-border pt-4">
+        <TagFilterPanel
+          tags={tags}
+          selectedTagIds={selectedTagIds}
+          tagMode={tagMode}
+          onToggleTag={toggleTag}
+          onModeChange={setTagMode}
+        />
+      </div>
 
       <div className="border-t border-border pt-4">
         <p className="text-sm font-medium text-foreground">Cosa posso cucinare?</p>
