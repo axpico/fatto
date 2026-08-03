@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { Sparkles } from "@react-three/drei";
 
@@ -8,12 +8,31 @@ import { Sparkles } from "@react-three/drei";
 // intensity, for the "mark cooked" moment. No mobile gate: it's a ~1.2s
 // burst rather than an ambient during-cook layer, so the perf tradeoff
 // CookAmbientScene makes doesn't apply here.
-export function CookedCelebration({ onDone }: { onDone: () => void }) {
+export function CookedCelebration({
+  onDone,
+  colorVar = "--primary",
+  count = 80,
+  opacity = 0.8,
+  durationMs = 1200,
+}: {
+  onDone: () => void;
+  colorVar?: string;
+  count?: number;
+  opacity?: number;
+  durationMs?: number;
+}) {
   const [color] = useState(
-    () => getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#f0a24b",
+    () => getComputedStyle(document.documentElement).getPropertyValue(colorVar).trim() || "#f0a24b",
   );
+  const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  // Reduced motion still owes callers their onDone — otherwise anything
+  // gating navigation on it (e.g. the swipe deck) would hang forever.
+  useEffect(() => {
+    if (reduced) onDone();
+  }, [reduced, onDone]);
+
+  if (reduced) {
     return null;
   }
 
@@ -24,11 +43,11 @@ export function CookedCelebration({ onDone }: { onDone: () => void }) {
       camera={{ position: [0, 0, 6], fov: 45 }}
       gl={{ alpha: true, antialias: true }}
       onCreated={() => {
-        setTimeout(onDone, 1200);
+        setTimeout(onDone, durationMs);
       }}
     >
       <ambientLight intensity={0.8} />
-      <Sparkles count={80} scale={[6, 3, 3]} size={4} speed={0.6} opacity={0.8} color={color} />
+      <Sparkles count={count} scale={[6, 3, 3]} size={4} speed={0.6} opacity={opacity} color={color} />
     </Canvas>
   );
 }

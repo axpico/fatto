@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { ChefHat, Clock, Shuffle, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { SwipeCard, type SwipeCardHandle } from "@/components/SwipeCard";
@@ -15,6 +16,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson } from "@/lib/apiError";
+
+// ssr:false must be called from a client component — this file is one.
+const CookedCelebration = dynamic(
+  () => import("@/components/motion/CookedCelebration").then((m) => m.CookedCelebration),
+  { ssr: false },
+);
 
 type Phase = "setup" | "swiping" | "empty";
 type Tag = { id: string; name: string };
@@ -72,6 +79,8 @@ export function SwipeDeck() {
   const [pool, setPool] = useState<RecipeCardData[]>([]);
   const [current, setCurrent] = useState<RecipeCardData | null>(null);
   const [next, setNext] = useState<RecipeCardData | null>(null);
+  const [afterNext, setAfterNext] = useState<RecipeCardData | null>(null);
+  const [fx, setFx] = useState<{ variant: "commit" | "reject"; key: string } | null>(null);
   const tagWeight = useRef(new Map<string, number>());
   const timeWeight = useRef(new Map<TimeBucket, number>());
   const activeCardRef = useRef<SwipeCardHandle>(null);
@@ -87,6 +96,7 @@ export function SwipeDeck() {
     if (recipes.length === 0) {
       setCurrent(null);
       setNext(null);
+      setAfterNext(null);
       setPool([]);
       setPhase("empty");
       return;
@@ -96,8 +106,11 @@ export function SwipeDeck() {
     remaining.splice(remaining.indexOf(first), 1);
     const second = pickNext(remaining, tagWeight.current, timeWeight.current);
     if (second) remaining.splice(remaining.indexOf(second), 1);
+    const third = pickNext(remaining, tagWeight.current, timeWeight.current);
+    if (third) remaining.splice(remaining.indexOf(third), 1);
     setCurrent(first);
     setNext(second);
+    setAfterNext(third);
     setPool(remaining);
     setPhase("swiping");
   }
@@ -119,10 +132,8 @@ export function SwipeDeck() {
 
   function handleExited(dir: "left" | "right") {
     if (!current) return;
-    if (dir === "right") {
-      router.push(`/recipes/${current.id}`);
-      return;
-    }
+    setFx({ variant: dir === "right" ? "commit" : "reject", key: current.id });
+    if (dir === "right") return; // nav happens from handleFxDone once the burst plays out
 
     fetch("/api/swipe/reject", {
       method: "POST",
@@ -133,16 +144,23 @@ export function SwipeDeck() {
     decay(current, tagWeight.current, timeWeight.current);
 
     const newCurrent = next;
+    const newNext = afterNext;
     let remaining = pool;
-    let newNext: RecipeCardData | null = null;
-    if (newCurrent && remaining.length > 0) {
-      newNext = pickNext(remaining, tagWeight.current, timeWeight.current);
-      if (newNext) remaining = remaining.filter((r) => r.id !== newNext!.id);
+    let newAfterNext: RecipeCardData | null = null;
+    if (newNext && remaining.length > 0) {
+      newAfterNext = pickNext(remaining, tagWeight.current, timeWeight.current);
+      if (newAfterNext) remaining = remaining.filter((r) => r.id !== newAfterNext!.id);
     }
     setPool(remaining);
     setCurrent(newCurrent);
     setNext(newNext);
+    setAfterNext(newAfterNext);
     if (!newCurrent) setPhase("empty");
+  }
+
+  function handleFxDone() {
+    if (fx?.variant === "commit") router.push(`/recipes/${fx.key}`);
+    setFx(null);
   }
 
   async function unlockRejected() {
@@ -227,8 +245,19 @@ export function SwipeDeck() {
   return (
     <div className="page-shell max-w-md space-y-6">
       <div className="relative mx-auto aspect-[3/4] w-full max-w-sm">
-        {next && <SwipeCard key={next.id} recipe={next} active={false} onExited={() => {}} />}
-        {current && <SwipeCard key={current.id} ref={activeCardRef} recipe={current} active onExited={handleExited} />}
+        {afterNext && <SwipeCard key={afterNext.id} recipe={afterNext} active={false} stackIndex={2} onExited={() => {}} />}
+        {next && <SwipeCard key={next.id} recipe={next} active={false} stackIndex={1} onExited={() => {}} />}
+        {current && (
+          <SwipeCard key={current.id} ref={activeCardRef} recipe={current} active stackIndex={0} onExited={handleExited} />
+        )}
+        {fx && (
+          <CookedCelebration
+            key={fx.key}
+            onDone={handleFxDone}
+            durationMs={450}
+            {...(fx.variant === "reject" ? { colorVar: "--muted-foreground", count: 30, opacity: 0.35 } : {})}
+          />
+        )}
       </div>
       <div className="flex justify-center gap-4">
         <Button type="button" variant="destructive" size="lg" onClick={() => activeCardRef.current?.commit("left")} aria-label="Scarta">
