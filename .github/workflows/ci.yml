@@ -14,10 +14,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npx prisma generate
       - run: npm run build
         env:
           # Placeholders so env validation passes during build's page-data collection step (same
