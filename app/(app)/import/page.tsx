@@ -43,6 +43,7 @@ const TEXT_STAGES = ["Estraendo ricetta..."];
 type ImportedRecipe = Omit<ExtractedRecipe, "steps"> & {
   photoUrl?: string | null;
   galleryFilenames?: string[];
+  warnings?: string[];
   steps: (ExtractedRecipe["steps"][number] & { image_filename?: string | null })[];
 };
 
@@ -142,6 +143,7 @@ export default function ImportPage() {
   const [extracted, setExtracted] = useState<Partial<RecipeFormData> | null>(null);
   const [manual, setManual] = useState(false);
   const [provider, setProvider] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<string[]>([]);
   const [targetLanguage, setTargetLanguage] = useState(LANGUAGES[0].code);
   const [translating, setTranslating] = useState(false);
   const [formKey, setFormKey] = useState(0);
@@ -152,6 +154,7 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    setWarnings([]);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
@@ -182,6 +185,7 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    setWarnings([]);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
@@ -211,6 +215,7 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    setWarnings([]);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
@@ -225,6 +230,7 @@ export default function ImportPage() {
         controller.signal,
       );
       setProvider(data.provider ?? null);
+      setWarnings(data.warnings ?? []);
       setExtracted(mapExtractedToFormData(data, { url: reelUrl, isVideo: true }));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -242,6 +248,7 @@ export default function ImportPage() {
     setLoading(true);
     setStageIndex(-1);
     setError(null);
+    setWarnings([]);
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
@@ -339,6 +346,12 @@ export default function ImportPage() {
             <p>Estratto con un modello di fallback gratuito: rivedi i dati con particolare attenzione.</p>
           </div>
         )}
+        {warnings.map((w) => (
+          <div key={w} className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            <p>{w}</p>
+          </div>
+        ))}
         {extracted && (
           <Card className="mt-4 border-primary/20 bg-accent/30 p-4">
             <div className="mb-3">

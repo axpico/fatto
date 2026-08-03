@@ -112,6 +112,8 @@ export type ReelImportResult = {
   recipe: Omit<ExtractedRecipe, "steps"> & { steps: StepWithImage[] };
   provider: string;
   galleryFilenames: string[];
+  photoUrl: string | null;
+  warnings: string[];
 };
 
 // ponytail: execFile con array di argomenti ovunque, mai shell:true — l'URL è input utente e non
@@ -156,6 +158,8 @@ export async function importFromReel(
         recipe: { ...recipe, steps: resolveStepImages(recipe.steps, []) },
         provider,
         galleryFilenames: [],
+        photoUrl: null,
+        warnings: ["Il video non è stato scaricato: la ricetta si basa solo sulle note che hai inserito."],
       };
     }
 
@@ -192,6 +196,14 @@ export async function importFromReel(
     onProgress?.("Estraendo fotogrammi...");
     const frames = await extractFrames(dir, videoPath);
 
+    const warnings: string[] = [];
+    if (!transcript) {
+      warnings.push("Nessun parlato rilevato nell'audio: la ricetta si basa su didascalia, commenti e note.");
+    }
+    if (frames.length === 0) {
+      warnings.push("Non è stato possibile estrarre fotogrammi dal video.");
+    }
+
     onProgress?.("Estraendo ricetta...");
     const { recipe, provider } = await extractRecipe(
       buildText({ transcript, caption, comments, notes: trimmedNotes }),
@@ -200,11 +212,16 @@ export async function importFromReel(
     const galleryFilenames = await Promise.all(
       frames.map((f) => saveUpload(new File([new Uint8Array(f.data)], "frame.jpg", { type: f.mediaType }))),
     );
+    // Le ricette da cucina finiscono quasi sempre sul piatto pronto: l'ultimo fotogramma è la
+    // copertina di default migliore senza dover chiedere al modello AI di sceglierne una.
+    const photoUrl = galleryFilenames.length > 0 ? galleryFilenames[galleryFilenames.length - 1] : null;
 
     return {
       recipe: { ...recipe, steps: resolveStepImages(recipe.steps, galleryFilenames) },
       provider,
       galleryFilenames,
+      photoUrl,
+      warnings,
     };
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});

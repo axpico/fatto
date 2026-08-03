@@ -25,12 +25,12 @@ export async function POST(request: Request) {
 
   return streamNdjson(async (write) => {
     try {
-      const { recipe, provider, galleryFilenames } = await importFromReel(
+      const { recipe, provider, galleryFilenames, photoUrl, warnings } = await importFromReel(
         parsed.data.url,
         parsed.data.notes,
         (stage) => write({ stage }),
       );
-      write({ done: true, ...recipe, provider, galleryFilenames });
+      write({ done: true, ...recipe, provider, galleryFilenames, photoUrl, warnings });
     } catch (err) {
       writeExtractionError(write, err, ReelImportError, AiExtractionError);
     }
