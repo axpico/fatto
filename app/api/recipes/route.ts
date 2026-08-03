@@ -4,7 +4,7 @@ import { UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { findIngredientMatches } from "@/lib/ingredientSearch";
 import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
-import { searchRecipesByText } from "@/lib/recipeSearch";
+import { buildRecipeWhere, searchRecipesByText } from "@/lib/recipeSearch";
 import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
@@ -59,16 +59,9 @@ export async function GET(request: Request) {
   );
 
   const where: Prisma.RecipeWhereInput = {
-    ...(tagIds.length > 0 && (tagMode === "any"
-      ? { tags: { some: { id: { in: tagIds } } } }
-      : { AND: tagIds.map((id) => ({ tags: { some: { id } } })) })),
-    ...(prepMax != null && { prepTimeMinutes: { lte: prepMax } }),
-    ...(cookMax != null && { cookTimeMinutes: { lte: cookMax } }),
+    ...buildRecipeWhere({ tagIds, tagMode, prepMax, cookMax, idConstraints }),
     ...(servingsMin != null && { servingsBase: { gte: servingsMin } }),
     ...(favoritesOnly && { favorites: { some: { userId: user.id } } }),
-    ...(idConstraints.length > 0 && {
-      id: { in: idConstraints.reduce((a, b) => a.filter((id) => b.includes(id))) },
-    }),
   };
 
   const dbOrderBy: Prisma.RecipeOrderByWithRelationInput =

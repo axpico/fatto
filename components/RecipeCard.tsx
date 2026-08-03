@@ -29,7 +29,7 @@ function metaLine(recipe: RecipeCardData, max = 2) {
 }
 
 // Title + meta laid over the photo, readable on any image thanks to the scrim.
-function Overlay({ recipe, big = false }: { recipe: RecipeCardData; big?: boolean }) {
+export function Overlay({ recipe, big = false }: { recipe: RecipeCardData; big?: boolean }) {
   const { totalTime, parts } = metaLine(recipe, big ? 3 : 1);
   return (
     <>
@@ -57,7 +57,7 @@ function Overlay({ recipe, big = false }: { recipe: RecipeCardData; big?: boolea
   );
 }
 
-function NoPhoto({ recipe, tall, big = false }: { recipe: RecipeCardData; tall?: boolean; big?: boolean }) {
+export function NoPhoto({ recipe, tall, big = false }: { recipe: RecipeCardData; tall?: boolean; big?: boolean }) {
   const { totalTime, parts } = metaLine(recipe, big ? 3 : 1);
   return (
     <div className={`flex ${tall ? "flex-col" : ""} h-full w-full items-center justify-center gap-3 bg-surface-secondary p-4 text-center`}>

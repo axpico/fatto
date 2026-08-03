@@ -1,8 +1,9 @@
-import { House, Search, Plus, Settings } from "lucide-react";
+import { House, Search, Plus, Shuffle, Settings } from "lucide-react";
 
 export const NAV_ITEMS = [
   { href: "/", label: "Ricette", icon: House },
   { href: "/search", label: "Cerca", icon: Search },
+  { href: "/decidi", label: "Decidi", icon: Shuffle },
   { href: "/import", label: "Importa", icon: Plus },
   { href: "/settings", label: "Impostazioni", icon: Settings },
 ] as const;

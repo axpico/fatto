@@ -15,10 +15,11 @@ model User {
   isAdmin      Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  recipes   Recipe[]
-  cookLogs  CookLog[]
-  sessions  Session[]
-  favorites Favorite[]
+  recipes      Recipe[]
+  cookLogs     CookLog[]
+  sessions     Session[]
+  favorites    Favorite[]
+  swipeRejects SwipeReject[]
 }
 
 model Session {
@@ -52,9 +53,10 @@ model Recipe {
   steps       Step[]
   tags        Tag[]         @relation("RecipeTags")
   cookLogs    CookLog[]
-  images      RecipeImage[]
-  nutrition   Nutrition?
-  favorites   Favorite[]
+  images       RecipeImage[]
+  nutrition    Nutrition?
+  favorites    Favorite[]
+  swipeRejects SwipeReject[]
 
   @@index([createdById])
 }
@@ -66,6 +68,18 @@ model Favorite {
   recipeId  String
   recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+
+  @@unique([userId, recipeId])
+  @@index([recipeId])
+}
+
+model SwipeReject {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipeId   String
+  recipe     Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  rejectedAt DateTime @default(now())
 
   @@unique([userId, recipeId])
   @@index([recipeId])
