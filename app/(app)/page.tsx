@@ -14,6 +14,7 @@ import type { Prisma } from "@/lib/generated/prisma/client";
 const SORTS = [
   { value: "recent", label: "Recenti" },
   { value: "most-cooked", label: "Più cucinate" },
+  { value: "top-rated", label: "Meglio valutate" },
   { value: "stale", label: "Da rifare" },
 ] as const;
 
@@ -52,6 +53,20 @@ export default async function HomePage({
       where: favWhere,
       include: baseInclude,
       orderBy: { cookLogs: { _count: "desc" } },
+    });
+  } else if (sort === "top-rated") {
+    const all = await prisma.recipe.findMany({
+      where: favWhere,
+      include: { ...baseInclude, cookLogs: { where: { rating: { not: null } }, select: { rating: true } } },
+    });
+    // niente voti = in fondo, non a pari merito con un 0
+    const avgRating = (r: (typeof all)[number]) =>
+      r.cookLogs.length > 0 ? r.cookLogs.reduce((sum, l) => sum + l.rating!, 0) / r.cookLogs.length : null;
+    recipes = all.sort((a, b) => {
+      const [aAvg, bAvg] = [avgRating(a), avgRating(b)];
+      if (aAvg === null) return bAvg === null ? 0 : 1;
+      if (bAvg === null) return -1;
+      return bAvg - aAvg;
     });
   } else if (sort === "stale") {
     const all = await prisma.recipe.findMany({
