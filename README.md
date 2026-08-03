@@ -35,6 +35,13 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
 
    Il primo avvio scarica le immagini, builda l'app, applica le migrazioni del database e crea l'utente admin. Segui i log con `docker compose logs -f app` se vuoi vedere il progresso.
 
+   In alternativa, per saltare la build locale e usare l'immagine già pronta pubblicata da CI su GitHub Container Registry:
+
+   ```bash
+   docker compose pull
+   docker compose up -d
+   ```
+
 3. Apri `http://localhost:3000` (o l'indirizzo del tuo server/NAS) e accedi con `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
 
 4. Da telefono: apri l'app nel browser e usa "Aggiungi a schermata Home" per installarla come PWA.

@@ -16,6 +16,7 @@ services:
       retries: 10
 
   app:
+    image: ghcr.io/axpico/fatto:latest
     build: .
     depends_on:
       db:
