@@ -59,7 +59,8 @@ async function runImportStream(
 ): Promise<ImportedRecipe & { provider?: string }> {
   const res = await fetch(url, { ...init, signal });
   if (!res.ok || !res.body) {
-    throw new Error("Importazione fallita");
+    const body = await res.json().catch(() => null);
+    throw new Error((body as { error?: string } | null)?.error ?? "Importazione fallita");
   }
 
   const reader = res.body.getReader();
