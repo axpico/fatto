@@ -36,7 +36,14 @@ const pinnedLookup: LookupFunction = (hostname, options, callback) => {
     if (addresses.length === 0 || addresses.some(isPrivate)) {
       return callback(new UnsafeUrlError("Host non consentito"), "", 4);
     }
-    callback(null, addresses[0].address, addresses[0].family);
+    // Node con Happy Eyeballs (autoSelectFamily, default da v20) chiama lookup con
+    // options.all e si aspetta indietro l'intero array, non la forma singola (address, family):
+    // passare quest'ultima gli fa leggere l'array come stringa e crasha con "Invalid IP address: undefined".
+    if (options.all) {
+      callback(null, addresses);
+    } else {
+      callback(null, addresses[0].address, addresses[0].family);
+    }
   });
 };
 
