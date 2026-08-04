@@ -17,7 +17,7 @@ export type RecipeCardData = {
 };
 
 const overlayFavoriteClasses =
-  "absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50";
+  "absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50";
 
 const linkClasses =
   "block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
@@ -36,7 +36,7 @@ export function Overlay({ recipe, big = false }: { recipe: RecipeCardData; big?:
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 flex flex-col gap-1 p-4 sm:p-5">
         <h3
-          className={`font-display font-semibold text-white drop-shadow-sm ${big ? "text-2xl sm:text-3xl" : "truncate text-lg"}`}
+          className={`font-display font-semibold text-white drop-shadow-sm ${big ? "text-2xl sm:text-3xl" : "line-clamp-2 text-lg"}`}
         >
           {recipe.title}
         </h3>
@@ -157,7 +157,7 @@ export function RecipeCard({
             ))}
           </div>
         </div>
-        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className="flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground" />
+        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground" />
       </Card>
     </Link>
   );

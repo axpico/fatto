@@ -46,7 +46,7 @@ export default async function SettingsPage() {
 
       <section className="space-y-6">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Amministrazione</h2>
-        <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+        <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
           <div>
             <p className="font-medium text-foreground">Tag simili</p>
             <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
@@ -55,7 +55,7 @@ export default async function SettingsPage() {
         </Link>
 
         {user.isAdmin && (
-          <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary">
+          <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
             <div>
               <p className="font-medium text-foreground">Utenti</p>
               <p className="text-sm text-muted-foreground">Crea nuovi account per la famiglia.</p>

@@ -21,7 +21,7 @@ export function StepImageThumb({
         type="button"
         onClick={() => modalRef.current?.open()}
         aria-label={`Ingrandisci foto: ${alt}`}
-        className="shrink-0 overflow-hidden rounded-lg shadow-sm"
+        className="shrink-0 snap-start overflow-hidden rounded-lg shadow-sm"
       >
         <UploadedImage filename={filename} alt={alt} className={`${className} object-cover`} />
       </button>

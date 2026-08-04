@@ -112,12 +112,12 @@ export function UsersManager({ currentUserId }: { currentUserId: string }) {
       {users && (
         <div className="space-y-3">
           {users.map((u) => (
-            <Card key={u.id} className="flex items-center justify-between gap-3 p-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">{u.name}</p>
-                <p className="text-sm text-muted-foreground">{u.email}</p>
+            <Card key={u.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{u.name}</p>
+                <p className="truncate text-sm text-muted-foreground">{u.email}</p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
                 {u.isAdmin && <Badge variant="accent">Admin</Badge>}
                 {u.id !== currentUserId && (
                   <>

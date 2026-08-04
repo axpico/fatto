@@ -87,28 +87,30 @@ export default function TagDuplicatesPage() {
           {pairs.map((pair) => {
             const key = `${pair.aId}-${pair.bId}`;
             return (
-              <Card key={key} className="flex items-center justify-between gap-3 p-4">
+              <Card key={key} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-sm text-foreground">
                   <span className="font-medium">{pair.aName}</span>
                   {" ↔ "}
                   <span className="font-medium">{pair.bName}</span>
                 </p>
-                <div className="flex shrink-0 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
+                    className="min-w-0"
                     onClick={() => merge(pair, pair.aId, pair.bId, pair.aName, pair.bName, key)}
                   >
-                    <Merge className="h-3.5 w-3.5" aria-hidden="true" /> Tieni &quot;{pair.aName}&quot;
+                    <Merge className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span className="truncate">Tieni &quot;{pair.aName}&quot;</span>
                   </Button>
                   <Button
                     type="button"
                     variant="secondary"
                     size="sm"
+                    className="min-w-0"
                     onClick={() => merge(pair, pair.bId, pair.aId, pair.bName, pair.aName, key)}
                   >
-                    <Merge className="h-3.5 w-3.5" aria-hidden="true" /> Tieni &quot;{pair.bName}&quot;
+                    <Merge className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> <span className="truncate">Tieni &quot;{pair.bName}&quot;</span>
                   </Button>
                 </div>
               </Card>

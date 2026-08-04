@@ -76,13 +76,13 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "md")}>
           <ChefHat className="h-4 w-4" aria-hidden="true" /> Cucina
         </Link>
-        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "sm")}>
-          <Printer className="h-4 w-4" aria-hidden="true" /> PDF
+        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "sm")} aria-label="PDF">
+          <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">PDF</span>
         </Link>
-        <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "sm")}>
-          <Pencil className="h-4 w-4" aria-hidden="true" /> Modifica
+        <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "sm")} aria-label="Modifica">
+          <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Modifica</span>
         </Link>
-        <div className="ml-auto flex items-center gap-2 border-l border-border pl-3">
+        <div className="ml-auto flex items-center gap-2 sm:border-l sm:border-border sm:pl-3">
           <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorites.length > 0} />
           <DeleteRecipeButton recipeId={recipe.id} />
         </div>
@@ -225,7 +225,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Reveal>
           <section className="mt-10">
             <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Galleria</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2">
+            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
               {recipe.images.map((img, idx) => (
                 <StepImageThumb
                   key={img.id}
