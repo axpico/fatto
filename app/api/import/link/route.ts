@@ -41,7 +41,8 @@ export async function POST(request: Request) {
         const res = await fetchPublic(parsed.data.url, { signal: AbortSignal.timeout(10000) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         html = await res.text();
-      } catch {
+      } catch (err) {
+        console.error("import/link: fetch pagina fallito", parsed.data.url, err);
         write({ done: true, error: "Impossibile scaricare la pagina. Controlla il link e riprova." });
         return;
       }
