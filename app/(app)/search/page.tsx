@@ -317,7 +317,7 @@ function SearchPageContent() {
         <SuggestionDatalist id="search-ingredient-suggestions" options={ingredientSuggestions} />
       </div>
 
-      <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-3">
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Prep. entro (min)
