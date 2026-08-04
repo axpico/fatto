@@ -10,12 +10,14 @@ import { TagFilterPanel } from "@/components/TagFilterPanel";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
+import { ChipInput } from "@/components/ui/ChipInput";
 import { pillButtonClasses } from "@/components/ui/Badge";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson } from "@/lib/apiError";
+import { useSuggestions } from "@/lib/useSuggestions";
 
 // ssr:false must be called from a client component — this file is one.
 const CookedCelebration = dynamic(
@@ -73,6 +75,8 @@ export function SwipeDeck() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [tagMode, setTagMode] = useState<TagMode>("all");
+  const [ingredients, setIngredients] = useState<string[]>([]);
+  const ingredientSuggestions = useSuggestions<{ name: string }>("/api/ingredients", (r) => r.name);
   const [prepMax, setPrepMax] = useState("");
   const [cookMax, setCookMax] = useState("");
 
@@ -120,6 +124,7 @@ export function SwipeDeck() {
     const params = new URLSearchParams();
     if (selectedTagIds.length > 0) params.set("tags", selectedTagIds.join(","));
     if (selectedTagIds.length > 0 && tagMode === "any") params.set("tagMode", "any");
+    if (ingredients.length > 0) params.set("ingredients", ingredients.join(","));
     if (prepMax) params.set("prepMax", prepMax);
     if (cookMax) params.set("cookMax", cookMax);
     await loadJson<RecipeCardData[]>(`/api/swipe/deck?${params}`, toast, beginSession);
@@ -181,6 +186,18 @@ export function SwipeDeck() {
               tagMode={tagMode}
               onToggleTag={toggleTag}
               onModeChange={setTagMode}
+            />
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground">Cosa posso cucinare?</p>
+            <p className="mb-3 text-sm text-muted-foreground">Aggiungi gli ingredienti che hai già a disposizione.</p>
+            <ChipInput
+              value={ingredients}
+              onChange={setIngredients}
+              placeholder="Es. pomodoro, poi invio"
+              normalize={(raw) => raw.trim().toLowerCase()}
+              suggestions={ingredientSuggestions}
             />
           </div>
 
