@@ -26,11 +26,20 @@ export function CookedCelebration({
   );
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // Reduced motion still owes callers their onDone — otherwise anything
-  // gating navigation on it (e.g. the swipe deck) would hang forever.
+  // onDone must fire regardless of whether the WebGL canvas actually
+  // renders — reduced motion skips it outright, and on some setups (no
+  // GPU context, e.g. software rendering) the Canvas never fires
+  // onCreated. Anything gating navigation on onDone (e.g. the swipe deck)
+  // would otherwise hang forever.
   useEffect(() => {
-    if (reduced) onDone();
-  }, [reduced, onDone]);
+    if (reduced) {
+      onDone();
+      return;
+    }
+    const timer = setTimeout(onDone, durationMs);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire once per mount
+  }, [reduced]);
 
   if (reduced) {
     return null;
@@ -42,9 +51,6 @@ export function CookedCelebration({
       dpr={[1, 1.5]}
       camera={{ position: [0, 0, 6], fov: 45 }}
       gl={{ alpha: true, antialias: true }}
-      onCreated={() => {
-        setTimeout(onDone, durationMs);
-      }}
     >
       <ambientLight intensity={0.8} />
       <Sparkles count={count} scale={[6, 3, 3]} size={4} speed={0.6} opacity={opacity} color={color} />
