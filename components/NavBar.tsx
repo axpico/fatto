@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
+import { useMultiTap } from "@/lib/useMultiTap";
 
 export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
   const pathname = usePathname();
+  const router = useRouter();
+  const multiTapHome = useMultiTap(() => router.push("/ruota"));
 
   return (
     <nav
@@ -25,6 +28,7 @@ export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = 
                 className={`group relative flex min-h-14 flex-col items-center justify-center gap-0.5 py-2 text-xs font-medium transition-colors ${
                   active ? "text-primary" : "text-muted-foreground hover:text-primary"
                 }`}
+                {...(tab.href === "/" && multiTapHome)}
               >
                 <span className="relative flex h-7 w-9 items-center justify-center rounded-full">
                   {active && (

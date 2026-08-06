@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
+import { useMultiTap } from "@/lib/useMultiTap";
 
 export function DesktopNav() {
   const pathname = usePathname();
+  const router = useRouter();
+  const multiTapHome = useMultiTap(() => router.push("/ruota"));
 
   return (
     <nav aria-label="Navigazione desktop" className="hidden items-center gap-1 md:flex">
@@ -20,6 +23,7 @@ export function DesktopNav() {
             className={`relative inline-flex min-h-9 items-center gap-1.5 rounded-md px-3 text-sm transition-colors ${
               active ? "text-primary" : "text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
             }`}
+            {...(href === "/" && multiTapHome)}
           >
             {active && (
               <motion.span
