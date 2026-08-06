@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { motion, useReducedMotion } from "framer-motion";
-import { Dices } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { Clock, Dices } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { UploadedImage } from "@/components/UploadedImage";
+import { FavoriteButton } from "@/components/FavoriteButton";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
@@ -59,6 +60,11 @@ function pickSegments(pool: RecipeCardData[]): { segments: RecipeCardData[]; win
   const segments = [...pool].sort(() => Math.random() - 0.5).slice(0, n);
   const winnerIdx = Math.floor(Math.random() * n);
   return { segments, winnerIdx };
+}
+
+function recipeMeta(recipe: RecipeCardData): { totalTime: number; tags: string[] } {
+  const totalTime = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
+  return { totalTime, tags: recipe.tags.slice(0, 3).map((t) => t.name) };
 }
 
 export function WheelSpinner() {
@@ -117,117 +123,186 @@ export function WheelSpinner() {
     tick();
   }
 
+  const litColor = highlightIdx >= 0 ? SLICE_COLORS[highlightIdx % SLICE_COLORS.length] : "var(--primary)";
+  const { totalTime, tags } = winner ? recipeMeta(winner) : { totalTime: 0, tags: [] as string[] };
+
   return (
     <div className="page-shell max-w-md space-y-6">
-      <Card className="space-y-5 p-4 sm:p-5">
-        <SectionIntro
-          icon={Dices}
-          title="Ruota della fortuna"
-          description="Gira e lascia che sia il caso a decidere cosa cucinare stasera."
+      <Card className="relative space-y-5 overflow-hidden p-4 sm:p-5">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -inset-x-10 -top-28 h-72 rounded-full blur-3xl"
+          style={{
+            background:
+              "radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
+          }}
         />
 
-        {pool === null && (
-          <div className="flex justify-center py-10">
-            <Spinner className="h-8 w-8 text-muted-foreground" />
-          </div>
-        )}
+        <div className="relative space-y-5">
+          <SectionIntro
+            icon={Dices}
+            title="Ruota della fortuna"
+            description="Gira e lascia che sia il caso a decidere cosa cucinare stasera."
+          />
 
-        {pool !== null && pool.length === 0 && (
-          <EmptyState title="Nessuna ricetta" description="Aggiungi qualche ricetta prima di far girare la ruota." />
-        )}
+          {pool === null && (
+            <div className="flex justify-center py-10">
+              <Spinner className="h-8 w-8 text-muted-foreground" />
+            </div>
+          )}
 
-        {pool !== null && pool.length > 0 && (
-          <div className="space-y-5">
-            <div className="relative mx-auto aspect-square w-full max-w-[380px]">
-              <div className="absolute inset-0 rounded-full bg-surface-secondary shadow-[var(--shadow-md)] ring-4 ring-border-strong/60" />
+          {pool !== null && pool.length === 0 && (
+            <EmptyState title="Nessuna ricetta" description="Aggiungi qualche ricetta prima di far girare la ruota." />
+          )}
 
-              <svg
-                viewBox={`0 0 ${SIZE} ${SIZE}`}
-                className="absolute inset-0 h-full w-full p-2 [filter:drop-shadow(0_2px_6px_rgb(0_0_0_/_0.15))]"
-              >
-                {segments.length === 1 ? (
-                  <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={SLICE_COLORS[0]} stroke="var(--surface)" strokeWidth={2} />
-                ) : (
-                  segments.map((r, i) => {
-                    const segAngle = 360 / segments.length;
-                    const isLit = i === highlightIdx;
-                    return (
-                      <path
-                        key={r.id}
-                        d={slicePath(i * segAngle, (i + 1) * segAngle)}
-                        fill={SLICE_COLORS[i % SLICE_COLORS.length]}
-                        opacity={spinning || winner ? (isLit ? 1 : 0.45) : 1}
-                        stroke={isLit ? "var(--foreground)" : "var(--surface)"}
-                        strokeWidth={isLit ? 4 : 2}
-                        style={isLit ? { filter: "drop-shadow(0 0 6px var(--primary))" } : undefined}
-                      />
-                    );
-                  })
-                )}
-                {segments.map((r, i) => {
-                  const segAngle = 360 / segments.length;
-                  const mid = i * segAngle + segAngle / 2;
-                  return (
-                    <text
-                      key={r.id}
-                      x={CENTER}
-                      y={CENTER - RADIUS * 0.62}
-                      textAnchor="middle"
-                      transform={`rotate(${mid} ${CENTER} ${CENTER})`}
-                      className="fill-primary-foreground text-[11px] font-medium"
+          {pool !== null && pool.length > 0 && (
+            <div className="space-y-4">
+              <div className="relative mx-auto aspect-square w-full max-w-[380px]">
+                <AnimatePresence mode="wait">
+                  {winner ? (
+                    <motion.div
+                      key="result"
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.25 }}
+                      className="absolute inset-0 overflow-hidden rounded-2xl bg-surface-secondary shadow-[var(--shadow-md)] ring-4 ring-border-strong/60"
                     >
-                      {truncate(r.title)}
-                    </text>
-                  );
-                })}
-              </svg>
+                      {winner.photoUrl ? (
+                        <UploadedImage
+                          filename={winner.photoUrl}
+                          alt={winner.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                          <Dices className="h-12 w-12" aria-hidden="true" />
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                      <FavoriteButton
+                        recipeId={winner.id}
+                        initialFavorite={winner.favorite}
+                        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 p-4">
+                        <p className="font-display text-2xl font-semibold text-white drop-shadow-sm">
+                          {winner.title}
+                        </p>
+                        {(totalTime > 0 || tags.length > 0) && (
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-white/80">
+                            {totalTime > 0 && (
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {totalTime} min
+                              </span>
+                            )}
+                            {tags.map((t) => (
+                              <span key={t}>#{t}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="wheel"
+                      initial={{ opacity: 0, scale: 0.96 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.25 }}
+                      className="absolute inset-0"
+                    >
+                      <div className="absolute inset-0 rounded-full bg-surface-secondary shadow-[var(--shadow-md)] ring-4 ring-border-strong/60" />
 
-              <button
-                type="button"
-                onClick={spin}
-                disabled={spinning}
-                aria-label="Gira la ruota"
-                className="absolute left-1/2 top-1/2 z-20 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--glow)] transition-transform duration-200 active:scale-95 disabled:pointer-events-none disabled:opacity-70"
-              >
-                {spinning ? <Spinner className="h-6 w-6" /> : "GIRA"}
-              </button>
+                      <svg
+                        viewBox={`0 0 ${SIZE} ${SIZE}`}
+                        className="absolute inset-0 h-full w-full p-2 [filter:drop-shadow(0_2px_6px_rgb(0_0_0_/_0.15))]"
+                      >
+                        {segments.length === 1 ? (
+                          <circle cx={CENTER} cy={CENTER} r={RADIUS} fill={SLICE_COLORS[0]} stroke="var(--surface)" strokeWidth={2} />
+                        ) : (
+                          segments.map((r, i) => {
+                            const segAngle = 360 / segments.length;
+                            const isLit = i === highlightIdx;
+                            return (
+                              <path
+                                key={r.id}
+                                d={slicePath(i * segAngle, (i + 1) * segAngle)}
+                                fill={SLICE_COLORS[i % SLICE_COLORS.length]}
+                                opacity={spinning ? (isLit ? 1 : 0.45) : 1}
+                                stroke={isLit ? "var(--foreground)" : "var(--surface)"}
+                                strokeWidth={isLit ? 4 : 2}
+                                className="transition-[opacity,stroke-width] duration-150"
+                                style={isLit ? { filter: "drop-shadow(0 0 6px var(--primary))" } : undefined}
+                              />
+                            );
+                          })
+                        )}
+                        {segments.map((r, i) => {
+                          const segAngle = 360 / segments.length;
+                          const mid = i * segAngle + segAngle / 2;
+                          return (
+                            <text
+                              key={r.id}
+                              x={CENTER}
+                              y={CENTER - RADIUS * 0.62}
+                              textAnchor="middle"
+                              transform={`rotate(${mid} ${CENTER} ${CENTER})`}
+                              className="fill-primary-foreground text-[11px] font-medium"
+                            >
+                              {truncate(r.title)}
+                            </text>
+                          );
+                        })}
+                      </svg>
 
-              {celebrating && (
-                <CookedCelebration count={80} durationMs={1200} onDone={() => setCelebrating(false)} />
+                      <div className="absolute left-1/2 top-1/2 z-20 h-20 w-20 -translate-x-1/2 -translate-y-1/2">
+                        {spinning && (
+                          <span
+                            key={highlightIdx}
+                            aria-hidden="true"
+                            className="value-pulse absolute inset-0 rounded-full"
+                            style={{ boxShadow: `0 0 0 8px color-mix(in oklab, ${litColor} 35%, transparent)` }}
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={spin}
+                          disabled={spinning}
+                          aria-label="Gira la ruota"
+                          className="flex h-full w-full items-center justify-center rounded-full text-sm font-semibold text-primary-foreground shadow-[var(--glow)] transition-[transform,background-color] duration-200 active:scale-95 disabled:pointer-events-none"
+                          style={{ backgroundColor: spinning ? litColor : "var(--primary)" }}
+                        >
+                          {spinning ? <Spinner className="h-6 w-6" /> : "GIRA"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {celebrating && (
+                  <CookedCelebration count={80} durationMs={1200} onDone={() => setCelebrating(false)} />
+                )}
+              </div>
+
+              {winner && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex gap-2"
+                >
+                  <Button type="button" onClick={() => router.push(`/recipes/${winner.id}`)} className="flex-1">
+                    Vai alla ricetta
+                  </Button>
+                  <Button type="button" variant="ghost" onClick={spin}>
+                    Gira di nuovo
+                  </Button>
+                </motion.div>
               )}
             </div>
-
-            {winner && !spinning && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-                <Card className="flex items-center gap-4 p-4">
-                  {winner.photoUrl ? (
-                    <UploadedImage
-                      filename={winner.photoUrl}
-                      alt={winner.title}
-                      className="h-16 w-16 shrink-0 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-surface-secondary text-muted-foreground">
-                      <Dices className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-lg font-semibold text-foreground">{winner.title}</p>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => router.push(`/recipes/${winner.id}`)}
-                      className="mt-1 px-0"
-                    >
-                      Vai alla ricetta
-                    </Button>
-                  </div>
-                </Card>
-              </motion.div>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </Card>
     </div>
   );
