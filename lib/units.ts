@@ -50,9 +50,38 @@ const VOLUME: Record<string, number> = {
   gal: 3840,
 };
 
+const KNOWN_UNITS = [...new Set([...Object.keys(ALIASES), ...Object.keys(MASS), ...Object.keys(VOLUME)])];
+
+// classic O(n*m) edit distance, fine for short unit strings
+function editDistance(a: string, b: string): number {
+  const dp: number[][] = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j - 1], dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+
+// single typo/transposition only (distance 1), and only among known units. If distance-1 candidates
+// resolve to different canonical units (e.g. "tbs" is 1 away from both "lbs" and "tbsp"), it's
+// genuinely ambiguous - better to not convert than to silently guess wrong.
+function fuzzyMatchUnit(clean: string): string | null {
+  const resolved = new Set(
+    KNOWN_UNITS.filter((u) => editDistance(clean, u) === 1).map((u) => ALIASES[u] ?? u),
+  );
+  return resolved.size === 1 ? [...resolved][0] : null;
+}
+
 function normalize(unit: string): string {
   const clean = unit.trim().toLowerCase();
-  return ALIASES[clean] ?? clean;
+  if (clean in ALIASES) return ALIASES[clean];
+  if (clean in MASS || clean in VOLUME) return clean;
+  return fuzzyMatchUnit(clean) ?? clean;
 }
 
 function dimensionOf(unit: string): { table: Record<string, number>; factor: number } | null {
@@ -75,14 +104,24 @@ const DENSITY_BY_INGREDIENT: Record<string, number> = {
   miele: 1.42,
   latte: 1.03,
   panna: 1.0,
+  olio: 0.92,
+  acqua: 1.0,
+  parmigiano: 0.4,
+  mandorle: 0.5,
+  noci: 0.45,
+  pangrattato: 0.4,
+  lievito: 0.8,
 };
+
+// sorted longest-first so a more specific key (e.g. "riso") wins over a shorter unrelated one
+const DENSITY_KEYS = Object.keys(DENSITY_BY_INGREDIENT).sort((a, b) => b.length - a.length);
+// word-boundary match so e.g. "sale" doesn't match inside an unrelated compound word
+const DENSITY_MATCHERS = DENSITY_KEYS.map((key) => ({ key, re: new RegExp(`\\b${key}\\b`) }));
 
 function densityFor(ingredientName: string): number | null {
   const name = ingredientName.toLowerCase();
-  for (const key in DENSITY_BY_INGREDIENT) {
-    if (name.includes(key)) return DENSITY_BY_INGREDIENT[key];
-  }
-  return null;
+  const match = DENSITY_MATCHERS.find(({ re }) => re.test(name));
+  return match ? DENSITY_BY_INGREDIENT[match.key] : null;
 }
 
 export const CANONICAL_UNITS = [...new Set([...Object.keys(MASS), ...Object.keys(VOLUME), ...Object.keys(ALIASES)])];
@@ -93,6 +132,10 @@ export function convert(quantity: number, fromUnit: string, toUnit: string): num
   const to = dimensionOf(normalize(toUnit));
   if (!from || !to || from.table !== to.table) return null;
   return (quantity * from.factor) / to.factor;
+}
+
+function roundQuantity(n: number): number {
+  return Math.round(n * 100) / 100;
 }
 
 export function applyUnitPreference(
@@ -106,12 +149,12 @@ export function applyUnitPreference(
     const density = densityFor(ingredientName);
     if (density !== null) {
       const ml = convert(quantity, unit, "ml");
-      if (ml !== null) return { quantity: ml * density, unit: "g" };
+      if (ml !== null) return { quantity: roundQuantity(ml * density), unit: "g" };
     }
   }
   const grams = convert(quantity, unit, "g");
-  if (grams !== null) return { quantity: grams, unit: "g" };
+  if (grams !== null) return { quantity: roundQuantity(grams), unit: "g" };
   const ml = convert(quantity, unit, "ml");
-  if (ml !== null) return { quantity: ml, unit: "ml" };
+  if (ml !== null) return { quantity: roundQuantity(ml), unit: "ml" };
   return { quantity, unit };
 }

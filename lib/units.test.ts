@@ -35,6 +35,22 @@ describe("convert", () => {
     expect(convert(2, "tablespoons", "ml")).toBe(30);
     expect(convert(1, "cup", "oz")).toBeNull();
   });
+
+  it("tolerates a single typo via fuzzy unit matching", () => {
+    expect(convert(1, "cucchiao", "ml")).toBe(15); // missing "i" (cucchiaio)
+    expect(convert(1, "teaspon", "ml")).toBe(5); // missing "o" (teaspoon -> tsp)
+    expect(convert(1, "kgg", "g")).toBe(1000); // extra "g" (kg)
+  });
+
+  it("does not guess when a typo is ambiguous between two different units", () => {
+    // "tbs" is a single edit away from both "lbs" (-> lb, mass) and "tbsp" (-> tbsp, volume)
+    expect(convert(1, "tbs", "ml")).toBeNull();
+  });
+
+  it("does not fuzzy-match unrelated units or multi-typo strings", () => {
+    expect(convert(1, "xyzabc", "g")).toBeNull();
+    expect(convert(1, "pizzico", "g")).toBeNull(); // far from any known unit, stays unconvertible
+  });
 });
 
 describe("applyUnitPreference", () => {
@@ -61,7 +77,33 @@ describe("applyUnitPreference", () => {
   });
 
   it("ignores density for unmatched ingredients or non-volume units", () => {
-    expect(applyUnitPreference(1, "cup", true, "acqua frizzante")).toEqual({ quantity: 240, unit: "ml" });
+    expect(applyUnitPreference(1, "cup", true, "limoncello")).toEqual({ quantity: 240, unit: "ml" });
     expect(applyUnitPreference(1, "kg", true, "farina 00")).toEqual({ quantity: 1000, unit: "g" });
+  });
+
+  it("matches the longest/most specific density key, not the first substring hit", () => {
+    // "farina di riso" contains both "farina" (0.53) and "riso" (0.75); "farina" is longer so it wins
+    expect(applyUnitPreference(1, "cucchiaio", true, "farina di riso")).toEqual({
+      quantity: 7.95,
+      unit: "g",
+    });
+  });
+
+  it("rounds converted quantities to 2 decimals", () => {
+    expect(applyUnitPreference(1, "cucchiaino", true, "miele")).toEqual({ quantity: 7.1, unit: "g" });
+  });
+
+  it("matches density on whole words only, not inside unrelated compound words", () => {
+    // "risotto" contains "riso" as a substring but not as a whole word - should not match
+    expect(applyUnitPreference(1, "cup", true, "risotto")).toEqual({ quantity: 240, unit: "ml" });
+    expect(applyUnitPreference(1, "cup", true, "riso")).toEqual({ quantity: 180, unit: "g" });
+  });
+
+  it("converts the newly added density entries", () => {
+    expect(applyUnitPreference(1, "cucchiaio", true, "olio")).toEqual({ quantity: 13.8, unit: "g" });
+    expect(applyUnitPreference(2, "cucchiai", true, "parmigiano grattugiato")).toEqual({
+      quantity: 12,
+      unit: "g",
+    });
   });
 });
