@@ -9,6 +9,7 @@ import { buttonClasses } from "@/components/ui/Button";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SortFilterBar } from "@/components/SortFilterBar";
 import { Reveal } from "@/components/motion/Reveal";
+import { computeCookStats, compareBySort } from "@/lib/recipeStats";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 const SORTS = [
@@ -38,55 +39,23 @@ export default async function HomePage({
   const sort: Sort = SORTS.some((s) => s.value === rawSort) ? (rawSort as Sort) : "recent";
   const favoritesOnly = rawFavorite === "1";
 
-  const baseInclude = {
-    tags: true,
-    _count: { select: { cookLogs: true } },
-    favorites: { where: { userId: user.id }, select: { id: true } },
-  } as const;
   const favWhere: Prisma.RecipeWhereInput | undefined = favoritesOnly
     ? { favorites: { some: { userId: user.id } } }
     : undefined;
 
-  let recipes;
-  if (sort === "most-cooked") {
-    recipes = await prisma.recipe.findMany({
-      where: favWhere,
-      include: baseInclude,
-      orderBy: { cookLogs: { _count: "desc" } },
-    });
-  } else if (sort === "top-rated") {
-    const all = await prisma.recipe.findMany({
-      where: favWhere,
-      include: { ...baseInclude, cookLogs: { where: { rating: { not: null } }, select: { rating: true } } },
-    });
-    // niente voti = in fondo, non a pari merito con un 0
-    const avgRating = (r: (typeof all)[number]) =>
-      r.cookLogs.length > 0 ? r.cookLogs.reduce((sum, l) => sum + l.rating!, 0) / r.cookLogs.length : null;
-    recipes = all.sort((a, b) => {
-      const [aAvg, bAvg] = [avgRating(a), avgRating(b)];
-      if (aAvg === null) return bAvg === null ? 0 : 1;
-      if (bAvg === null) return -1;
-      return bAvg - aAvg;
-    });
-  } else if (sort === "stale") {
-    const all = await prisma.recipe.findMany({
-      where: favWhere,
-      include: { ...baseInclude, cookLogs: { orderBy: { cookedAt: "desc" }, take: 1 } },
-    });
-    // mai cucinate = più "da rifare" di tutte, vengono prima
-    recipes = all.sort((a, b) => {
-      const aDate = a.cookLogs[0]?.cookedAt ?? null;
-      const bDate = b.cookLogs[0]?.cookedAt ?? null;
-      if (!aDate && !bDate) return 0;
-      if (!aDate) return -1;
-      if (!bDate) return 1;
-      return aDate.getTime() - bDate.getTime();
-    });
-  } else {
-    recipes = await prisma.recipe.findMany({ where: favWhere, include: baseInclude, orderBy: { createdAt: "desc" } });
-  }
+  const raw = await prisma.recipe.findMany({
+    where: favWhere,
+    include: {
+      tags: true,
+      favorites: { where: { userId: user.id }, select: { id: true } },
+      cookLogs: { select: { rating: true, cookedAt: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 
-  recipes = recipes.map((r) => ({ ...r, favorite: r.favorites.length > 0 }));
+  const withStats = raw.map((r) => ({ ...r, favorite: r.favorites.length > 0, ...computeCookStats(r.cookLogs) }));
+  const sorted = sort === "recent" ? withStats : [...withStats].sort((a, b) => compareBySort(sort, a, b));
+  const recipes = sorted.map((r) => ({ ...r, lastCookedAt: r.lastCookedAt?.toISOString() ?? null }));
 
   // stabile per tutto il giorno (stesso seed finché la data non cambia), non ad ogni richiesta
   const today = new Date().toISOString().slice(0, 10);

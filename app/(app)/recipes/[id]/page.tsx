@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, ChefHat, Printer, Pencil, Clock, ExternalLink, Video } from "lucide-react";
+import { ArrowLeft, ChefHat, Printer, Pencil, Clock, ExternalLink, Star, Video } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
@@ -16,6 +16,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/motion/TiltCard";
 import { NUTRITION_FIELDS as BASE_NUTRITION_FIELDS } from "@/lib/nutrition";
 import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
+import { computeCookStats } from "@/lib/recipeStats";
 
 // ponytail: 60s di margine assorbe lo scarto tra createdAt (orologio DB) e updatedAt
 // (orologio Prisma) su una riga appena creata; una modifica vera arriva quasi sempre dopo
@@ -47,6 +48,8 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   });
 
   if (!recipe) notFound();
+
+  const stats = computeCookStats(recipe.cookLogs);
 
   return (
     <div className="page-shell">
@@ -110,6 +113,16 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         {recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null && (
           <span className="inline-flex items-center gap-1 font-medium text-foreground">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Totale: {recipe.prepTimeMinutes + recipe.cookTimeMinutes} min
+          </span>
+        )}
+        {stats.timesCooked > 0 && (
+          <span className="inline-flex items-center gap-1">
+            <ChefHat className="h-3.5 w-3.5" aria-hidden="true" /> Cucinata {stats.timesCooked} {stats.timesCooked === 1 ? "volta" : "volte"}
+          </span>
+        )}
+        {stats.avgRating != null && (
+          <span className="inline-flex items-center gap-1">
+            <Star className="h-3.5 w-3.5" fill="currentColor" aria-hidden="true" /> {stats.avgRating.toFixed(1)}
           </span>
         )}
         {recipe.sourceUrl && (

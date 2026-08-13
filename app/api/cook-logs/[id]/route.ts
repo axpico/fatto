@@ -11,7 +11,7 @@ const patchSchema = z.object({
 });
 
 export async function PATCH(request: Request, { params }: Params) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
@@ -21,7 +21,10 @@ export async function PATCH(request: Request, { params }: Params) {
     return Response.json({ error: "Dati non validi" }, { status: 400 });
   }
 
-  const { notFound } = await findOrNotFound(() => prisma.cookLog.findUnique({ where: { id } }), "Cottura non trovata");
+  const { notFound } = await findOrNotFound(
+    () => prisma.cookLog.findUnique({ where: { id, userId: user.id } }),
+    "Cottura non trovata",
+  );
   if (notFound) return notFound;
 
   const cookLog = await prisma.cookLog.update({ where: { id }, data: parsed.data });
@@ -29,11 +32,14 @@ export async function PATCH(request: Request, { params }: Params) {
 }
 
 export async function DELETE(_request: Request, { params }: Params) {
-  const { unauthorized } = await requireApiUser();
+  const { user, unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const { notFound } = await findOrNotFound(() => prisma.cookLog.findUnique({ where: { id } }), "Cottura non trovata");
+  const { notFound } = await findOrNotFound(
+    () => prisma.cookLog.findUnique({ where: { id, userId: user.id } }),
+    "Cottura non trovata",
+  );
   if (notFound) return notFound;
 
   await prisma.cookLog.delete({ where: { id } });
