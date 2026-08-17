@@ -518,7 +518,7 @@ export function CookingModeViewer({
                 onClick={() => jumpTo(i + 1)}
                 aria-label={`Vai al passaggio ${i + 1}`}
                 aria-current={i === index}
-                className="flex min-h-11 min-w-11 flex-1 items-center justify-center"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center"
               >
                 <span
                   className={`h-2 w-2 rounded-full transition-[background-color,transform] duration-300 ${
@@ -753,7 +753,7 @@ export function CookingModeViewer({
       </AnimatePresence>
 
       {!isDone && (
-        <div className="relative z-10 flex gap-3 p-4 pb-8">
+        <div className="relative z-10 flex gap-3 p-4 pb-[calc(2rem+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={prev}

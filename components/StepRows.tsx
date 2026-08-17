@@ -40,7 +40,7 @@ export function StepRows({
             value={row.instruction}
             onChange={(e) => update({ instruction: e.target.value })}
             rows={2}
-            className={`flex-1 ${inputClasses}`}
+            className={`w-full sm:w-auto sm:flex-1 ${inputClasses}`}
           />
           <input
             type="number"

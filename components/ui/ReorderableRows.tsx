@@ -81,7 +81,7 @@ export function ReorderableRows<T>({
             onDragEnd={() => setDragIndex(null)}
             className={`rounded-lg bg-surface-sunken p-2 transition-opacity ${dragIndex === index ? "opacity-40" : ""}`}
           >
-            <div className="flex items-start gap-2">
+            <div className="flex flex-wrap items-start gap-2">
               <div className="flex shrink-0 flex-col">
                 <button
                   type="button"

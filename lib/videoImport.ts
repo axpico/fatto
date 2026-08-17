@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { mkdtemp, rm, readdir, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import os from "node:os";
 import path from "node:path";
 import { extractRecipe } from "@/lib/ai/extractRecipe";
 import { saveUpload } from "@/lib/uploads";
@@ -10,19 +11,38 @@ import type { ExtractedRecipe } from "@/lib/ai/schema";
 
 const run = promisify(execFile);
 
-// Solo reel/post pubblici singoli: niente Stories, niente caroselli multi-immagine (fuori scope).
-const REEL_URL_PATTERN = /^https:\/\/(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+\/?/i;
+export type VideoPlatform = "instagram" | "youtube" | "tiktok";
+
+// Solo post/video pubblici singoli: niente Stories, niente caroselli multi-immagine (fuori scope).
+const PLATFORM_PATTERNS: Record<VideoPlatform, RegExp> = {
+  instagram: /^https:\/\/(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+\/?/i,
+  youtube: /^https:\/\/(www\.)?(youtube\.com\/(watch\?v=[\w-]+|shorts\/[\w-]+)|youtu\.be\/[\w-]+)/i,
+  tiktok: /^https:\/\/(www\.|vm\.|vt\.)?tiktok\.com\/.+/i,
+};
+
+const PLATFORM_INVALID_URL_MESSAGE: Record<VideoPlatform, string> = {
+  instagram: "Il link non sembra un Reel Instagram valido (instagram.com/reel/... o /p/...)",
+  youtube: "Il link non sembra un video YouTube valido (youtube.com/watch?v=... o /shorts/...)",
+  tiktok: "Il link non sembra un video TikTok valido (tiktok.com/@utente/video/...)",
+};
+
+export function isValidVideoUrl(platform: VideoPlatform, url: string): boolean {
+  return PLATFORM_PATTERNS[platform].test(url);
+}
 
 const WHISPER_MODEL_PATH = "/app/whisper-models/ggml-small-q5_1.bin";
 
-const YT_DLP_TIMEOUT_MS = 120_000;
+// ponytail: nessun limite di durata sui video (deciso dall'utente) — niente coda di job, tutto
+// sincrono in una singola richiesta HTTP in streaming NDJSON. I timeout sono generosi perché la
+// trascrizione di un video lungo su CPU è il vero collo di bottiglia.
+const YT_DLP_TIMEOUT_MS = 600_000;
 const FFPROBE_TIMEOUT_MS = 15_000;
-const FFMPEG_AUDIO_TIMEOUT_MS = 45_000;
+const FFMPEG_AUDIO_TIMEOUT_MS = 120_000;
 const FFMPEG_FRAME_TIMEOUT_MS = 20_000;
-const WHISPER_TIMEOUT_MS = 180_000;
+const WHISPER_TIMEOUT_MS = 3_600_000;
 const FRAME_COUNT = 6;
 
-export class ReelImportError extends Error {}
+export class VideoImportError extends Error {}
 
 interface YtDlpMetadata {
   description?: string;
@@ -43,13 +63,13 @@ function buildText(parts: { transcript?: string; caption?: string; comments?: st
 function classifyYtDlpError(err: unknown): string {
   const e = err as { killed?: boolean; stderr?: string } | undefined;
   if (e?.killed) {
-    return "Il download del reel ha impiegato troppo tempo (connessione lenta o video molto lungo). Riprova.";
+    return "Il download del video ha impiegato troppo tempo (connessione lenta o video molto lungo). Riprova.";
   }
   if (e?.stderr && /unavailable|not available|private|login required|does not exist|removed/i.test(e.stderr)) {
-    return "Questo reel è privato, è stato rimosso o non è più disponibile.";
+    return "Questo video è privato, è stato rimosso o non è più disponibile.";
   }
   if (e?.stderr && /rate.?limit|429|try again later|confirm you.?re not a bot/i.test(e.stderr)) {
-    return "Instagram ha limitato temporaneamente le richieste. Riprova tra qualche minuto.";
+    return "La piattaforma ha limitato temporaneamente le richieste. Riprova tra qualche minuto.";
   }
   if (
     e?.stderr &&
@@ -57,9 +77,9 @@ function classifyYtDlpError(err: unknown): string {
       e.stderr,
     )
   ) {
-    return "Errore di rete durante il download del reel: controlla la connessione e riprova.";
+    return "Errore di rete durante il download del video: controlla la connessione e riprova.";
   }
-  return "Impossibile scaricare il reel: controlla il link e riprova, oppure aggiungi le note manuali.";
+  return "Impossibile scaricare il video: controlla il link e riprova, oppure aggiungi le note manuali.";
 }
 
 async function extractFrames(dir: string, videoPath: string): Promise<VisionImage[]> {
@@ -73,7 +93,7 @@ async function extractFrames(dir: string, videoPath: string): Promise<VisionImag
     duration = Number(stdout.trim());
     if (!Number.isFinite(duration) || duration <= 0) return [];
   } catch (err) {
-    console.error("[reel] durata video non disponibile, niente fotogrammi estratti:", err);
+    console.error("[video] durata video non disponibile, niente fotogrammi estratti:", err);
     return [];
   }
 
@@ -88,7 +108,7 @@ async function extractFrames(dir: string, videoPath: string): Promise<VisionImag
       frames.push({ data: await readFile(framePath), mediaType: "image/jpeg" });
     } catch (err) {
       // best-effort: un fotogramma mancante non deve bloccare l'import
-      console.error(`[reel] estrazione fotogramma ${i} fallita:`, err);
+      console.error(`[video] estrazione fotogramma ${i} fallita:`, err);
     }
   }
   return frames;
@@ -108,7 +128,7 @@ export function resolveStepImages(
   }));
 }
 
-export type ReelImportResult = {
+export type VideoImportResult = {
   recipe: Omit<ExtractedRecipe, "steps"> & { steps: StepWithImage[] };
   provider: string;
   galleryFilenames: string[];
@@ -118,17 +138,18 @@ export type ReelImportResult = {
 
 // ponytail: execFile con array di argomenti ovunque, mai shell:true — l'URL è input utente e non
 // deve mai poter raggiungere una shell.
-export async function importFromReel(
+export async function importFromVideo(
   url: string,
-  notes?: string,
+  notes: string | undefined,
+  platform: VideoPlatform,
   onProgress?: (stage: string) => void,
-): Promise<ReelImportResult> {
-  if (!REEL_URL_PATTERN.test(url)) {
-    throw new ReelImportError("Il link non sembra un Reel Instagram valido (instagram.com/reel/... o /p/...)");
+): Promise<VideoImportResult> {
+  if (!isValidVideoUrl(platform, url)) {
+    throw new VideoImportError(PLATFORM_INVALID_URL_MESSAGE[platform]);
   }
   const trimmedNotes = notes?.trim();
 
-  const dir = await mkdtemp(path.join(tmpdir(), "reel-"));
+  const dir = await mkdtemp(path.join(tmpdir(), "video-"));
   try {
     let meta: YtDlpMetadata | null = null;
     let videoFile: string | null = null;
@@ -138,19 +159,29 @@ export async function importFromReel(
     try {
       const { stdout } = await run(
         "yt-dlp",
-        [url, "-o", "video.%(ext)s", "--no-simulate", "--dump-json", "--write-comments", "--no-playlist"],
+        [
+          url,
+          "-o",
+          "video.%(ext)s",
+          "--no-simulate",
+          "--dump-json",
+          "--write-comments",
+          "--no-playlist",
+          "-S",
+          "res:480",
+        ],
         { cwd: dir, timeout: YT_DLP_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
       );
       meta = JSON.parse(stdout);
       videoFile = (await readdir(dir)).find((f) => f.startsWith("video.")) ?? null;
     } catch (err) {
-      console.error("[reel] download yt-dlp fallito:", err);
+      console.error("[video] download yt-dlp fallito:", err);
       downloadError = err;
     }
 
     if (!videoFile) {
       if (!trimmedNotes) {
-        throw new ReelImportError(`${classifyYtDlpError(downloadError)} Aggiungi le note manuali e riprova.`);
+        throw new VideoImportError(`${classifyYtDlpError(downloadError)} Aggiungi le note manuali e riprova.`);
       }
       onProgress?.("Estraendo ricetta...");
       const { recipe, provider } = await extractRecipe(buildText({ notes: trimmedNotes }));
@@ -164,7 +195,7 @@ export async function importFromReel(
     }
 
     const caption = meta?.description?.trim() ?? "";
-    // best-effort: l'estrattore Instagram di yt-dlp popola "comments" con fatal=False, quindi se
+    // best-effort: alcuni estrattori di yt-dlp popolano "comments" con fatal=False, quindi se
     // l'endpoint commenti nega l'accesso il campo è semplicemente assente, non un errore
     const comments = (meta?.comments ?? [])
       .map((c) => c.text?.trim())
@@ -184,13 +215,13 @@ export async function importFromReel(
       );
       const { stdout } = await run(
         "whisper-cli",
-        ["-m", WHISPER_MODEL_PATH, "-f", audioPath, "-l", "auto", "-nt"],
+        ["-m", WHISPER_MODEL_PATH, "-f", audioPath, "-l", "auto", "-nt", "-t", String(os.availableParallelism())],
         { timeout: WHISPER_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
       );
       transcript = stdout.trim();
     } catch (err) {
       // niente audio parlato, o trascrizione fallita: non bloccante, si prosegue con quel che c'è
-      console.error("[reel] trascrizione audio non disponibile:", err);
+      console.error("[video] trascrizione audio non disponibile:", err);
     }
 
     onProgress?.("Estraendo fotogrammi...");

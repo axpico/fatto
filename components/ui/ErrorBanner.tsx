@@ -1,7 +1,20 @@
 import type { ReactNode } from "react";
 
-export function ErrorBanner({ children, className = "" }: { children: ReactNode; className?: string }) {
+const VARIANT_CLASSES = {
+  error: "bg-destructive/10 text-destructive",
+  warning: "bg-warning/10 text-warning",
+};
+
+export function ErrorBanner({
+  children,
+  variant = "error",
+  className = "",
+}: {
+  children: ReactNode;
+  variant?: keyof typeof VARIANT_CLASSES;
+  className?: string;
+}) {
   return (
-    <p role="alert" className={`rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive ${className}`}>{children}</p>
+    <div role="alert" className={`rounded-lg px-3 py-2 text-sm ${VARIANT_CLASSES[variant]} ${className}`}>{children}</div>
   );
 }

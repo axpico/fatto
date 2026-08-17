@@ -40,7 +40,7 @@ export function IngredientRows({
               aria-label="Nome ingrediente"
               value={row.name}
               onChange={(e) => update({ name: e.target.value })}
-              className={`flex-1 ${inputClasses}`}
+              className={`w-full sm:w-auto sm:flex-1 ${inputClasses}`}
             />
             <input
               type="number"

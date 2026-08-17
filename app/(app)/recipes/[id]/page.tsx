@@ -79,10 +79,10 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "md")}>
           <ChefHat className="h-4 w-4" aria-hidden="true" /> Cucina
         </Link>
-        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "sm")} aria-label="PDF">
+        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "md")} aria-label="PDF">
           <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">PDF</span>
         </Link>
-        <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "sm")} aria-label="Modifica">
+        <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "md")} aria-label="Modifica">
           <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Modifica</span>
         </Link>
         <div className="ml-auto flex items-center gap-2 sm:border-l sm:border-border sm:pl-3">

@@ -18,7 +18,7 @@ const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
   "image/webp",
 ]);
 
-// Risposta NDJSON in streaming, stesso pattern di app/api/import/reel/route.ts: una riga
+// Risposta NDJSON in streaming, stesso pattern di app/api/import/video/route.ts: una riga
 // { stage } per avanzamento, poi una riga finale { done: true, ...ricetta } o { done: true, error }.
 export async function POST(request: Request) {
   const { user, unauthorized } = await requireApiUser();

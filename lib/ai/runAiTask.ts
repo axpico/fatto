@@ -81,8 +81,6 @@ async function runVisionChain<T>(
 
 /** Catena testuale esistente: Anthropic, poi Groq, poi in parallelo i modelli gratuiti OpenRouter. */
 async function runTextChain<T>(input: string, opts: AiTaskOptions<T>): Promise<{ result: T; provider: string }> {
-  let lastError: unknown;
-
   if (env.ANTHROPIC_API_KEY) {
     try {
       const result = await callAnthropic(input, opts.systemPrompt, opts.schema);
@@ -90,7 +88,6 @@ async function runTextChain<T>(input: string, opts: AiTaskOptions<T>): Promise<{
       return { result, provider: "anthropic" };
     } catch (err) {
       console.error("[ai] anthropic fallito:", err);
-      lastError = err;
     }
   }
 
@@ -101,17 +98,16 @@ async function runTextChain<T>(input: string, opts: AiTaskOptions<T>): Promise<{
       return { result, provider: "groq" };
     } catch (err) {
       console.error("[ai] groq fallito:", err);
-      lastError = err;
     }
   }
 
   if (!env.OPENROUTER_API_KEY) {
-    throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
+    throw new AiTaskError(MSG_NON_DISPONIBILE);
   }
 
   const models = env.OPENROUTER_MODEL_OVERRIDE ? [env.OPENROUTER_MODEL_OVERRIDE] : await getFreeModelIds();
   if (models.length === 0) {
-    throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
+    throw new AiTaskError(MSG_NON_DISPONIBILE);
   }
   const recentlyOk = models.filter((modelId) => !isRecentlyFailed(modelId));
   // se sono tutti in cooldown (falliti di recente), ritenta comunque tutti: sono gratuiti, meglio
@@ -132,10 +128,9 @@ async function runTextChain<T>(input: string, opts: AiTaskOptions<T>): Promise<{
 
   try {
     return await Promise.any(attempts);
-  } catch (aggErr) {
-    const errors = aggErr instanceof AggregateError ? aggErr.errors : [aggErr];
-    if (errors.length > 0) lastError = errors[errors.length - 1];
-    throw new AiTaskError(lastError instanceof Error ? lastError.message : MSG_NON_DISPONIBILE);
+  } catch {
+    // ogni tentativo ha già loggato il proprio errore sopra: qui basta un messaggio stabile per l'utente
+    throw new AiTaskError(MSG_NON_DISPONIBILE);
   }
 }
 

@@ -1,9 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Link2, Image as ImageIcon, Video, Upload, CheckCircle2, TriangleAlert, FileText } from "lucide-react";
+import { Link2, Image as ImageIcon, Video, Music2, Upload, CheckCircle2, TriangleAlert, FileText } from "lucide-react";
 import { RecipeForm, type RecipeFormData } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/ai/schema";
+import type { VideoPlatform } from "@/lib/videoImport";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import { Select } from "@/components/ui/Select";
@@ -26,13 +27,36 @@ const LANGUAGES = [
 const IMPORT_TABS = [
   { value: "link", label: "Link" },
   { value: "file", label: "Screenshot/PDF" },
-  { value: "reel", label: "Reel" },
+  { value: "instagram", label: "Instagram" },
+  { value: "youtube", label: "YouTube" },
+  { value: "tiktok", label: "TikTok" },
   { value: "text", label: "Testo" },
 ];
 
+const VIDEO_TABS: Record<VideoPlatform, { icon: typeof Video; title: string; description: string; placeholder: string }> = {
+  instagram: {
+    icon: Video,
+    title: "Da un Reel",
+    description: "Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video.",
+    placeholder: "https://www.instagram.com/reel/...",
+  },
+  youtube: {
+    icon: Video,
+    title: "Da un video YouTube",
+    description: "Incolla un link YouTube, video lungo o Short, e aggiungi eventuali note.",
+    placeholder: "https://www.youtube.com/watch?v=...",
+  },
+  tiktok: {
+    icon: Music2,
+    title: "Da un video TikTok",
+    description: "Incolla un link TikTok e aggiungi tutto ciò che hai notato nel video.",
+    placeholder: "https://www.tiktok.com/@utente/video/...",
+  },
+};
+
 const LINK_STAGES = ["Scaricando pagina...", "Estraendo ricetta..."];
 const FILE_STAGES = ["Leggendo il file...", "Estraendo ricetta..."];
-const REEL_STAGES = [
+const VIDEO_STAGES = [
   "Scaricando video...",
   "Trascrivendo audio...",
   "Estraendo fotogrammi...",
@@ -134,8 +158,8 @@ function mapExtractedToFormData(
 export default function ImportPage() {
   const [activeTab, setActiveTab] = useState("link");
   const [url, setUrl] = useState("");
-  const [reelUrl, setReelUrl] = useState("");
-  const [reelNotes, setReelNotes] = useState("");
+  const [videoUrls, setVideoUrls] = useState<Record<VideoPlatform, string>>({ instagram: "", youtube: "", tiktok: "" });
+  const [videoNotes, setVideoNotes] = useState<Record<VideoPlatform, string>>({ instagram: "", youtube: "", tiktok: "" });
   const [pastedText, setPastedText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -211,28 +235,30 @@ export default function ImportPage() {
     }
   }
 
-  async function importFromReel(e: React.FormEvent) {
+  async function importVideo(platform: VideoPlatform, e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setStageIndex(-1);
     setError(null);
     setWarnings([]);
+    const videoUrl = videoUrls[platform];
+    const notes = videoNotes[platform];
     const controller = new AbortController();
     abortControllerRef.current = controller;
     try {
       const data = await runImportStream(
-        "/api/import/reel",
+        "/api/import/video",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ url: reelUrl, notes: reelNotes || undefined }),
+          body: JSON.stringify({ url: videoUrl, notes: notes || undefined, platform }),
         },
-        (stage) => setStageIndex(REEL_STAGES.indexOf(stage)),
+        (stage) => setStageIndex(VIDEO_STAGES.indexOf(stage)),
         controller.signal,
       );
       setProvider(data.provider ?? null);
       setWarnings(data.warnings ?? []);
-      setExtracted(mapExtractedToFormData(data, { url: reelUrl, isVideo: true }));
+      setExtracted(mapExtractedToFormData(data, { url: videoUrl, isVideo: true }));
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
         setStageIndex(-1);
@@ -342,16 +368,16 @@ export default function ImportPage() {
           </div>
         </div>
         {(provider?.startsWith("openrouter") || provider === "groq") && (
-          <div className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <ErrorBanner variant="warning" className="mt-4 flex items-start gap-2">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>Estratto con un modello di fallback gratuito: rivedi i dati con particolare attenzione.</p>
-          </div>
+          </ErrorBanner>
         )}
         {warnings.map((w) => (
-          <div key={w} className="mt-4 flex items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <ErrorBanner key={w} variant="warning" className="mt-4 flex items-start gap-2">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <p>{w}</p>
-          </div>
+          </ErrorBanner>
         ))}
         {extracted && (
           <Card className="mt-4 border-primary/20 bg-accent/30 p-4">
@@ -391,7 +417,7 @@ export default function ImportPage() {
       <div className="rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
         <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Aggiungi una ricetta</p>
         <h1 className="page-title">Importa ricetta</h1>
-        <p className="page-description">Estrai una ricetta da un link, un file o un Reel, quindi rivedila prima di salvarla.</p>
+        <p className="page-description">Estrai una ricetta da un link, un file o un video (Instagram, YouTube, TikTok), quindi rivedila prima di salvarla.</p>
       </div>
 
       {error && (
@@ -500,47 +526,47 @@ export default function ImportPage() {
         </Card>
       </div>
 
-      <div role="tabpanel" id="panel-reel" aria-labelledby="tab-reel" hidden={activeTab !== "reel"}>
-        <Card className="p-5 sm:p-6">
-          <SectionIntro
-            icon={Video}
-            size="lg"
-            title="Da un Reel"
-            description="Incolla un Reel Instagram e aggiungi tutto ciò che hai notato nel video."
-          />
-          <form onSubmit={importFromReel} className="space-y-3">
-            <Input
-              type="url"
-              required
-              placeholder="https://www.instagram.com/reel/..."
-              aria-label="URL del Reel"
-              value={reelUrl}
-              onChange={(e) => setReelUrl(e.target.value)}
-            />
-            <Textarea
-              placeholder="Note aggiuntive (facoltativo): ingredienti o passaggi che sai già dai commenti/descrizione"
-              aria-label="Note aggiuntive"
-              value={reelNotes}
-              onChange={(e) => setReelNotes(e.target.value)}
-              rows={2}
-            />
-            <Button type="submit" disabled={loading} className="w-full">
-              {loading && activeTab === "reel" ? <Spinner /> : "Importa dal Reel"}
-            </Button>
-            {loading && activeTab === "reel" && (
-              <>
-                <ProgressBar
-                  value={((stageIndex + 1) / REEL_STAGES.length) * 100}
-                  label={REEL_STAGES[stageIndex] ?? "Avvio..."}
+      {(Object.keys(VIDEO_TABS) as VideoPlatform[]).map((platform) => {
+        const tab = VIDEO_TABS[platform];
+        return (
+          <div key={platform} role="tabpanel" id={`panel-${platform}`} aria-labelledby={`tab-${platform}`} hidden={activeTab !== platform}>
+            <Card className="p-5 sm:p-6">
+              <SectionIntro icon={tab.icon} size="lg" title={tab.title} description={tab.description} />
+              <form onSubmit={(e) => importVideo(platform, e)} className="space-y-3">
+                <Input
+                  type="url"
+                  required
+                  placeholder={tab.placeholder}
+                  aria-label="URL del video"
+                  value={videoUrls[platform]}
+                  onChange={(e) => setVideoUrls((prev) => ({ ...prev, [platform]: e.target.value }))}
                 />
-                <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
-                  Annulla
+                <Textarea
+                  placeholder="Note aggiuntive (facoltativo): ingredienti o passaggi che sai già dai commenti/descrizione"
+                  aria-label="Note aggiuntive"
+                  value={videoNotes[platform]}
+                  onChange={(e) => setVideoNotes((prev) => ({ ...prev, [platform]: e.target.value }))}
+                  rows={2}
+                />
+                <Button type="submit" disabled={loading} className="w-full">
+                  {loading && activeTab === platform ? <Spinner /> : "Importa dal video"}
                 </Button>
-              </>
-            )}
-          </form>
-        </Card>
-      </div>
+                {loading && activeTab === platform && (
+                  <>
+                    <ProgressBar
+                      value={((stageIndex + 1) / VIDEO_STAGES.length) * 100}
+                      label={VIDEO_STAGES[stageIndex] ?? "Avvio..."}
+                    />
+                    <Button type="button" variant="secondary" className="w-full" onClick={() => abortControllerRef.current?.abort()}>
+                      Annulla
+                    </Button>
+                  </>
+                )}
+              </form>
+            </Card>
+          </div>
+        );
+      })}
 
       <div role="tabpanel" id="panel-text" aria-labelledby="tab-text" hidden={activeTab !== "text"}>
         <Card className="p-5 sm:p-6">

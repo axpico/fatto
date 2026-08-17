@@ -317,7 +317,7 @@ export function RecipeForm({
                       type="button"
                       onClick={() => removeGalleryItem(index)}
                       aria-label="Rimuovi foto dalla galleria"
-                      className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-0.5 text-white"
+                      className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1.5 text-white"
                     >
                       <X className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
@@ -327,7 +327,7 @@ export function RecipeForm({
                         onClick={() => moveGalleryItem(index, -1)}
                         disabled={index === 0}
                         aria-label="Sposta foto a sinistra"
-                        className="rounded-full bg-surface p-0.5 text-foreground shadow disabled:opacity-30"
+                        className="rounded-full bg-surface p-1.5 text-foreground shadow disabled:opacity-30"
                       >
                         <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
@@ -336,7 +336,7 @@ export function RecipeForm({
                         onClick={() => moveGalleryItem(index, 1)}
                         disabled={index === form.gallery.length - 1}
                         aria-label="Sposta foto a destra"
-                        className="rounded-full bg-surface p-0.5 text-foreground shadow disabled:opacity-30"
+                        className="rounded-full bg-surface p-1.5 text-foreground shadow disabled:opacity-30"
                       >
                         <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
                       </button>
@@ -357,7 +357,7 @@ export function RecipeForm({
             />
           </fieldset>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             <Input
               label="Porzioni base"
               id="servingsBase"
@@ -436,7 +436,7 @@ export function RecipeForm({
         <Card role="tabpanel" id="panel-extra" aria-labelledby="tab-extra" className="space-y-4 p-4">
           <fieldset>
             <legend className="mb-1 text-sm font-medium">Valori nutrizionali (per porzione)</legend>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {NUTRITION_FIELDS.map(({ key, label, unit }) => (
                 <Input
                   key={key}
