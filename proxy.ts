@@ -9,9 +9,14 @@ import type { NextRequest } from "next/server";
 // tutta la pipeline di hydration senza 'unsafe-inline'.
 export function proxy(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+  // 'unsafe-eval' only in dev: React's dev build uses eval() for component stack traces;
+  // production builds never call eval(), so the real CSP stays strict there.
+  const scriptSrc = `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${
+    process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""
+  }`;
   const csp = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    scriptSrc,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data:",
     "font-src 'self'",

@@ -39,7 +39,7 @@ export function ChipInput({
             <button
               type="button"
               onClick={() => onChange(value.filter((v) => v !== item))}
-              className="text-primary/70 hover:text-primary"
+              className="-my-1.5 -mr-1 flex min-h-8 min-w-8 items-center justify-center text-primary/70 hover:text-primary"
               aria-label={removeLabel ? removeLabel(item) : `Rimuovi ${item}`}
             >
               <X className="h-3.5 w-3.5" aria-hidden="true" />

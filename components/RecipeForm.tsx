@@ -87,7 +87,7 @@ const SECTIONS = [
 ];
 
 const fileInputClasses =
-  "block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-white hover:file:bg-primary-hover";
+  "block w-full text-sm text-muted-foreground file:mr-3 file:min-h-10 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-primary-hover";
 
 export function RecipeForm({
   recipeId,
@@ -296,6 +296,7 @@ export function RecipeForm({
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
               className={fileInputClasses}
             />
@@ -304,41 +305,41 @@ export function RecipeForm({
           <fieldset>
             <legend className="mb-1 text-sm font-medium">Galleria foto</legend>
             {form.gallery.length > 0 && (
-              <div className="mb-2 flex flex-wrap gap-2">
+              <div className="mb-2 flex flex-wrap gap-3">
                 {form.gallery.map((item, index) => (
-                  <div key={index} className="relative">
+                  <div key={index} className="relative pb-3 pr-1 pt-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.kind === "existing" ? `/api/uploads/${item.filename}` : item.previewUrl}
                       alt=""
-                      className="h-20 w-20 rounded-lg object-cover"
+                      className="h-24 w-24 rounded-lg object-cover"
                     />
                     <button
                       type="button"
                       onClick={() => removeGalleryItem(index)}
                       aria-label="Rimuovi foto dalla galleria"
-                      className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-1.5 text-white"
+                      className="absolute -right-1 -top-1 flex min-h-9 min-w-9 items-center justify-center rounded-full bg-destructive text-white"
                     >
-                      <X className="h-3.5 w-3.5" aria-hidden="true" />
+                      <X className="h-4 w-4" aria-hidden="true" />
                     </button>
-                    <div className="absolute -bottom-1.5 left-1/2 flex -translate-x-1/2 gap-0.5">
+                    <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 gap-1.5">
                       <button
                         type="button"
                         onClick={() => moveGalleryItem(index, -1)}
                         disabled={index === 0}
                         aria-label="Sposta foto a sinistra"
-                        className="rounded-full bg-surface p-1.5 text-foreground shadow disabled:opacity-30"
+                        className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
                       >
-                        <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+                        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
                         onClick={() => moveGalleryItem(index, 1)}
                         disabled={index === form.gallery.length - 1}
                         aria-label="Sposta foto a destra"
-                        className="rounded-full bg-surface p-1.5 text-foreground shadow disabled:opacity-30"
+                        className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
                       >
-                        <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
+                        <ChevronRight className="h-4 w-4" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
@@ -348,6 +349,7 @@ export function RecipeForm({
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               multiple
               onChange={(e) => {
                 addGalleryFiles(e.target.files);

@@ -18,6 +18,7 @@ export function ReorderableRows<T>({
   onAdd,
   renderFields,
   renderOptional,
+  renderIndex,
 }: {
   items: T[];
   onChange: (rows: T[]) => void;
@@ -27,6 +28,8 @@ export function ReorderableRows<T>({
   onAdd: () => T;
   renderFields: (item: T, index: number, update: (patch: Partial<T>) => void) => ReactNode;
   renderOptional?: (item: T, index: number, update: (patch: Partial<T>) => void) => ReactNode;
+  /** Optional label (e.g. step number) shown above the move-up/down buttons. */
+  renderIndex?: (index: number) => ReactNode;
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
@@ -79,10 +82,15 @@ export function ReorderableRows<T>({
               setDragIndex(null);
             }}
             onDragEnd={() => setDragIndex(null)}
-            className={`rounded-lg bg-surface-sunken p-2 transition-opacity ${dragIndex === index ? "opacity-40" : ""}`}
+            className={`relative rounded-lg bg-surface-sunken p-2 pr-12 transition-opacity ${dragIndex === index ? "opacity-40" : ""}`}
           >
-            <div className="flex flex-wrap items-start gap-2">
-              <div className="flex shrink-0 flex-col">
+            <div className="flex items-start gap-2">
+              <div className="flex shrink-0 flex-col items-center">
+                {renderIndex && (
+                  <span className="pt-1.5 pb-0.5 text-sm font-medium text-muted-foreground">
+                    {renderIndex(index)}
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => move(index, index - 1)}
@@ -102,21 +110,23 @@ export function ReorderableRows<T>({
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               </div>
-              {renderFields(row, index, (patch) => update(index, patch))}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => remove(index)}
-                aria-label={`Rimuovi ${itemLabel}`}
-                className="min-h-11 min-w-11 justify-center px-2 hover:text-destructive"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </Button>
+              <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
+                {renderFields(row, index, (patch) => update(index, patch))}
+              </div>
             </div>
             {renderOptional && (
               <div className="mt-1.5 pl-7">{renderOptional(row, index, (patch) => update(index, patch))}</div>
             )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => remove(index)}
+              aria-label={`Rimuovi ${itemLabel}`}
+              className="absolute right-1 top-1 min-h-11 min-w-11 justify-center px-2 hover:text-destructive"
+            >
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
           </motion.div>
         ))}
       </AnimatePresence>

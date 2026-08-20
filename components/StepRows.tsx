@@ -15,7 +15,7 @@ export type StepRow = {
 };
 
 const stepImageInputClasses =
-  "text-xs text-muted-foreground file:mr-2 file:rounded file:border-0 file:bg-surface-secondary file:px-2 file:py-1 file:text-xs";
+  "text-xs text-muted-foreground file:mr-2 file:min-h-9 file:rounded file:border-0 file:bg-surface-secondary file:px-2.5 file:py-1.5 file:text-xs";
 
 export function StepRows({
   value,
@@ -31,25 +31,28 @@ export function StepRows({
       itemLabel="passaggio"
       addLabel="Aggiungi passaggio"
       onAdd={() => ({ instruction: "", timerMinutes: null, optional: false, imageFilename: null, imageFile: null })}
-      renderFields={(row, index, update) => (
+      renderIndex={(index) => `${index + 1}.`}
+      renderFields={(row, _index, update) => (
         <>
-          <span className="pt-2 text-sm font-medium text-muted-foreground">{index + 1}.</span>
           <textarea
             placeholder="Descrivi il passaggio"
             aria-label="Passaggio"
             value={row.instruction}
             onChange={(e) => update({ instruction: e.target.value })}
-            rows={2}
-            className={`w-full sm:w-auto sm:flex-1 ${inputClasses}`}
+            rows={4}
+            className={`min-w-0 w-full flex-1 ${inputClasses}`}
           />
-          <input
-            type="number"
-            placeholder="Min"
-            aria-label="Minuti timer"
-            value={row.timerMinutes ?? ""}
-            onChange={(e) => update({ timerMinutes: e.target.value ? Number(e.target.value) : null })}
-            className={`w-16 ${inputClasses}`}
-          />
+          <div className="flex flex-col items-start gap-1">
+            <input
+              type="number"
+              placeholder="Min"
+              aria-label="Minuti timer"
+              value={row.timerMinutes ?? ""}
+              onChange={(e) => update({ timerMinutes: e.target.value ? Number(e.target.value) : null })}
+              className={`w-16 [appearance:textfield] ${inputClasses} [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
+            />
+            <span className="text-xs text-muted-foreground">min timer</span>
+          </div>
         </>
       )}
       renderOptional={(row, _index, update) => (
@@ -66,6 +69,7 @@ export function StepRows({
             <input
               type="file"
               accept="image/*"
+              capture="environment"
               aria-label="Immagine passaggio"
               onChange={(e) => update({ imageFile: e.target.files?.[0] ?? null })}
               className={stepImageInputClasses}
