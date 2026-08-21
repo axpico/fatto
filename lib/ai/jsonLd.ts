@@ -58,6 +58,27 @@ function parseStepImages(recipeInstructions: unknown): (string | null)[] | null 
   return recipeInstructions.map((item) => parseImage((item as Record<string, unknown>).image));
 }
 
+// ponytail: fallback specifico per il markup GialloZafferano (recipeInstructions è un array di
+// stringhe, senza image) — un div per passaggio, stesso ordine delle stringhe JSON-LD
+function parseGialloZafferanoStepImages(html: string, pageUrl: string): (string | null)[] | null {
+  const marker = '<div class="gz-content-recipe-step">';
+  const starts: number[] = [];
+  for (let i = html.indexOf(marker); i !== -1; i = html.indexOf(marker, i + marker.length)) {
+    starts.push(i);
+  }
+  if (starts.length === 0) return null;
+  return starts.map((start, i) => {
+    const block = html.slice(start, starts[i + 1] ?? html.length);
+    const match = block.match(/<img[^>]*\ssrc="([^"]+)"/);
+    if (!match) return null;
+    try {
+      return new URL(match[1], pageUrl).href;
+    } catch {
+      return null;
+    }
+  });
+}
+
 function findRecipeNode(node: unknown): Record<string, unknown> | null {
   if (Array.isArray(node)) {
     for (const item of node) {
@@ -77,7 +98,7 @@ function findRecipeNode(node: unknown): Record<string, unknown> | null {
 
 // ponytail: parser best-effort su schema.org/Recipe JSON-LD, mai un throw — i siti reali sono
 // spesso incoerenti (unità, forme miste per image), meglio null che un import rotto
-export function extractJsonLdRecipe(html: string): JsonLdRecipeData | null {
+export function extractJsonLdRecipe(html: string, pageUrl = ""): JsonLdRecipeData | null {
   const blocks = html.matchAll(
     /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
   );
@@ -93,7 +114,8 @@ export function extractJsonLdRecipe(html: string): JsonLdRecipeData | null {
       return {
         nutrition: parseNutrition(recipe.nutrition),
         imageUrl: parseImage(recipe.image),
-        stepImageUrls: parseStepImages(recipe.recipeInstructions),
+        stepImageUrls:
+          parseStepImages(recipe.recipeInstructions) ?? parseGialloZafferanoStepImages(html, pageUrl),
       };
     }
   }

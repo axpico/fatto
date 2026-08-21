@@ -47,7 +47,7 @@ export async function POST(request: Request) {
         return;
       }
 
-      const jsonLd = extractJsonLdRecipe(html);
+      const jsonLd = extractJsonLdRecipe(html, parsed.data.url);
 
       const coverFetched = jsonLd?.imageUrl ? await fetchImageBuffer(jsonLd.imageUrl) : null;
       const stepFetched = jsonLd?.stepImageUrls
@@ -56,27 +56,30 @@ export async function POST(request: Request) {
           )
         : [];
 
-      const visionImages: VisionImage[] = [coverFetched, ...stepFetched]
+      // Stessa origine e ordine delle immagini passate al modello: image_index nei passaggi
+      // estratti fa riferimento a posizioni in questo array, non nell'ordine dei passaggi JSON-LD
+      const visionSources = [coverFetched, ...stepFetched]
         .filter((f): f is { buffer: Buffer; contentType: string } => f != null)
         .filter((f) => VISION_MIME_TYPES.has(f.contentType as VisionImage["mediaType"]))
-        .slice(0, MAX_VISION_IMAGES)
-        .map((f) => ({ data: f.buffer, mediaType: f.contentType as VisionImage["mediaType"] }));
+        .slice(0, MAX_VISION_IMAGES);
+      const visionImages: VisionImage[] = visionSources.map((f) => ({
+        data: f.buffer,
+        mediaType: f.contentType as VisionImage["mediaType"],
+      }));
 
       write({ stage: "Estraendo ricetta..." });
       const { recipe, provider } = await extractRecipe(htmlToText(html), visionImages);
       const photoUrl = coverFetched ? await saveUploadFromBuffer(coverFetched.buffer, coverFetched.contentType) : null;
-      const stepImageFilenames = stepFetched.length
-        ? await Promise.all(
-            stepFetched.map((f) => (f ? saveUploadFromBuffer(f.buffer, f.contentType) : Promise.resolve(null))),
-          )
-        : null;
+      const visionFilenames = await Promise.all(
+        visionSources.map((f) => (f === coverFetched ? photoUrl : saveUploadFromBuffer(f.buffer, f.contentType))),
+      );
       write({
         done: true,
         ...recipe,
         nutrition: jsonLd?.nutrition ?? recipe.nutrition,
-        steps: recipe.steps.map((step, i) => ({
+        steps: recipe.steps.map((step) => ({
           ...step,
-          image_filename: stepImageFilenames?.[i] ?? null,
+          image_filename: step.image_index != null ? (visionFilenames[step.image_index] ?? null) : null,
         })),
         photoUrl,
         provider,

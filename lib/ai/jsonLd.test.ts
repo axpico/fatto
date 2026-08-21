@@ -67,4 +67,31 @@ describe("extractJsonLdRecipe", () => {
   it("returns null when there is no JSON-LD at all", () => {
     expect(extractJsonLdRecipe("<html><body>hello</body></html>")).toBeNull();
   });
+
+  it("falls back to GialloZafferano step markup when recipeInstructions is a plain string array", () => {
+    const jsonLd = withScript({
+      "@type": "Recipe",
+      image: "https://x/e.jpg",
+      recipeInstructions: ["Passo uno.", "Passo due."],
+    });
+    const html =
+      jsonLd +
+      `<div class="gz-content-recipe-step">
+        <div class="gz-content-recipe-step-img-container">
+          <picture><img src="/images/step1.jpg" /></picture>
+        </div>
+        <p>Passo uno.</p>
+      </div>
+      <div class="gz-content-recipe-step">
+        <div class="gz-content-recipe-step-img-container">
+          <picture><img src="/images/step2.jpg" /></picture>
+        </div>
+        <p>Passo due.</p>
+      </div>`;
+    const result = extractJsonLdRecipe(html, "https://ricette.giallozafferano.it/Ricetta.html");
+    expect(result?.stepImageUrls).toEqual([
+      "https://ricette.giallozafferano.it/images/step1.jpg",
+      "https://ricette.giallozafferano.it/images/step2.jpg",
+    ]);
+  });
 });
