@@ -124,8 +124,10 @@ function mapExtractedToFormData(
     equipment: extracted.equipment,
     sourceUrl: source?.url ?? "",
     videoUrl: source?.isVideo ? source.url : "",
-    photoUrl: extracted.photoUrl ?? null,
-    gallery: (extracted.galleryFilenames ?? []).map((filename) => ({ kind: "existing" as const, filename })),
+    // copertina prima, poi il resto della galleria (nel video la copertina è anche un fotogramma)
+    photos: [...new Set([extracted.photoUrl, ...(extracted.galleryFilenames ?? [])])]
+      .filter((f): f is string => !!f)
+      .map((filename) => ({ kind: "existing" as const, filename })),
     nutrition: {
       caloriesKcal: n?.calories ?? null,
       proteinG: n?.protein_g ?? null,
@@ -306,32 +308,20 @@ export default function ImportPage() {
     if (!extracted) return;
     setTranslating(true);
     setError(null);
+    const ingredients = extracted.ingredients ?? [];
+    const steps = extracted.steps ?? [];
+    const equipment = extracted.equipment ?? [];
+    const tags = extracted.tags ?? [];
     const res = await fetch("/api/import/translate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: extracted.title ?? "",
-        description: extracted.description ?? "",
-        servingsBase: extracted.servingsBase ?? null,
-        prepTimeMinutes: extracted.prepTimeMinutes ?? null,
-        cookTimeMinutes: extracted.cookTimeMinutes ?? null,
-        sourceUrl: extracted.sourceUrl ?? "",
-        videoUrl: extracted.videoUrl ?? "",
-        equipment: extracted.equipment ?? [],
-        nutrition: extracted.nutrition ?? {
-          caloriesKcal: null,
-          proteinG: null,
-          carbsG: null,
-          fatG: null,
-          fiberG: null,
-          sugarG: null,
-          saturatedFatG: null,
-          sodiumMg: null,
-        },
-        ingredients: extracted.ingredients ?? [],
-        steps: extracted.steps ?? [],
-        tags: extracted.tags ?? [],
-        photoUrl: extracted.photoUrl ?? null,
+        description: extracted.description || null,
+        ingredientNames: ingredients.map((i) => i.name),
+        stepInstructions: steps.map((s) => s.instruction),
+        equipment,
+        tags,
         targetLanguage,
       }),
     });
@@ -343,9 +333,13 @@ export default function ImportPage() {
     }
     setProvider(data.provider ?? null);
     setExtracted({
-      ...data,
-      gallery: extracted.gallery ?? [],
-      steps: data.steps.map((s: RecipeFormData["steps"][number]) => ({ ...s, imageFile: null })),
+      ...extracted,
+      title: data.title,
+      description: data.description ?? "",
+      ingredients: ingredients.map((ing, i) => ({ ...ing, name: data.ingredientNames[i] })),
+      steps: steps.map((step, i) => ({ ...step, instruction: data.stepInstructions[i] })),
+      equipment: data.equipment,
+      tags: data.tags,
     });
     setFormKey((k) => k + 1);
   }

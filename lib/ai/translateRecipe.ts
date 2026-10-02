@@ -4,7 +4,8 @@ import { runAiTask, AiTaskError } from "@/lib/ai/runAiTask";
 
 export class TranslationError extends Error {}
 
-const translationSchema = z.object({
+/** Stessa forma in ingresso (campi testuali da tradurre) e in uscita (tradotti). */
+export const translationSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   ingredientNames: z.array(z.string()),
@@ -13,14 +14,7 @@ const translationSchema = z.object({
   tags: z.array(z.string()),
 });
 
-export type TranslationInput = {
-  title: string;
-  description: string | null;
-  ingredientNames: string[];
-  stepInstructions: string[];
-  equipment: string[];
-  tags: string[];
-};
+export type TranslationInput = z.infer<typeof translationSchema>;
 
 export type TranslationResult = { result: z.infer<typeof translationSchema>; provider: string };
 

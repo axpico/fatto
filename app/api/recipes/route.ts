@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo, existingPhotoUrl, galleryPhotos, stepImages } = parsed;
+  const { data, photo, existingPhotoUrl, galleryPhotos, galleryExisting, stepImages } = parsed;
 
   let photoUrl: string | null;
   let galleryFilenames: string[];
@@ -130,7 +130,7 @@ export async function POST(request: Request) {
       videoUrl: data.videoUrl,
       equipment: data.equipment,
       photoUrl,
-      createdById: user!.id,
+      createdById: user.id,
       ingredients: {
         create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
       },
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         })),
       },
       images: {
-        create: galleryFilenames.map((filename, index) => ({ filename, sortOrder: index })),
+        create: [...galleryExisting, ...galleryFilenames].map((filename, index) => ({ filename, sortOrder: index })),
       },
       ...(hasNutrition && { nutrition: { create: data.nutrition } }),
     },

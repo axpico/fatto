@@ -14,6 +14,7 @@ import { buttonClasses } from "@/components/ui/Button";
 import { formatDate, formatRelativeDate } from "@/lib/formatDate";
 import { Reveal } from "@/components/motion/Reveal";
 import { TiltCard } from "@/components/motion/TiltCard";
+import { RecipePhotoCarousel } from "@/components/RecipePhotoCarousel";
 import { NUTRITION_FIELDS as BASE_NUTRITION_FIELDS } from "@/lib/nutrition";
 import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
 import { computeCookStats } from "@/lib/recipeStats";
@@ -50,24 +51,17 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   if (!recipe) notFound();
 
   const stats = computeCookStats(recipe.cookLogs);
+  const photos = [recipe.photoUrl, ...recipe.images.map((img) => img.filename)].filter((f): f is string => f != null);
 
   return (
     <div className="page-shell">
       <Link href="/" className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Torna alle ricette
       </Link>
-      {recipe.photoUrl ? (
+      {photos.length > 0 ? (
         <TiltCard className="relative mb-6 h-72 w-full overflow-hidden shadow-md sm:h-96">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/api/uploads/${recipe.photoUrl}`}
-            alt={recipe.title}
-            width={800}
-            height={256}
-            loading="eager"
-            className="hero-parallax h-full w-full object-cover"
-          />
-          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
+          <RecipePhotoCarousel photos={photos} title={recipe.title} />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
             <h1 className="max-w-3xl font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">{recipe.title}</h1>
           </div>
         </TiltCard>
@@ -79,8 +73,8 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "md")}>
           <ChefHat className="h-4 w-4" aria-hidden="true" /> Cucina
         </Link>
-        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "md")} aria-label="PDF">
-          <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">PDF</span>
+        <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "md")} aria-label="Stampa">
+          <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Stampa</span>
         </Link>
         <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "md")} aria-label="Modifica">
           <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Modifica</span>
@@ -230,24 +224,6 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
                 );
               })}
             </dl>
-          </section>
-        </Reveal>
-      )}
-
-      {recipe.images.length > 0 && (
-        <Reveal>
-          <section className="mt-10">
-            <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Galleria</h2>
-            <div className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory">
-              {recipe.images.map((img, idx) => (
-                <StepImageThumb
-                  key={img.id}
-                  filename={img.filename}
-                  alt={`Foto ${recipe.title} ${idx + 1}`}
-                  className="h-28 w-28"
-                />
-              ))}
-            </div>
           </section>
         </Reveal>
       )}

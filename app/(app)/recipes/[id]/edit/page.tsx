@@ -49,8 +49,9 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
                 sodiumMg: recipe.nutrition.sodiumMg,
               }
             : undefined,
-          photoUrl: recipe.photoUrl,
-          gallery: recipe.images.map((img) => ({ kind: "existing" as const, filename: img.filename })),
+          photos: [recipe.photoUrl, ...recipe.images.map((img) => img.filename)]
+            .filter((f): f is string => f != null)
+            .map((filename) => ({ kind: "existing" as const, filename })),
           ingredients: recipe.ingredients.map((i) => ({
             name: i.name,
             quantity: i.quantity,

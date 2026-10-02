@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+/** Nome di un file in UPLOAD_DIR (generato da saveUpload): niente path, così un client non può
+ * far referenziare/cancellare file fuori dalla cartella upload. */
+export const uploadFilenameSchema = z.string().regex(/^[\w-]+\.(jpe?g|png|webp|gif)$/i, "Nome file non valido");
+
 export const ingredientInputSchema = z.object({
   name: z.string().trim().min(1),
   quantity: z.number().positive().nullable(),
@@ -11,7 +15,7 @@ export const stepInputSchema = z.object({
   instruction: z.string().trim().min(1),
   timerMinutes: z.number().int().positive().nullable(),
   optional: z.boolean(),
-  imageFilename: z.string().nullable(),
+  imageFilename: uploadFilenameSchema.nullable(),
 });
 
 export const nutritionInputSchema = z.object({

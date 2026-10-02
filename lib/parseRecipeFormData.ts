@@ -1,4 +1,5 @@
-import { recipeInputSchema, type RecipeInput } from "@/lib/recipeSchema";
+import { z } from "zod";
+import { recipeInputSchema, uploadFilenameSchema, type RecipeInput } from "@/lib/recipeSchema";
 
 function toNumberOrNull(value: FormDataEntryValue | null) {
   if (value === null || value === "") return null;
@@ -18,7 +19,7 @@ export function parseRecipeFormData(formData: FormData):
   | { error: string } {
   const photoEntry = formData.get("photo");
   const photo = photoEntry instanceof File && photoEntry.size > 0 ? photoEntry : null;
-  const existingPhotoUrl = (formData.get("existingPhotoUrl") as string) || null;
+  const existingPhotoEntry = (formData.get("existingPhotoUrl") as string) || null;
   const galleryPhotos = formData
     .getAll("galleryPhotos")
     .filter((f): f is File => f instanceof File && f.size > 0);
@@ -59,7 +60,9 @@ export function parseRecipeFormData(formData: FormData):
     return { error: parsed.error.issues.map((i) => i.message).join("; ") };
   }
 
-  if (!Array.isArray(galleryExisting) || !galleryExisting.every((f) => typeof f === "string")) {
+  const gallery = z.array(uploadFilenameSchema).safeParse(galleryExisting);
+  const existingPhoto = uploadFilenameSchema.nullable().safeParse(existingPhotoEntry);
+  if (!gallery.success || !existingPhoto.success) {
     return { error: "Galleria non valida" };
   }
 
@@ -68,5 +71,12 @@ export function parseRecipeFormData(formData: FormData):
     return f instanceof File && f.size > 0 ? f : null;
   });
 
-  return { data: parsed.data, photo, existingPhotoUrl, galleryPhotos, galleryExisting, stepImages };
+  return {
+    data: parsed.data,
+    photo,
+    existingPhotoUrl: existingPhoto.data,
+    galleryPhotos,
+    galleryExisting: gallery.data,
+    stepImages,
+  };
 }

@@ -35,7 +35,8 @@ export async function saveUpload(file: File): Promise<string> {
 }
 
 export async function deleteUpload(filename: string | null | undefined) {
-  if (!filename) return;
+  // mai uscire da UPLOAD_DIR, anche se un nome sporco è finito nel DB
+  if (!filename || filename !== path.basename(filename)) return;
   try {
     await unlink(path.join(env.UPLOAD_DIR, filename));
   } catch {

@@ -1,39 +1,10 @@
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
-import { translateRecipe, TranslationError } from "@/lib/ai/translateRecipe";
-import { nutritionInputSchema } from "@/lib/recipeSchema";
+import { translateRecipe, translationSchema, TranslationError } from "@/lib/ai/translateRecipe";
 import { checkImportRateLimit } from "@/lib/rateLimit";
 
-const bodySchema = z.object({
-  title: z.string(),
-  description: z.string(),
-  servingsBase: z.number().nullable(),
-  prepTimeMinutes: z.number().nullable(),
-  cookTimeMinutes: z.number().nullable(),
-  sourceUrl: z.string(),
-  videoUrl: z.string(),
-  equipment: z.array(z.string()),
-  nutrition: nutritionInputSchema,
-  ingredients: z.array(
-    z.object({
-      name: z.string(),
-      quantity: z.number().nullable(),
-      unit: z.string().nullable(),
-      optional: z.boolean(),
-    }),
-  ),
-  steps: z.array(
-    z.object({
-      instruction: z.string(),
-      timerMinutes: z.number().nullable(),
-      optional: z.boolean(),
-      imageFilename: z.string().nullable(),
-    }),
-  ),
-  tags: z.array(z.string()),
-  photoUrl: z.string().nullable(),
-  targetLanguage: z.string().min(1),
-});
+// Solo i campi testuali: il client unisce la traduzione al resto della ricetta, che non passa di qui
+const bodySchema = translationSchema.extend({ targetLanguage: z.string().min(1) });
 
 export async function POST(request: Request) {
   const { user, unauthorized } = await requireApiUser();
@@ -42,45 +13,19 @@ export async function POST(request: Request) {
   const rateLimited = checkImportRateLimit(user.id);
   if (rateLimited) return rateLimited;
 
-  const parsed = bodySchema.safeParse(await request.json());
+  const parsed = bodySchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return Response.json({ error: "Dati non validi" }, { status: 400 });
   }
-  const { targetLanguage, ...recipe } = parsed.data;
+  const { targetLanguage, ...input } = parsed.data;
 
   try {
-    const { result, provider } = await translateRecipe(
-      {
-        title: recipe.title,
-        description: recipe.description || null,
-        ingredientNames: recipe.ingredients.map((i) => i.name),
-        stepInstructions: recipe.steps.map((s) => s.instruction),
-        equipment: recipe.equipment,
-        tags: recipe.tags,
-      },
-      targetLanguage,
-    );
-
-    return Response.json({
-      ...recipe,
-      title: result.title,
-      description: result.description ?? recipe.description,
-      ingredients: recipe.ingredients.map((ing, i) => ({
-        ...ing,
-        name: result.ingredientNames[i] ?? ing.name,
-      })),
-      steps: recipe.steps.map((step, i) => ({
-        ...step,
-        instruction: result.stepInstructions[i] ?? step.instruction,
-      })),
-      equipment: recipe.equipment.map((item, i) => result.equipment[i] ?? item),
-      tags: recipe.tags.map((tag, i) => result.tags[i] ?? tag),
-      provider,
-    });
+    const { result, provider } = await translateRecipe(input, targetLanguage);
+    return Response.json({ ...result, provider });
   } catch (err) {
     if (err instanceof TranslationError) {
       return Response.json({ error: err.message }, { status: 422 });
     }
-    return Response.json({ error: "Traduzione non riuscita" }, { status: 422 });
+    throw err;
   }
 }

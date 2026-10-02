@@ -15,7 +15,6 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
-import { UploadedImage } from "@/components/UploadedImage";
 import { NUTRITION_FIELDS } from "@/lib/nutrition";
 import { readErrorMessage } from "@/lib/apiError";
 
@@ -47,8 +46,8 @@ export type RecipeFormData = {
   ingredients: IngredientRow[];
   steps: StepRow[];
   tags: string[];
-  photoUrl: string | null;
-  gallery: GalleryImage[];
+  /** Prima foto = copertina (Recipe.photoUrl), le altre = galleria (RecipeImage). */
+  photos: GalleryImage[];
 };
 
 const EMPTY_NUTRITION: NutritionData = {
@@ -75,8 +74,7 @@ const EMPTY: RecipeFormData = {
   ingredients: [],
   steps: [],
   tags: [],
-  photoUrl: null,
-  gallery: [],
+  photos: [],
 };
 
 const SECTIONS = [
@@ -100,7 +98,6 @@ export function RecipeForm({
 }) {
   const router = useRouter();
   const [form, setForm] = useState<RecipeFormData>({ ...EMPTY, ...initialData });
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState("base");
@@ -155,27 +152,27 @@ export function RecipeForm({
     setForm((f) => ({ ...f, nutrition: { ...f.nutrition, [key]: value } }));
   }
 
-  function addGalleryFiles(files: FileList | null) {
+  function addPhotos(files: FileList | null) {
     if (!files) return;
     const additions: GalleryImage[] = Array.from(files).map((file) => ({
       kind: "new",
       file,
       previewUrl: URL.createObjectURL(file),
     }));
-    setForm((f) => ({ ...f, gallery: [...f.gallery, ...additions] }));
+    setForm((f) => ({ ...f, photos: [...f.photos, ...additions] }));
   }
 
-  function removeGalleryItem(index: number) {
-    setForm((f) => ({ ...f, gallery: f.gallery.filter((_, i) => i !== index) }));
+  function removePhoto(index: number) {
+    setForm((f) => ({ ...f, photos: f.photos.filter((_, i) => i !== index) }));
   }
 
-  function moveGalleryItem(index: number, direction: -1 | 1) {
+  function movePhoto(index: number, direction: -1 | 1) {
     setForm((f) => {
       const target = index + direction;
-      if (target < 0 || target >= f.gallery.length) return f;
-      const gallery = [...f.gallery];
-      [gallery[index], gallery[target]] = [gallery[target], gallery[index]];
-      return { ...f, gallery };
+      if (target < 0 || target >= f.photos.length) return f;
+      const photos = [...f.photos];
+      [photos[index], photos[target]] = [photos[target], photos[index]];
+      return { ...f, photos };
     });
   }
 
@@ -223,13 +220,14 @@ export function RecipeForm({
       if (s.imageFile) body.append(`stepImage_${i}`, s.imageFile);
     });
     body.set("tags", JSON.stringify(form.tags));
-    if (photoFile) body.set("photo", photoFile);
-    else if (form.photoUrl) body.set("existingPhotoUrl", form.photoUrl);
+    const [cover, ...gallery] = form.photos;
+    if (cover?.kind === "new") body.set("photo", cover.file);
+    else if (cover?.kind === "existing") body.set("existingPhotoUrl", cover.filename);
     body.set(
       "galleryExisting",
-      JSON.stringify(form.gallery.filter((g) => g.kind === "existing").map((g) => g.filename)),
+      JSON.stringify(gallery.filter((g) => g.kind === "existing").map((g) => g.filename)),
     );
-    for (const item of form.gallery) {
+    for (const item of gallery) {
       if (item.kind === "new") body.append("galleryPhotos", item.file);
     }
 
@@ -291,27 +289,10 @@ export function RecipeForm({
 
           <fieldset>
             <legend className="mb-1 text-sm font-medium">Foto</legend>
-            {form.photoUrl && !photoFile && (
-              <UploadedImage
-                filename={form.photoUrl}
-                alt={form.title || "Foto ricetta"}
-                className="mb-2 h-40 w-40 rounded-lg object-cover"
-              />
-            )}
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)}
-              className={fileInputClasses}
-            />
-          </fieldset>
-
-          <fieldset>
-            <legend className="mb-1 text-sm font-medium">Galleria foto</legend>
-            {form.gallery.length > 0 && (
+            <p className="mb-2 text-xs text-muted-foreground">La prima foto è la copertina.</p>
+            {form.photos.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-3">
-                {form.gallery.map((item, index) => (
+                {form.photos.map((item, index) => (
                   <div key={index} className="relative pb-3 pr-1 pt-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -319,10 +300,15 @@ export function RecipeForm({
                       alt=""
                       className="h-24 w-24 rounded-lg object-cover"
                     />
+                    {index === 0 && (
+                      <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+                        Copertina
+                      </span>
+                    )}
                     <button
                       type="button"
-                      onClick={() => removeGalleryItem(index)}
-                      aria-label="Rimuovi foto dalla galleria"
+                      onClick={() => removePhoto(index)}
+                      aria-label="Rimuovi foto"
                       className="absolute -right-1 -top-1 flex min-h-9 min-w-9 items-center justify-center rounded-full bg-destructive text-white"
                     >
                       <X className="h-4 w-4" aria-hidden="true" />
@@ -330,7 +316,7 @@ export function RecipeForm({
                     <div className="absolute -bottom-1 left-1/2 flex -translate-x-1/2 gap-1.5">
                       <button
                         type="button"
-                        onClick={() => moveGalleryItem(index, -1)}
+                        onClick={() => movePhoto(index, -1)}
                         disabled={index === 0}
                         aria-label="Sposta foto a sinistra"
                         className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
@@ -339,8 +325,8 @@ export function RecipeForm({
                       </button>
                       <button
                         type="button"
-                        onClick={() => moveGalleryItem(index, 1)}
-                        disabled={index === form.gallery.length - 1}
+                        onClick={() => movePhoto(index, 1)}
+                        disabled={index === form.photos.length - 1}
                         aria-label="Sposta foto a destra"
                         className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
                       >
@@ -354,10 +340,9 @@ export function RecipeForm({
             <input
               type="file"
               accept="image/*"
-              capture="environment"
               multiple
               onChange={(e) => {
-                addGalleryFiles(e.target.files);
+                addPhotos(e.target.files);
                 e.target.value = "";
               }}
               className={fileInputClasses}

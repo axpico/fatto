@@ -7,8 +7,8 @@ export function UploadedImage({
   alt: string;
   className?: string;
 }) {
-  // eslint-disable-next-line @next/next/no-img-element -- served locally via /api/uploads, next/image's remote-loader machinery doesn't apply
   return (
+    // eslint-disable-next-line @next/next/no-img-element -- served locally via /api/uploads, next/image's remote-loader machinery doesn't apply
     <img
       src={`/api/uploads/${filename}`}
       alt={alt}

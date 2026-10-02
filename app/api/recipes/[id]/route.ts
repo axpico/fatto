@@ -29,7 +29,7 @@ export async function PATCH(request: Request, { params }: Params) {
   if ("error" in parsed) {
     return Response.json({ error: parsed.error }, { status: 400 });
   }
-  const { data, photo, galleryPhotos, galleryExisting, stepImages } = parsed;
+  const { data, photo, existingPhotoUrl, galleryPhotos, galleryExisting, stepImages } = parsed;
 
   // le righe RecipeImage/Step sono full-replace (economiche); solo i FILE non più referenziati
   // da nessuna delle due parti vengono cancellati da disco — un fotogramma reel può comparire
@@ -41,7 +41,7 @@ export async function PATCH(request: Request, { params }: Params) {
   try {
     ({ photoUrl, galleryFilenames: newFilenames, stepImageFilenames } = await uploadRecipeImages(
       photo,
-      existing.photoUrl,
+      existingPhotoUrl,
       galleryPhotos,
       data.steps,
       stepImages,
@@ -50,6 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
   }
+  // ponytail: le foto già caricate restano prima delle nuove; un ordine misto va riordinato dopo il salvataggio
   const orderedFilenames = [...galleryExisting, ...newFilenames];
 
   const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
