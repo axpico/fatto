@@ -5,7 +5,6 @@ import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import {
   uploadRecipeImages,
   resolveRecipeWriteFields,
-  syncIngredientCatalog,
   recipeFilenames,
   deleteOrphanTags,
 } from "@/lib/recipeUpsert";
@@ -102,7 +101,6 @@ export async function PATCH(request: Request, { params }: Params) {
   const stillReferenced = new Set([photoUrl, ...orderedFilenames, ...stepImageFilenames]);
   await Promise.all(recipeFilenames(existing).filter((f) => !stillReferenced.has(f)).map(deleteUpload));
   await deleteOrphanTags();
-  await syncIngredientCatalog(data.ingredients);
 
   return Response.json(recipe);
 }

@@ -4,7 +4,7 @@ import { UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { buildRecipeWhere, parseRecipeFilters, rankByIngredients, searchRecipesByText } from "@/lib/recipeSearch";
 import { compareBySort, computeCookStats, parseRecipeSort, type RecipeSort } from "@/lib/recipeStats";
-import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
+import { uploadRecipeImages, resolveRecipeWriteFields } from "@/lib/recipeUpsert";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 // relevance/best-match dipendono dalla query di Cerca; gli altri sono condivisi con la Home
@@ -142,7 +142,6 @@ export async function POST(request: Request) {
     },
   });
 
-  await syncIngredientCatalog(data.ingredients);
 
   return Response.json(recipe, { status: 201 });
 }

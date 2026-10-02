@@ -28,14 +28,6 @@ export async function resolveRecipeWriteFields(data: RecipeInput) {
   return { hasNutrition, resolvedTagNames };
 }
 
-/** Aggiorna il catalogo ingredienti dopo il salvataggio di una ricetta (create o update). */
-export async function syncIngredientCatalog(ingredients: RecipeInput["ingredients"]) {
-  await prisma.ingredientCatalog.createMany({
-    data: ingredients.map((i) => ({ name: i.name.trim().toLowerCase() })),
-    skipDuplicates: true,
-  });
-}
-
 /** Tutti i file su disco referenziati da una ricetta: cover, galleria e immagini degli step. */
 export function recipeFilenames(recipe: {
   photoUrl: string | null;

@@ -154,8 +154,3 @@ model CookLog {
   @@index([recipeId])
   @@index([userId])
 }
-
-model IngredientCatalog {
-  id   String @id @default(cuid())
-  name String @unique
-}
