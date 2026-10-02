@@ -13,6 +13,7 @@ export type JsonLdNutrition = {
 
 export type JsonLdRecipeData = {
   nutrition: JsonLdNutrition | null;
+  servings: number | null;
   imageUrl: string | null;
   stepImageUrls: (string | null)[] | null;
 };
@@ -22,6 +23,28 @@ function parseNum(value: unknown): number | null {
   if (typeof value !== "string") return null;
   const match = value.match(/[\d.]+/);
   return match ? Number(match[0]) : null;
+}
+
+/** recipeYield: "4 porzioni", "4", 4, ["4", "4 persone"] → primo intero positivo, altrimenti null. */
+export function parseServings(value: unknown): number | null {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const n = parseServings(item);
+      if (n != null) return n;
+    }
+    return null;
+  }
+  if (typeof value === "number") return toServings(value);
+  if (typeof value !== "string") return null;
+  const match = value.match(/\d+/);
+  return match ? toServings(Number(match[0])) : null;
+}
+
+/** Porzioni come intero positivo: arrotonda (es. 2.5 dall'AI) e scarta 0/negativi/NaN. */
+export function toServings(n: number | null | undefined): number | null {
+  if (n == null || !Number.isFinite(n)) return null;
+  const rounded = Math.round(n);
+  return rounded > 0 ? rounded : null;
 }
 
 function parseNutrition(node: unknown): JsonLdNutrition | null {
@@ -113,6 +136,7 @@ export function extractJsonLdRecipe(html: string, pageUrl = ""): JsonLdRecipeDat
     if (recipe) {
       return {
         nutrition: parseNutrition(recipe.nutrition),
+        servings: parseServings(recipe.recipeYield),
         imageUrl: parseImage(recipe.image),
         stepImageUrls:
           parseStepImages(recipe.recipeInstructions) ?? parseGialloZafferanoStepImages(html, pageUrl),

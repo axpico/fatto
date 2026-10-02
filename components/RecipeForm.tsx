@@ -37,7 +37,7 @@ export type GalleryImage =
 export type RecipeFormData = {
   title: string;
   description: string;
-  servingsBase: number;
+  servingsBase: number | null;
   prepTimeMinutes: number | null;
   cookTimeMinutes: number | null;
   sourceUrl: string;
@@ -188,6 +188,11 @@ export function RecipeForm({
       setActiveSection("base");
       return;
     }
+    if (!form.servingsBase || form.servingsBase < 1) {
+      setError("Porzioni obbligatorie");
+      setActiveSection("base");
+      return;
+    }
 
     setSaving(true);
     setError(null);
@@ -195,7 +200,7 @@ export function RecipeForm({
     const body = new FormData();
     body.set("title", form.title);
     body.set("description", form.description);
-    body.set("servingsBase", String(form.servingsBase));
+    body.set("servingsBase", String(form.servingsBase ?? ""));
     body.set("prepTimeMinutes", form.prepTimeMinutes != null ? String(form.prepTimeMinutes) : "");
     body.set("cookTimeMinutes", form.cookTimeMinutes != null ? String(form.cookTimeMinutes) : "");
     body.set("sourceUrl", form.sourceUrl);
@@ -366,8 +371,8 @@ export function RecipeForm({
               type="number"
               min={1}
               required
-              value={form.servingsBase}
-              onChange={(e) => set("servingsBase", Number(e.target.value))}
+              value={form.servingsBase ?? ""}
+              onChange={(e) => set("servingsBase", e.target.value ? Number(e.target.value) : null)}
             />
             <Input
               label="Prep. (min)"

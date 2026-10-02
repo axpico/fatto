@@ -7,7 +7,7 @@ import { checkImportRateLimit } from "@/lib/rateLimit";
 const bodySchema = z.object({
   title: z.string(),
   description: z.string(),
-  servingsBase: z.number(),
+  servingsBase: z.number().nullable(),
   prepTimeMinutes: z.number().nullable(),
   cookTimeMinutes: z.number().nullable(),
   sourceUrl: z.string(),

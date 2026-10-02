@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractJsonLdRecipe } from "./jsonLd";
+import { extractJsonLdRecipe, parseServings } from "./jsonLd";
 
 function withScript(json: unknown): string {
   return `<html><head><script type="application/ld+json">${JSON.stringify(json)}</script></head></html>`;
@@ -93,5 +93,26 @@ describe("extractJsonLdRecipe", () => {
       "https://ricette.giallozafferano.it/images/step1.jpg",
       "https://ricette.giallozafferano.it/images/step2.jpg",
     ]);
+  });
+});
+
+describe("parseServings", () => {
+  it.each([
+    ["4 porzioni", 4],
+    ["Dosi per 6 persone", 6],
+    [8, 8],
+    [2.5, 3],
+    [["6"], 6],
+    [["", "4 persone"], 4],
+    ["qb", null],
+    [0, null],
+    [null, null],
+  ])("%j → %j", (input, expected) => {
+    expect(parseServings(input)).toBe(expected);
+  });
+
+  it("is read from recipeYield", () => {
+    const html = withScript({ "@type": "Recipe", name: "Test", recipeYield: "4 porzioni" });
+    expect(extractJsonLdRecipe(html)?.servings).toBe(4);
   });
 });

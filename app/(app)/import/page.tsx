@@ -136,7 +136,7 @@ function mapExtractedToFormData(
       saturatedFatG: n?.saturated_fat_g ?? null,
       sodiumMg: n?.sodium_mg ?? null,
     },
-    servingsBase: extracted.servings ?? 4,
+    servingsBase: extracted.servings,
     prepTimeMinutes: extracted.prep_time_minutes,
     cookTimeMinutes: extracted.cook_time_minutes,
     ingredients: extracted.ingredients.map((i) => ({
@@ -312,7 +312,7 @@ export default function ImportPage() {
       body: JSON.stringify({
         title: extracted.title ?? "",
         description: extracted.description ?? "",
-        servingsBase: extracted.servingsBase ?? 4,
+        servingsBase: extracted.servingsBase ?? null,
         prepTimeMinutes: extracted.prepTimeMinutes ?? null,
         cookTimeMinutes: extracted.cookTimeMinutes ?? null,
         sourceUrl: extracted.sourceUrl ?? "",

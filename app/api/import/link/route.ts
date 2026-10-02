@@ -76,6 +76,7 @@ export async function POST(request: Request) {
       write({
         done: true,
         ...recipe,
+        servings: jsonLd?.servings ?? recipe.servings,
         nutrition: jsonLd?.nutrition ?? recipe.nutrition,
         steps: recipe.steps.map((step) => ({
           ...step,

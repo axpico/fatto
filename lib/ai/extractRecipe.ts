@@ -2,6 +2,7 @@ import { extractedRecipeSchema, type ExtractedRecipe } from "@/lib/ai/schema";
 import { SYSTEM_PROMPT, JSON_INSTRUCTIONS } from "@/lib/ai/prompt";
 import { runAiTask, AiTaskError } from "@/lib/ai/runAiTask";
 import type { VisionImage } from "@/lib/ai/visionImage";
+import { toServings } from "@/lib/ai/jsonLd";
 
 export class AiExtractionError extends Error {}
 
@@ -23,7 +24,7 @@ export async function extractRecipe(rawText: string, images?: VisionImage[]): Pr
       },
       images,
     );
-    return { recipe: result, provider };
+    return { recipe: { ...result, servings: toServings(result.servings) }, provider };
   } catch (err) {
     if (err instanceof AiTaskError) {
       throw new AiExtractionError(err.message);
