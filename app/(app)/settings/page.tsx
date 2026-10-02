@@ -19,13 +19,16 @@ export default async function SettingsPage() {
 
       <section>
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Account</h2>
-        <div className="panel space-y-1">
-          <p className="text-sm font-medium text-foreground">{user.name}</p>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+        <div className="panel flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground">{user.name}</p>
+            <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+          </div>
+          <LogoutButton />
         </div>
       </section>
 
-      <section className="space-y-6">
+      <section className="space-y-3">
         <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preferenze</h2>
         <div className="panel flex items-center justify-between gap-4">
           <div>
@@ -44,17 +47,16 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="space-y-6">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Amministrazione</h2>
-        <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
-          <div>
-            <p className="font-medium text-foreground">Tag simili</p>
-            <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        </Link>
-
-        {user.isAdmin && (
+      {user.isAdmin && (
+        <section className="space-y-3">
+          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Amministrazione</h2>
+          <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
+            <div>
+              <p className="font-medium text-foreground">Tag simili</p>
+              <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
+            </div>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          </Link>
           <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
             <div>
               <p className="font-medium text-foreground">Utenti</p>
@@ -62,19 +64,8 @@ export default async function SettingsPage() {
             </div>
             <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
           </Link>
-        )}
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Sessione</h2>
-        <div className="panel flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Sessione</p>
-            <p className="text-sm text-muted-foreground">Esci dall&apos;account su questo dispositivo.</p>
-          </div>
-          <LogoutButton />
-        </div>
-      </section>
+        </section>
+      )}
     </div>
   );
 }

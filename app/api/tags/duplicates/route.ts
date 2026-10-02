@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/db";
-import { requireApiUser } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/auth";
 
 export type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
 
 export async function GET() {
-  const { unauthorized } = await requireApiUser();
+  const { unauthorized } = await requireApiAdmin();
   if (unauthorized) return unauthorized;
 
   const pairs = await prisma.$queryRaw<DuplicatePair[]>`

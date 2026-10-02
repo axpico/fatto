@@ -11,8 +11,8 @@ export async function POST(_request: Request, { params }: RouteParams<{ id: stri
   if (notFound) return notFound;
 
   const cookLog = await prisma.cookLog.create({
-    data: { recipeId, userId: user!.id },
-    include: { user: true },
+    data: { recipeId, userId: user.id },
+    include: { user: { select: { name: true } } },
   });
 
   return Response.json(cookLog, { status: 201 });

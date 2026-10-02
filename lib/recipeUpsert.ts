@@ -35,3 +35,19 @@ export async function syncIngredientCatalog(ingredients: RecipeInput["ingredient
     skipDuplicates: true,
   });
 }
+
+/** Tutti i file su disco referenziati da una ricetta: cover, galleria e immagini degli step. */
+export function recipeFilenames(recipe: {
+  photoUrl: string | null;
+  images: { filename: string }[];
+  steps: { imageFilename: string | null }[];
+}): string[] {
+  return [recipe.photoUrl, ...recipe.images.map((img) => img.filename), ...recipe.steps.map((s) => s.imageFilename)].filter(
+    (f): f is string => f != null,
+  );
+}
+
+/** Cancella i tag rimasti senza ricette dopo un update/delete, così non restano nei filtri. */
+export async function deleteOrphanTags() {
+  await prisma.tag.deleteMany({ where: { recipes: { none: {} } } });
+}

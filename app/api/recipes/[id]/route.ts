@@ -2,7 +2,13 @@ import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
 import { deleteUpload, UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
-import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
+import {
+  uploadRecipeImages,
+  resolveRecipeWriteFields,
+  syncIngredientCatalog,
+  recipeFilenames,
+  deleteOrphanTags,
+} from "@/lib/recipeUpsert";
 import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -44,17 +50,7 @@ export async function PATCH(request: Request, { params }: Params) {
     if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
   }
-  // upload dei nuovi file riusciti: ora è sicuro rimpiazzare la vecchia cover
-  if (photo) await deleteUpload(existing.photoUrl);
   const orderedFilenames = [...galleryExisting, ...newFilenames];
-
-  const stillReferenced = new Set([
-    ...orderedFilenames,
-    ...stepImageFilenames.filter((f): f is string => f != null),
-  ]);
-  const oldStepImages = existing.steps.map((s) => s.imageFilename).filter((f): f is string => f != null);
-  const oldFilenames = new Set([...existing.images.map((img) => img.filename), ...oldStepImages]);
-  await Promise.all([...oldFilenames].filter((f) => !stillReferenced.has(f)).map(deleteUpload));
 
   const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
 
@@ -101,6 +97,10 @@ export async function PATCH(request: Request, { params }: Params) {
     },
   });
 
+  // file cancellati solo dopo l'update riuscito: se il DB fallisce, nessun file referenziato sparisce
+  const stillReferenced = new Set([photoUrl, ...orderedFilenames, ...stepImageFilenames]);
+  await Promise.all(recipeFilenames(existing).filter((f) => !stillReferenced.has(f)).map(deleteUpload));
+  await deleteOrphanTags();
   await syncIngredientCatalog(data.ingredients);
 
   return Response.json(recipe);
@@ -112,13 +112,14 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const { id } = await params;
   const { record: existing, notFound } = await findOrNotFound(
-    () => prisma.recipe.findUnique({ where: { id } }),
+    () => prisma.recipe.findUnique({ where: { id }, include: { images: true, steps: true } }),
     "Ricetta non trovata",
   );
   if (notFound) return notFound;
 
-  await deleteUpload(existing.photoUrl);
   await prisma.recipe.delete({ where: { id } });
+  await Promise.all(recipeFilenames(existing).map(deleteUpload));
+  await deleteOrphanTags();
 
   return Response.json({ ok: true });
 }

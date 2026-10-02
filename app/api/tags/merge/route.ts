@@ -1,12 +1,12 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { requireApiUser } from "@/lib/auth";
+import { requireApiAdmin } from "@/lib/auth";
 import { findOrNotFound } from "@/lib/apiRoute";
 
 const mergeSchema = z.object({ keepId: z.string().min(1), mergeId: z.string().min(1) });
 
 export async function POST(request: Request) {
-  const { unauthorized } = await requireApiUser();
+  const { unauthorized } = await requireApiAdmin();
   if (unauthorized) return unauthorized;
 
   const body = await request.json().catch(() => null);
