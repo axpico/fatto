@@ -2,14 +2,13 @@ import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
 import { UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
-import { findIngredientMatches } from "@/lib/ingredientSearch";
-import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
-import { buildRecipeWhere, searchRecipesByText } from "@/lib/recipeSearch";
+import { buildRecipeWhere, parseRecipeFilters, rankByIngredients, searchRecipesByText } from "@/lib/recipeSearch";
+import { compareBySort, computeCookStats, parseRecipeSort, type RecipeSort } from "@/lib/recipeStats";
 import { uploadRecipeImages, resolveRecipeWriteFields, syncIngredientCatalog } from "@/lib/recipeUpsert";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
-const SORTS = ["relevance", "best-match", "recent", "most-cooked", "prep-time"] as const;
-type Sort = (typeof SORTS)[number];
+// relevance/best-match dipendono dalla query di Cerca; gli altri sono condivisi con la Home
+type Sort = "relevance" | "best-match" | RecipeSort;
 
 export async function GET(request: Request) {
   const { user, unauthorized } = await requireApiUser();
@@ -17,24 +16,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
-  const tagIds = searchParams.get("tags")?.split(",").filter(Boolean) ?? [];
-  const tagMode = searchParams.get("tagMode") === "any" ? "any" : "all";
-  const ingredientTerms = searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [];
-  const prepMax = numberParam(searchParams, "prepMax");
-  const cookMax = numberParam(searchParams, "cookMax");
-  const servingsMin = numberParam(searchParams, "servingsMin");
-  const ratingMin = numberParam(searchParams, "ratingMin");
-  const favoritesOnly = searchParams.get("favorites") === "1";
+  const { tagIds, tagMode, ingredientTerms, prepMax, cookMax, servingsMin, ratingMin, favoritesOnly } =
+    parseRecipeFilters(searchParams);
   const sortParam = searchParams.get("sort");
-  const sort: Sort = SORTS.includes(sortParam as Sort) ? (sortParam as Sort) : "recent";
+  const sort: Sort = sortParam === "relevance" || sortParam === "best-match" ? sortParam : parseRecipeSort(sortParam);
 
-  let ingredientRankByRecipeId: Map<string, number> | null = null;
-  if (ingredientTerms.length > 0) {
-    const matches = await findIngredientMatches(ingredientTerms);
-    const ranked = rankRecipesByIngredientMatches(matches);
-    if (ranked.length === 0) return Response.json([]);
-    ingredientRankByRecipeId = new Map(ranked.map((r) => [r.recipeId, r.matchCount]));
-  }
+  const ingredientRankByRecipeId = await rankByIngredients(ingredientTerms);
+  if (ingredientRankByRecipeId?.size === 0) return Response.json([]);
 
   let textRankByRecipeId: Map<string, number> | null = null;
   if (q) {
@@ -64,31 +52,31 @@ export async function GET(request: Request) {
     ...(favoritesOnly && { favorites: { some: { userId: user.id } } }),
   };
 
-  const dbOrderBy: Prisma.RecipeOrderByWithRelationInput =
-    sort === "most-cooked" ? { cookLogs: { _count: "desc" } } : sort === "prep-time" ? { prepTimeMinutes: "asc" } : { createdAt: "desc" };
-
-  const recipes = await prisma.recipe.findMany({
+  const rows = await prisma.recipe.findMany({
     where,
-    orderBy: dbOrderBy,
-    include: { tags: true, _count: { select: { cookLogs: true } }, favorites: { where: { userId: user.id }, select: { id: true } } },
+    orderBy: { createdAt: "desc" },
+    include: {
+      tags: true,
+      cookLogs: { select: { rating: true, cookedAt: true } },
+      favorites: { where: { userId: user.id }, select: { id: true } },
+    },
   });
+  const recipes = rows.map(({ favorites, cookLogs, ...r }) => ({
+    ...r,
+    favorite: favorites.length > 0,
+    ...computeCookStats(cookLogs),
+  }));
 
-  // relevance/best-match sono calcolati in JS sopra la base order del DB, e ricadono su di
-  // essa quando il rank richiesto non è disponibile (es. sort=relevance senza query di testo)
-  if (sort === "best-match" && ingredientRankByRecipeId) {
-    recipes.sort((a, b) => ingredientRankByRecipeId!.get(b.id)! - ingredientRankByRecipeId!.get(a.id)!);
-  } else if (sort === "relevance" && textRankByRecipeId) {
-    recipes.sort((a, b) => textRankByRecipeId!.get(b.id)! - textRankByRecipeId!.get(a.id)!);
+  // relevance/best-match ricadono su "recent" quando il rank richiesto non c'è (es. relevance senza testo)
+  if (sort === "best-match") {
+    if (ingredientRankByRecipeId) recipes.sort((a, b) => ingredientRankByRecipeId.get(b.id)! - ingredientRankByRecipeId.get(a.id)!);
+  } else if (sort === "relevance") {
+    if (textRankByRecipeId) recipes.sort((a, b) => textRankByRecipeId.get(b.id)! - textRankByRecipeId.get(a.id)!);
+  } else if (sort !== "recent") {
+    recipes.sort((a, b) => compareBySort(sort, a, b));
   }
 
-  return Response.json(recipes.map(({ favorites, ...r }) => ({ ...r, favorite: favorites.length > 0 })));
-}
-
-function numberParam(params: URLSearchParams, key: string): number | null {
-  const raw = params.get(key);
-  if (!raw) return null;
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : null;
+  return Response.json(recipes);
 }
 
 export async function POST(request: Request) {

@@ -16,14 +16,15 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson } from "@/lib/apiError";
+import { loadJson, readErrorMessage } from "@/lib/apiError";
+import { RECIPE_SORTS, type RecipeSort } from "@/lib/recipeStats";
 import { useSuggestions } from "@/lib/useSuggestions";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
 
 type Tag = { id: string; name: string };
 type TagMode = "all" | "any";
-type Sort = "relevance" | "best-match" | "recent" | "most-cooked" | "prep-time";
+type Sort = "relevance" | "best-match" | RecipeSort;
 
 const RATING_OPTIONS = [3, 4, 5];
 const TIME_OPTIONS = [15, 30, 45, 60];
@@ -89,14 +90,17 @@ function SearchPageContent() {
       router.replace(params.size > 0 ? `/search?${params}` : "/search", { scroll: false });
       setStatus("loading");
       fetch(`/api/recipes?${params}`, { signal: controller.signal })
-        .then((res) => res.json())
+        .then(async (res) => {
+          if (!res.ok) throw new Error(await readErrorMessage(res, "Ricerca non riuscita, riprova."));
+          return res.json();
+        })
         .then((data) => {
           setResults(data);
           setStatus("done");
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
-          toast.error("Ricerca non riuscita, riprova.");
+          toast.error(err.message || "Ricerca non riuscita, riprova.");
           setStatus("done");
         });
     }, 200);
@@ -181,9 +185,7 @@ function SearchPageContent() {
   const sortOptions: { value: Sort; label: string }[] = [
     { value: "relevance", label: "Rilevanza" },
     { value: "best-match", label: "Miglior abbinamento" },
-    { value: "recent", label: "Recenti" },
-    { value: "most-cooked", label: "Più cucinate" },
-    { value: "prep-time", label: "Tempo di preparazione" },
+    ...RECIPE_SORTS,
   ];
 
   return (

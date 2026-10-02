@@ -27,3 +27,27 @@ describe("searchRecipesByText", () => {
     expect(result).toEqual([{ recipeId: "2", rank: 0 }]);
   });
 });
+
+describe("parseRecipeFilters", () => {
+  it("parses lists, numbers and flags, ignoring garbage", async () => {
+    const { parseRecipeFilters } = await import("./recipeSearch");
+    const f = parseRecipeFilters(new URLSearchParams("tags=a,,b&tagMode=any&ingredients=uova&prepMax=20&cookMax=x&favorites=1"));
+    expect(f).toEqual({
+      tagIds: ["a", "b"],
+      tagMode: "any",
+      ingredientTerms: ["uova"],
+      prepMax: 20,
+      cookMax: null,
+      servingsMin: null,
+      ratingMin: null,
+      favoritesOnly: true,
+    });
+  });
+
+  it("defaults to all-tags mode and no favorites", async () => {
+    const { parseRecipeFilters } = await import("./recipeSearch");
+    const f = parseRecipeFilters(new URLSearchParams(""));
+    expect(f.tagMode).toBe("all");
+    expect(f.favoritesOnly).toBe(false);
+  });
+});

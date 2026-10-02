@@ -9,22 +9,13 @@ import { buttonClasses } from "@/components/ui/Button";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SortFilterBar } from "@/components/SortFilterBar";
 import { Reveal } from "@/components/motion/Reveal";
-import { computeCookStats, compareBySort } from "@/lib/recipeStats";
+import { computeCookStats, compareBySort, parseRecipeSort, RECIPE_SORTS, type RecipeSort } from "@/lib/recipeStats";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
-const SORTS = [
-  { value: "recent", label: "Recenti" },
-  { value: "most-cooked", label: "Più cucinate" },
-  { value: "top-rated", label: "Meglio valutate" },
-  { value: "stale", label: "Da rifare" },
-] as const;
-
-type Sort = (typeof SORTS)[number]["value"];
-
-function homeHref(sort: Sort, favoritesOnly: boolean) {
+function homeHref(sort: RecipeSort, favoritesOnly: boolean) {
   const params = new URLSearchParams();
   if (sort !== "recent") params.set("sort", sort);
-  if (favoritesOnly) params.set("favorite", "1");
+  if (favoritesOnly) params.set("favorites", "1");
   const qs = params.toString();
   return qs ? `/?${qs}` : "/";
 }
@@ -32,12 +23,12 @@ function homeHref(sort: Sort, favoritesOnly: boolean) {
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; favorite?: string }>;
+  searchParams: Promise<{ sort?: string; favorites?: string }>;
 }) {
   const user = await requireUser();
-  const { sort: rawSort, favorite: rawFavorite } = await searchParams;
-  const sort: Sort = SORTS.some((s) => s.value === rawSort) ? (rawSort as Sort) : "recent";
-  const favoritesOnly = rawFavorite === "1";
+  const { sort: rawSort, favorites: rawFavorites } = await searchParams;
+  const sort = parseRecipeSort(rawSort);
+  const favoritesOnly = rawFavorites === "1";
 
   const favWhere: Prisma.RecipeWhereInput | undefined = favoritesOnly
     ? { favorites: { some: { userId: user.id } } }
@@ -89,7 +80,7 @@ export default async function HomePage({
         <div className="panel">
           <SectionIntro icon={SlidersHorizontal} title="Ordina la raccolta" description="Scegli cosa vuoi ritrovare per prima." />
           <SortFilterBar
-            sorts={SORTS.map((s) => ({ value: s.value, label: s.label, href: homeHref(s.value, favoritesOnly) }))}
+            sorts={RECIPE_SORTS.map((s) => ({ value: s.value, label: s.label, href: homeHref(s.value, favoritesOnly) }))}
             activeSort={sort}
             favoriteHref={homeHref(sort, !favoritesOnly)}
             favoritesOnly={favoritesOnly}

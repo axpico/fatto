@@ -1,7 +1,41 @@
 import { prisma } from "@/lib/db";
 import type { Prisma } from "@/lib/generated/prisma/client";
+import { findIngredientMatches } from "@/lib/ingredientSearch";
+import { rankRecipesByIngredientMatches } from "@/lib/ingredientMatch";
 
-export type RecipeSearchRow = { recipeId: string; rank: number };
+function numberParam(params: URLSearchParams, key: string): number | null {
+  const raw = params.get(key);
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function listParam(params: URLSearchParams, key: string): string[] {
+  return params.get(key)?.split(",").filter(Boolean) ?? [];
+}
+
+/** Filtri comuni a /api/recipes e /api/swipe/deck. */
+export function parseRecipeFilters(params: URLSearchParams) {
+  return {
+    tagIds: listParam(params, "tags"),
+    tagMode: params.get("tagMode") === "any" ? ("any" as const) : ("all" as const),
+    ingredientTerms: listParam(params, "ingredients"),
+    prepMax: numberParam(params, "prepMax"),
+    cookMax: numberParam(params, "cookMax"),
+    servingsMin: numberParam(params, "servingsMin"),
+    ratingMin: numberParam(params, "ratingMin"),
+    favoritesOnly: params.get("favorites") === "1",
+  };
+}
+
+/** null = nessun filtro ingredienti; Map vuota = filtro attivo ma nessuna ricetta corrisponde. */
+export async function rankByIngredients(terms: string[]): Promise<Map<string, number> | null> {
+  if (terms.length === 0) return null;
+  const ranked = rankRecipesByIngredientMatches(await findIngredientMatches(terms));
+  return new Map(ranked.map((r) => [r.recipeId, r.matchCount]));
+}
+
+type RecipeSearchRow = { recipeId: string; rank: number };
 
 export function buildRecipeWhere(opts: {
   tagIds: string[];
