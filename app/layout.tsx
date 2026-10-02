@@ -25,7 +25,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Recipe Book",
+  title: "Fatto",
   description: "Le nostre ricette, sempre a portata di mano",
   manifest: "/manifest.json",
   icons: {

@@ -1,6 +1,6 @@
 {
-  "name": "Recipe Book",
-  "short_name": "Recipe Book",
+  "name": "Fatto",
+  "short_name": "Fatto",
   "description": "Le nostre ricette, sempre a portata di mano",
   "start_url": "/",
   "display": "standalone",

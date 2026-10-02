@@ -14,7 +14,7 @@ export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = 
   return (
     <nav
       aria-label={ariaLabel}
-      className="print:hidden fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <ul className="flex justify-around">
         {NAV_ITEMS.map((tab) => {

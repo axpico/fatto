@@ -1,4 +1,4 @@
-# Recipe Book
+# Fatto
 
 App self-hosted per archiviare le ricette che cucini davvero: ricerca full-text e per ingredienti disponibili (con ranking dei risultati), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), modalità cottura hands-free con comandi vocali reali (Web Speech API: passaggio successivo/precedente, avvio timer, ripeti passaggio, "quanto manca"), storico delle cotture con valutazione e note, export PDF via stampa del browser (con QR code per riaprire la ricetta dal telefono).
 
