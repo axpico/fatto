@@ -1,6 +1,7 @@
 import { requireApiUser } from "@/lib/auth";
 import { extractTextFromImage, extractTextFromPdf } from "@/lib/ocr/extractText";
-import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
+import { extractRecipe } from "@/lib/ai/extractRecipe";
+import { AiTaskError } from "@/lib/ai/runAiTask";
 import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
 import { MAX_UPLOAD_BYTES } from "@/lib/uploads";
 import { checkImportRateLimit } from "@/lib/rateLimit";
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
       const { recipe, provider } = await extractRecipe(rawText);
       write({ done: true, ...recipe, provider });
     } catch (err) {
-      writeExtractionError(write, err, AiExtractionError);
+      writeExtractionError(write, err, AiTaskError);
     }
   });
 }

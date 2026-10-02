@@ -7,7 +7,7 @@ import path from "node:path";
 import { extractRecipe } from "@/lib/ai/extractRecipe";
 import { saveUpload } from "@/lib/uploads";
 import type { VisionImage } from "@/lib/ai/visionImage";
-import type { ExtractedRecipe } from "@/lib/ai/schema";
+import { resolveStepImages, type ExtractedRecipe, type StepWithImage } from "@/lib/ai/schema";
 
 const run = promisify(execFile);
 
@@ -114,21 +114,7 @@ async function extractFrames(dir: string, videoPath: string): Promise<VisionImag
   return frames;
 }
 
-type StepWithImage = ExtractedRecipe["steps"][number] & { image_filename: string | null };
-
-// Il modello vede gli stessi fotogrammi che gli chiediamo di trasformare in step: gli facciamo
-// riportare quale fotogramma (indice) mostra ogni passaggio, invece di costruire un picker manuale.
-export function resolveStepImages(
-  steps: ExtractedRecipe["steps"],
-  galleryFilenames: string[],
-): StepWithImage[] {
-  return steps.map((step) => ({
-    ...step,
-    image_filename: step.image_index != null ? (galleryFilenames[step.image_index] ?? null) : null,
-  }));
-}
-
-export type VideoImportResult = {
+type VideoImportResult = {
   recipe: Omit<ExtractedRecipe, "steps"> & { steps: StepWithImage[] };
   provider: string;
   galleryFilenames: string[];

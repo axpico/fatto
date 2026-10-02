@@ -8,8 +8,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson, reportIfFailed } from "@/lib/apiError";
-import type { UserSummary } from "@/app/api/users/route";
+import { loadJson, reportIfFailed } from "@/lib/clientFetch";
+import type { UserSummary } from "@/lib/users";
 
 export function UsersManager({ currentUserId }: { currentUserId: string }) {
   const toast = useToast();

@@ -1,9 +1,10 @@
 import { createWorker } from "tesseract.js";
 import { PDFParse } from "pdf-parse";
+import { env } from "@/lib/env";
 
 export async function extractTextFromImage(buffer: Buffer): Promise<string> {
   const worker = await createWorker("ita+eng", undefined, {
-    ...(process.env.TESSDATA_PREFIX ? { langPath: process.env.TESSDATA_PREFIX } : {}),
+    ...(env.TESSDATA_PREFIX ? { langPath: env.TESSDATA_PREFIX } : {}),
   });
   try {
     const { data } = await worker.recognize(buffer);

@@ -4,21 +4,21 @@ import { z } from "zod";
  * far referenziare/cancellare file fuori dalla cartella upload. */
 export const uploadFilenameSchema = z.string().regex(/^[\w-]+\.(jpe?g|png|webp|gif)$/i, "Nome file non valido");
 
-export const ingredientInputSchema = z.object({
+const ingredientInputSchema = z.object({
   name: z.string().trim().min(1),
   quantity: z.number().positive().nullable(),
   unit: z.string().trim().min(1).nullable(),
   optional: z.boolean(),
 });
 
-export const stepInputSchema = z.object({
+const stepInputSchema = z.object({
   instruction: z.string().trim().min(1),
   timerMinutes: z.number().int().positive().nullable(),
   optional: z.boolean(),
   imageFilename: uploadFilenameSchema.nullable(),
 });
 
-export const nutritionInputSchema = z.object({
+const nutritionInputSchema = z.object({
   caloriesKcal: z.number().nonnegative().nullable(),
   proteinG: z.number().nonnegative().nullable(),
   carbsG: z.number().nonnegative().nullable(),

@@ -1,12 +1,6 @@
-export type NutritionKey =
-  | "caloriesKcal"
-  | "proteinG"
-  | "carbsG"
-  | "fatG"
-  | "fiberG"
-  | "sugarG"
-  | "saturatedFatG"
-  | "sodiumMg";
+import type { RecipeInput } from "@/lib/recipeSchema";
+
+type NutritionKey = keyof RecipeInput["nutrition"];
 
 export const NUTRITION_FIELDS: { key: NutritionKey; label: string; unit: string }[] = [
   { key: "caloriesKcal", label: "Calorie", unit: "kcal" },

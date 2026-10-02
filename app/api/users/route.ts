@@ -1,16 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { hashPassword, requireApiAdmin } from "@/lib/auth";
-
-export const userSelect = { id: true, email: true, name: true, isAdmin: true, createdAt: true } as const;
-
-export type UserSummary = {
-  id: string;
-  email: string;
-  name: string;
-  isAdmin: boolean;
-  createdAt: Date;
-};
+import { userSelect } from "@/lib/users";
 
 const createUserSchema = z.object({
   email: z.string().email(),

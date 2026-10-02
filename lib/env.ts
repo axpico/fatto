@@ -14,6 +14,10 @@ const envSchema = z.object({
   GROQ_API_KEY: optionalString(),
   GROQ_MODEL: z.string().default("openai/gpt-oss-20b"),
   UPLOAD_DIR: z.string().default("./data/uploads"),
+  ADMIN_EMAIL: optionalString(),
+  ADMIN_PASSWORD: optionalString(),
+  ADMIN_NAME: z.preprocess(emptyToUndefined, z.string().default("Admin")),
+  TESSDATA_PREFIX: optionalString(),
   COOKIE_SECURE: z
     .string()
     .default("true")

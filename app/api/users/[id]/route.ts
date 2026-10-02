@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiAdmin } from "@/lib/auth";
-import { userSelect } from "@/app/api/users/route";
+import { userSelect } from "@/lib/users";
 import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
 type Params = RouteParams<{ id: string }>;

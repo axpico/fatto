@@ -1,8 +1,10 @@
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { htmlToText } from "@/lib/ai/htmlToText";
-import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
+import { extractRecipe } from "@/lib/ai/extractRecipe";
+import { AiTaskError } from "@/lib/ai/runAiTask";
 import { extractJsonLdRecipe } from "@/lib/ai/jsonLd";
+import { resolveStepImages } from "@/lib/ai/schema";
 import { fetchImageBuffer, saveUploadFromBuffer } from "@/lib/uploads";
 import { MAX_VISION_IMAGES, type VisionImage } from "@/lib/ai/visionImage";
 import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
@@ -78,15 +80,12 @@ export async function POST(request: Request) {
         ...recipe,
         servings: jsonLd?.servings ?? recipe.servings,
         nutrition: jsonLd?.nutrition ?? recipe.nutrition,
-        steps: recipe.steps.map((step) => ({
-          ...step,
-          image_filename: step.image_index != null ? (visionFilenames[step.image_index] ?? null) : null,
-        })),
+        steps: resolveStepImages(recipe.steps, visionFilenames),
         photoUrl,
         provider,
       });
     } catch (err) {
-      writeExtractionError(write, err, AiExtractionError);
+      writeExtractionError(write, err, AiTaskError);
     }
   });
 }

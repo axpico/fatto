@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isValidVideoUrl, resolveStepImages } from "./videoImport";
-import type { ExtractedRecipe } from "@/lib/ai/schema";
+import { isValidVideoUrl } from "./videoImport";
+import { resolveStepImages, type ExtractedRecipe } from "@/lib/ai/schema";
 
 function step(instruction: string, image_index: number | null): ExtractedRecipe["steps"][number] {
   return { instruction, timer_minutes: null, optional: false, image_index };

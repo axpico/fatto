@@ -8,20 +8,22 @@ import { z } from "zod";
 export function chatCompletionBody<T>(opts: {
   model: string;
   systemPrompt: string;
-  jsonInstructions: string;
   userContent: unknown;
   schema: z.ZodType<T>;
   extra?: Record<string, unknown>;
 }) {
+  const jsonSchema = z.toJSONSchema(opts.schema);
+  // lo schema va anche nel prompt: molti modelli gratuiti ignorano response_format
+  const jsonInstructions = `Rispondi ESCLUSIVAMENTE con un oggetto JSON valido (nessun testo prima o dopo, nessun blocco di codice markdown) conforme a questo JSON Schema:\n${JSON.stringify(jsonSchema)}`;
   return {
     model: opts.model,
     messages: [
-      { role: "system", content: `${opts.systemPrompt}\n\n${opts.jsonInstructions}` },
+      { role: "system", content: `${opts.systemPrompt}\n\n${jsonInstructions}` },
       { role: "user", content: opts.userContent },
     ],
     response_format: {
       type: "json_schema",
-      json_schema: { name: "response", schema: z.toJSONSchema(opts.schema) },
+      json_schema: { name: "response", schema: jsonSchema },
     },
     ...opts.extra,
   };

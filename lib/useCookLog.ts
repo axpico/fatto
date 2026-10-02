@@ -1,7 +1,7 @@
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { reportIfFailed } from "@/lib/clientFetch";
 
-export type CookLogPatch = { rating?: number | null; notes?: string | null };
+type CookLogPatch = { rating?: number | null; notes?: string | null };
 
 /** Shared PATCH/POST/DELETE calls against the cook-log endpoints. List bookkeeping (optimistic
  * updates, rollback) stays with each caller since CookLogSection tracks a list and

@@ -41,3 +41,14 @@ export const extractedRecipeSchema = z.object({
 });
 
 export type ExtractedRecipe = z.infer<typeof extractedRecipeSchema>;
+
+export type StepWithImage = ExtractedRecipe["steps"][number] & { image_filename: string | null };
+
+// Il modello vede le stesse immagini che gli chiediamo di trasformare in step: gli facciamo
+// riportare quale immagine (indice) mostra ogni passaggio, invece di costruire un picker manuale.
+export function resolveStepImages(steps: ExtractedRecipe["steps"], filenames: (string | null)[]): StepWithImage[] {
+  return steps.map((step) => ({
+    ...step,
+    image_filename: step.image_index != null ? (filenames[step.image_index] ?? null) : null,
+  }));
+}

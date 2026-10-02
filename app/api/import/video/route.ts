@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
 import { importFromVideo, VideoImportError } from "@/lib/videoImport";
-import { AiExtractionError } from "@/lib/ai/extractRecipe";
+import { AiTaskError } from "@/lib/ai/runAiTask";
 import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
 import { checkImportRateLimit } from "@/lib/rateLimit";
 
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       );
       write({ done: true, ...recipe, provider, galleryFilenames, photoUrl, warnings });
     } catch (err) {
-      writeExtractionError(write, err, VideoImportError, AiExtractionError);
+      writeExtractionError(write, err, VideoImportError, AiTaskError);
     }
   });
 }

@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 
+export type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
+
 const CREATE_TIME_THRESHOLD = 0.6; // conservativo: un falso positivo qui fonde in silenzio due tag distinti
 
 export function pickBestMatch(candidates: { name: string; sim: number }[], threshold: number): string | null {

@@ -14,7 +14,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson } from "@/lib/apiError";
+import { loadJson } from "@/lib/clientFetch";
 
 // ssr:false must be called from a client component — this file is one.
 const CookedCelebration = dynamic(

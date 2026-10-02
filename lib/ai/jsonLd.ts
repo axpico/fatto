@@ -1,6 +1,6 @@
 // Stessa forma snake_case di ExtractedRecipe["nutrition"] (lib/ai/schema.ts), non un tipo
 // parallelo: così il merge in app/api/import/link/route.ts è un semplice passthrough.
-export type JsonLdNutrition = {
+type JsonLdNutrition = {
   calories: number | null;
   protein_g: number | null;
   carbs_g: number | null;
@@ -11,7 +11,7 @@ export type JsonLdNutrition = {
   sodium_mg: number | null;
 };
 
-export type JsonLdRecipeData = {
+type JsonLdRecipeData = {
   nutrition: JsonLdNutrition | null;
   servings: number | null;
   imageUrl: string | null;

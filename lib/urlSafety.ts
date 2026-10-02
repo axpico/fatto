@@ -3,7 +3,7 @@ import http from "node:http";
 import https from "node:https";
 import type { LookupFunction } from "node:net";
 
-export class UnsafeUrlError extends Error {}
+class UnsafeUrlError extends Error {}
 
 function isPrivateIPv4(ip: string): boolean {
   const parts = ip.split(".").map(Number);

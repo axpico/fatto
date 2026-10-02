@@ -1,4 +1,4 @@
-export type CookStats = {
+type CookStats = {
   timesCooked: number;
   avgRating: number | null;
   lastCookedAt: Date | null;

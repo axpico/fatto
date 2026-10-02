@@ -7,7 +7,7 @@ import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 
 export const VIEW_STORAGE_KEY = "fatto-recipe-view";
 export const VIEW_EVENT = "fatto-recipe-view-change";
-export type View = "list" | "grid";
+type View = "list" | "grid";
 
 export function resolveRecipeView(stored: string | null): View {
   return stored === "grid" ? "grid" : "list";

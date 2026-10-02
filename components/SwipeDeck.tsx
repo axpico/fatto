@@ -16,7 +16,7 @@ import { SectionIntro } from "@/components/ui/SectionIntro";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson } from "@/lib/apiError";
+import { loadJson } from "@/lib/clientFetch";
 import { useSuggestions } from "@/lib/useSuggestions";
 
 // ssr:false must be called from a client component — this file is one.

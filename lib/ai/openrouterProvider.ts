@@ -66,7 +66,6 @@ export async function callOpenRouter<T>(
   text: string,
   modelId: string,
   systemPrompt: string,
-  jsonInstructions: string,
   schema: z.ZodType<T>,
   images?: VisionImage[],
 ): Promise<T> {
@@ -85,7 +84,7 @@ export async function callOpenRouter<T>(
   const res = await postChatCompletion(
     CHAT_URL,
     env.OPENROUTER_API_KEY,
-    chatCompletionBody({ model: modelId, systemPrompt, jsonInstructions, userContent, schema }),
+    chatCompletionBody({ model: modelId, systemPrompt, userContent, schema }),
   );
 
   if (res.status === 401) {

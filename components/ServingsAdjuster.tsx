@@ -5,7 +5,7 @@ import { Minus, Plus } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
-import { useRecipeServings } from "@/lib/recipeServings";
+import { useRecipeServings } from "@/lib/useRecipeServings";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";

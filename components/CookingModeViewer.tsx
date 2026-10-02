@@ -25,7 +25,7 @@ import { Badge } from "@/components/ui/Badge";
 import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { useCookLog } from "@/lib/useCookLog";
-import { useCookSession } from "@/lib/cookSession";
+import { useCookSession } from "@/lib/useCookSession";
 import { UploadedImage } from "@/components/UploadedImage";
 import { pressableTransition } from "@/components/ui/Button";
 
@@ -213,12 +213,12 @@ function useWakeLock(onUnavailable?: () => void) {
   }, []);
 }
 
-export type CookTimerEntry = {
+type CookTimerEntry = {
   endAt: number | null;
   remainingAtPause: number | null;
   totalSeconds: number;
 };
-export type CookTimersState = Record<number, CookTimerEntry>;
+type CookTimersState = Record<number, CookTimerEntry>;
 
 function remainingOf(entry: CookTimerEntry | undefined, now: number): number | null {
   if (!entry) return null;

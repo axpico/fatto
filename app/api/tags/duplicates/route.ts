@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireApiAdmin } from "@/lib/auth";
-
-export type DuplicatePair = { aId: string; aName: string; bId: string; bName: string; sim: number };
+import type { DuplicatePair } from "@/lib/tagDedupe";
 
 export async function GET() {
   const { unauthorized } = await requireApiAdmin();

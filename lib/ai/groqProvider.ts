@@ -7,7 +7,6 @@ const CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export async function callGroq<T>(
   text: string,
   systemPrompt: string,
-  jsonInstructions: string,
   schema: z.ZodType<T>,
 ): Promise<T> {
   const res = await postChatCompletion(
@@ -16,7 +15,6 @@ export async function callGroq<T>(
     chatCompletionBody({
       model: env.GROQ_MODEL,
       systemPrompt,
-      jsonInstructions,
       userContent: text,
       schema,
       // ponytail: gpt-oss è un modello "reasoning" — senza questo su un testo lungo spende il

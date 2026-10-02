@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { reportIfFailed } from "@/lib/clientFetch";
 
 export function DeleteRecipeButton({ recipeId }: { recipeId: string }) {
   const router = useRouter();

@@ -1,8 +1,11 @@
+import { BoundedMap } from "@/lib/boundedCache";
+
 // ponytail: contatore in-memory per chiave, single-instance — si azzera al riavvio del container e
 // non è condiviso tra repliche. Sufficiente per un'app familiare a singolo processo; se mai
 // diventasse multi-istanza, spostare su uno store condiviso (Redis).
 type Entry = { count: number; resetAt: number };
-const store = new Map<string, Entry>();
+// tetto alla memoria: chiavi per utente/IP, le più vecchie vengono scartate oltre il limite
+const store = new BoundedMap<string, Entry>(10_000);
 
 function getEntry(key: string, windowMs: number): Entry {
   const now = Date.now();

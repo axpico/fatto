@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson, reportIfFailed } from "@/lib/apiError";
-import type { DuplicatePair } from "@/app/api/tags/duplicates/route";
+import { loadJson, reportIfFailed } from "@/lib/clientFetch";
+import type { DuplicatePair } from "@/lib/tagDedupe";
 
 const UNDO_WINDOW_MS = 5000;
 

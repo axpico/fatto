@@ -3,7 +3,7 @@
 import { useRef, type KeyboardEvent } from "react";
 import { pillButtonClasses } from "@/components/ui/Badge";
 
-export type Tab = { value: string; label: string; disabled?: boolean };
+type Tab = { value: string; label: string; disabled?: boolean };
 
 type Props = {
   tabs: Tab[];

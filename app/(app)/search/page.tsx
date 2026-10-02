@@ -16,7 +16,7 @@ import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { useToast } from "@/components/ui/Toast";
-import { loadJson, readErrorMessage } from "@/lib/apiError";
+import { loadJson, readErrorMessage } from "@/lib/clientFetch";
 import { RECIPE_SORTS, type RecipeSort } from "@/lib/recipeStats";
 import { useSuggestions } from "@/lib/useSuggestions";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";

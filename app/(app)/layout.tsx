@@ -30,7 +30,7 @@ export default async function AppLayout({
           <PageTransition>{children}</PageTransition>
         </main>
 
-        <NavBar aria-label="Navigazione principale" />
+        <NavBar />
       </div>
     </ToastProvider>
   );

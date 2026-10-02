@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { reportIfFailed } from "@/lib/apiError";
+import { reportIfFailed } from "@/lib/clientFetch";
 
 // Staggered entrance for the login card's own contents — kept out of PageTransition
 // since /login sits outside the (app) layout that mounts it.

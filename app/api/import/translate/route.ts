@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
-import { translateRecipe, translationSchema, TranslationError } from "@/lib/ai/translateRecipe";
+import { translateRecipe, translationSchema } from "@/lib/ai/translateRecipe";
+import { AiTaskError } from "@/lib/ai/runAiTask";
 import { checkImportRateLimit } from "@/lib/rateLimit";
 
 // Solo i campi testuali: il client unisce la traduzione al resto della ricetta, che non passa di qui
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
     const { result, provider } = await translateRecipe(input, targetLanguage);
     return Response.json({ ...result, provider });
   } catch (err) {
-    if (err instanceof TranslationError) {
+    if (err instanceof AiTaskError) {
       return Response.json({ error: err.message }, { status: 422 });
     }
     throw err;

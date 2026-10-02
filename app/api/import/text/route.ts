@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { requireApiUser } from "@/lib/auth";
-import { extractRecipe, AiExtractionError } from "@/lib/ai/extractRecipe";
+import { extractRecipe } from "@/lib/ai/extractRecipe";
+import { AiTaskError } from "@/lib/ai/runAiTask";
 import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
 import { checkImportRateLimit } from "@/lib/rateLimit";
 
@@ -27,7 +28,7 @@ export async function POST(request: Request) {
       const { recipe, provider } = await extractRecipe(parsed.data.text);
       write({ done: true, ...recipe, photoUrl: null, provider });
     } catch (err) {
-      writeExtractionError(write, err, AiExtractionError);
+      writeExtractionError(write, err, AiTaskError);
     }
   });
 }

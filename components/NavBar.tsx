@@ -6,14 +6,14 @@ import { motion } from "framer-motion";
 import { NAV_ITEMS, isNavActive } from "@/lib/navItems";
 import { useMultiTap } from "@/lib/useMultiTap";
 
-export function NavBar({ "aria-label": ariaLabel }: { "aria-label"?: string } = {}) {
+export function NavBar() {
   const pathname = usePathname();
   const router = useRouter();
   const multiTapHome = useMultiTap(() => router.push("/ruota"));
 
   return (
     <nav
-      aria-label={ariaLabel}
+      aria-label="Navigazione principale"
       className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <ul className="flex justify-around">

@@ -16,9 +16,9 @@ import { Tabs } from "@/components/ui/Tabs";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { NUTRITION_FIELDS } from "@/lib/nutrition";
-import { readErrorMessage } from "@/lib/apiError";
+import { readErrorMessage } from "@/lib/clientFetch";
 
-export type NutritionData = {
+type NutritionData = {
   caloriesKcal: number | null;
   proteinG: number | null;
   carbsG: number | null;
@@ -29,7 +29,7 @@ export type NutritionData = {
   sodiumMg: number | null;
 };
 
-export type GalleryImage =
+type GalleryImage =
   | { kind: "existing"; filename: string }
   | { kind: "new"; file: File; previewUrl: string };
 

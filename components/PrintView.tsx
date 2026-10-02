@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
-import { useRecipeServings } from "@/lib/recipeServings";
+import { useRecipeServings } from "@/lib/useRecipeServings";
 import { formatQuantity, ServingsStepper } from "@/components/ServingsAdjuster";
 import { UnitToggle } from "@/components/UnitToggle";
 import { Button } from "@/components/ui/Button";

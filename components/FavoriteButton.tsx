@@ -3,7 +3,7 @@
 import { useState, type MouseEvent } from "react";
 import { Star } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/apiError";
+import { reportIfFailed } from "@/lib/clientFetch";
 
 export function FavoriteButton({
   recipeId,

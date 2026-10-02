@@ -1,4 +1,4 @@
-export type VoiceCommand =
+type VoiceCommand =
   | { type: "next" }
   | { type: "prev" }
   | { type: "timer" }
