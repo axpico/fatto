@@ -1,12 +1,19 @@
 # Fatto
 
-App self-hosted per archiviare le ricette che cucini davvero: ricerca full-text e per ingredienti disponibili (con ranking dei risultati), import assistito da AI da link/screenshot/PDF/Reel Instagram (con traduzione automatica su richiesta), modalità cottura hands-free con comandi vocali reali (Web Speech API: passaggio successivo/precedente, avvio timer, ripeti passaggio, "quanto manca"), storico delle cotture con valutazione e note, export PDF via stampa del browser (con QR code per riaprire la ricetta dal telefono).
+App self-hosted per archiviare le ricette che cucini davvero: ricerca full-text e per ingredienti disponibili (con ranking dei risultati), import assistito da AI da link, screenshot/PDF, testo incollato e video Instagram/YouTube/TikTok (con traduzione su richiesta), modalità cottura hands-free con comandi vocali reali (Web Speech API: passaggio successivo/precedente, avvio timer, ripeti passaggio, "quanto manca"), storico delle cotture con valutazione e note, export PDF via stampa del browser (con QR code per riaprire la ricetta dal telefono).
 
-Altre funzionalità: conversione e preferenza unità di misura (metrico ↔ cup/tbsp/tsp), tracciamento attrezzatura richiesta e valori nutrizionali (estratti automaticamente dal JSON-LD delle pagine ricetta durante l'import da link), deduplica e merge dei tag generati dall'AI, tema chiaro/scuro.
+Altre funzionalità:
+
+- **Foto**: una sola lista per ricetta, la prima è la copertina; nella pagina ricetta scorrono in un carosello (tocca per ingrandire).
+- **Ordinamento** condiviso tra Home e Cerca: recenti, più cucinate, meglio valutate, da rifare, più veloci (Cerca aggiunge rilevanza e miglior abbinamento ingredienti). Filtro preferiti con `?favorites=1`.
+- **Decidi**: mazzo di ricette da scorrere per scegliere cosa cucinare.
+- **Unità di misura**: conversione metrico ↔ cup/tbsp/tsp; la preferenza è una sola, cambiabile da Impostazioni, dalla ricetta o dalla stampa.
+- **Import**: porzioni e valori nutrizionali letti dal JSON-LD delle pagine ricetta quando presenti; se le porzioni non si trovano il campo resta vuoto e va compilato prima di salvare.
+- Attrezzatura richiesta, deduplica e merge dei tag (solo admin), pulizia automatica dei tag rimasti senza ricette, tema chiaro/scuro.
 
 ## Stack
 
-Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR (dati lingua IT/EN inclusi nell'immagine Docker, funziona offline), yt-dlp/ffmpeg/whisper.cpp per l'import da Reel Instagram. Tutto in un solo repo, deploy via Docker Compose.
+Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic API per l'estrazione ricette, tesseract.js per l'OCR (dati lingua IT/EN inclusi nell'immagine Docker, funziona offline), yt-dlp/ffmpeg/whisper.cpp per l'import da video (Instagram, YouTube, TikTok). Tutto in un solo repo, deploy via Docker Compose.
 
 ## Setup
 
@@ -25,6 +32,7 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
    - `OPENROUTER_MODEL_OVERRIDE`: solo per debug, forza un modello OpenRouter specifico saltando la scoperta automatica.
    - `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME`: credenziali del primo utente, create automaticamente all'avvio
    - `COOKIE_SECURE`: lascia `true` se l'app è dietro HTTPS (reverse proxy); metti `false` per un deploy su LAN in solo HTTP
+   - `TESSDATA_PREFIX`: cartella dei dati lingua Tesseract per l'OCR. Già impostata nell'immagine Docker; in locale lasciala vuota.
    - `UPLOAD_DIR`: cartella dove vengono salvate le immagini caricate (foto ricette, galleria, step). In Docker è già impostata a `/data/uploads` (volume persistente) in `docker-compose.yml`; rilevante da cambiare solo per lo sviluppo locale fuori Docker.
 
 2. Avvia lo stack:
@@ -64,7 +72,13 @@ npx prisma migrate deploy
 npm run dev
 ```
 
-Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`) e abbia `ANTHROPIC_API_KEY` valorizzata (anche un placeholder, se non ti serve testare l'import AI).
+Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`). Le chiavi AI sono opzionali: senza, l'import AI non è disponibile ma il resto funziona.
+
+**Immagini tra Docker e sviluppo locale**: il container salva le foto nel volume `uploads` (`/data/uploads`), `npm run dev` in `./data/uploads`. Se usi lo stesso database con entrambi, le ricette create da una parte avranno le foto mancanti dall'altra. Per copiare le foto del volume nella cartella locale:
+
+```bash
+sudo docker run --rm -v fatto_uploads:/u -v "$PWD/data/uploads":/out alpine sh -c 'cp -n /u/* /out/ && chown 1000:1000 /out/*'
+```
 
 ## Test
 
@@ -72,11 +86,11 @@ Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`) e abbia `ANTHR
 npm test
 ```
 
-Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili e full-text, conversione e preferenza delle unità di misura, deduplica dei tag, parsing dei comandi vocali, estrazione JSON-LD (nutrizione/immagini) durante l'import da link, risoluzione delle immagini da Reel, selezione del modello OpenRouter di fallback.
+Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili e full-text, conversione e preferenza delle unità di misura, deduplica dei tag, parsing dei comandi vocali, estrazione JSON-LD (nutrizione/porzioni/immagini) durante l'import da link, risoluzione delle immagini dei passaggi, ordinamenti e parsing dei filtri di ricerca, selezione del modello OpenRouter di fallback.
 
-## Import da Reel Instagram e traduzione
+## Import da video e traduzione
 
-Nella pagina di import, oltre a link e screenshot/PDF, c'è una terza opzione "Da un Reel Instagram": incolla l'URL di un reel pubblico (`instagram.com/reel/...` o `/p/...`) e, opzionalmente, delle note manuali. Il server scarica il video (`yt-dlp`), ne trascrive l'audio (`whisper.cpp`, modello multilingua, rilevamento lingua automatico), estrae la caption e — se disponibili — i commenti, unisce tutto e lo passa alla stessa pipeline AI usata per link/screenshot/PDF. Le note manuali sono sempre incluse e sono l'unico modo per procedere se il download del video fallisce (reel privato, rimosso, o non raggiungibile) — in quel caso appare un errore chiaro e si può comunque proseguire scrivendo a mano cosa ricordi dalla descrizione/commenti.
+Nella pagina di import, oltre a link e screenshot/PDF, ci sono le schede Instagram, YouTube e TikTok: incolla l'URL di un video pubblico e, opzionalmente, delle note manuali. Il server scarica il video (`yt-dlp`), ne trascrive l'audio (`whisper.cpp`, modello multilingua, rilevamento lingua automatico), estrae la caption e — se disponibili — i commenti, unisce tutto e lo passa alla stessa pipeline AI usata per link/screenshot/PDF, insieme ad alcuni fotogrammi: diventano le foto della ricetta (l'ultimo, di solito il piatto finito, è la copertina) e le immagini dei passaggi. Le note manuali sono sempre incluse e sono l'unico modo per procedere se il download del video fallisce (video privato, rimosso, o non raggiungibile) — in quel caso appare un errore chiaro e si può comunque proseguire scrivendo a mano cosa ricordi dalla descrizione/commenti.
 
 Nella schermata "Rivedi e salva" (per qualunque metodo di import) c'è anche un selettore lingua + bottone "Traduci": traduce titolo, descrizione, nomi ingredienti e passaggi nella lingua scelta, lasciando invariati quantità/unità/porzioni/tempi (che non vengono mai inviati all'AI di traduzione). È un'azione esplicita, mai automatica.
 
@@ -84,5 +98,6 @@ Nella schermata "Rivedi e salva" (per qualunque metodo di import) c'è anche un 
 
 - L'import da PDF funziona solo su PDF con testo selezionabile. Questo è un limite permanente, non temporaneo: un PDF scansionato va importato come screenshot (immagine, già supportato via OCR) — renderizzare le pagine PDF come immagini richiederebbe un binding nativo (canvas/cairo) fragile da compilare in Docker su Alpine, per un caso già coperto dal workaround.
 - Quando l'import AI (estrazione o traduzione) passa al fallback OpenRouter (modelli gratuiti), le risposte possono essere più lente o meno accurate di Claude/Groq — la pagina di importazione lo segnala esplicitamente quando succede, ma rivedi comunque sempre i dati precompilati prima di salvare.
-- L'import da Reel funziona solo con reel/post video pubblici e singoli: niente Stories, niente caroselli multi-immagine, niente login Instagram per contenuti privati.
+- L'import da video funziona solo con video pubblici e singoli: niente Stories, niente caroselli multi-immagine, niente login per contenuti privati.
+- Quando modifichi una ricetta, le foto già salvate restano prima di quelle appena aggiunte: se vuoi un ordine misto, riordina dopo il salvataggio.
 - L'estrazione dei commenti Instagram è best-effort: se Instagram nega l'accesso (serve login, rate limit) viene saltata silenziosamente, senza bloccare l'import — resta sempre disponibile il campo note manuali.

@@ -49,7 +49,8 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
                 sodiumMg: recipe.nutrition.sodiumMg,
               }
             : undefined,
-          photos: [recipe.photoUrl, ...recipe.images.map((img) => img.filename)]
+          // Set: i vecchi import video salvavano la copertina anche in galleria
+          photos: [...new Set([recipe.photoUrl, ...recipe.images.map((img) => img.filename)])]
             .filter((f): f is string => f != null)
             .map((filename) => ({ kind: "existing" as const, filename })),
           ingredients: recipe.ingredients.map((i) => ({

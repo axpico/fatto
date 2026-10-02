@@ -51,7 +51,10 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
   if (!recipe) notFound();
 
   const stats = computeCookStats(recipe.cookLogs);
-  const photos = [recipe.photoUrl, ...recipe.images.map((img) => img.filename)].filter((f): f is string => f != null);
+  // Set: i vecchi import video salvavano la copertina anche in galleria
+  const photos = [...new Set([recipe.photoUrl, ...recipe.images.map((img) => img.filename)])].filter(
+    (f): f is string => f != null,
+  );
 
   return (
     <div className="page-shell">
