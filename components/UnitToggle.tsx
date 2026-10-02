@@ -1,21 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { useUnitPreference } from "@/lib/unitPreference";
 
-export function UnitToggle({
-  useMetric,
-  onToggle,
-  size = "sm",
-  offLabel = "In g/ml",
-}: {
-  useMetric: boolean;
-  onToggle: () => void;
-  size?: "sm" | "md" | "lg";
-  offLabel?: string;
-}) {
+export function UnitToggle({ size = "sm" }: { size?: "sm" | "md" | "lg" }) {
+  const [useMetric, setUseMetric] = useUnitPreference();
   return (
-    <Button type="button" variant="secondary" size={size} onClick={onToggle}>
-      {useMetric ? "Unità originali" : offLabel}
+    <Button type="button" variant="secondary" size={size} onClick={() => setUseMetric(!useMetric)}>
+      {useMetric ? "Unità originali" : "Converti in g/ml"}
     </Button>
   );
 }

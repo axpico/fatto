@@ -79,7 +79,7 @@ export function ServingsAdjuster({
 }) {
   const [servings, setServings] = useRecipeServings(recipeId, baseServings);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
-  const [useMetric, toggleUnit] = useUnitPreference();
+  const [useMetric] = useUnitPreference();
 
   function toggleChecked(id: string) {
     setCheckedIds((prev) => {
@@ -104,7 +104,7 @@ export function ServingsAdjuster({
             inputClassName="h-11 w-14 py-1 text-center font-semibold tabular-nums"
           />
         </div>
-        <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />
+        <UnitToggle />
       </div>
 
       <ul className="space-y-2" aria-label={`Ingredienti per ${servings} porzioni`}>

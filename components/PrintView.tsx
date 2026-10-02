@@ -40,7 +40,7 @@ type Recipe = {
 
 export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: string }) {
   const [servings, setServings] = useRecipeServings(recipe.id, recipe.servingsBase);
-  const [useMetric, toggleUnit] = useUnitPreference();
+  const [useMetric] = useUnitPreference();
   const totalMinutes =
     recipe.prepTimeMinutes != null && recipe.cookTimeMinutes != null
       ? recipe.prepTimeMinutes + recipe.cookTimeMinutes
@@ -53,7 +53,7 @@ export function PrintView({ recipe, qrDataUrl }: { recipe: Recipe; qrDataUrl: st
       </Link>
       <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
         <ServingsStepper servings={servings} onChange={setServings} />
-        <UnitToggle useMetric={useMetric} onToggle={toggleUnit} />
+        <UnitToggle />
         <Button type="button" variant="secondary" onClick={() => window.print()}>
           Stampa / Salva PDF
         </Button>
