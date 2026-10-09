@@ -21,7 +21,10 @@ const variantClasses: Record<Variant, string> = {
   // margin on every element — inset-0 + m-auto restores it explicitly so utilities (which win over
   // preflight regardless of specificity) put it back in the middle of the viewport
   center: "fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-sm rounded-xl",
-  sheet: "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85vh] w-full overflow-y-auto rounded-t-xl sm:inset-auto sm:bottom-6 sm:max-w-lg sm:rounded-xl",
+  // max-w-none: the UA caps dialog width at calc(100% - 6px - 2em), which left a gap on the right
+  // on phones. Desktop: inset-x-0 + mx-auto + max-w-lg centres it (inset-auto + m-0 left it at
+  // its static position, i.e. hugging the content column's left edge).
+  sheet: "fixed inset-x-0 bottom-0 top-auto m-0 max-h-[85vh] w-full max-w-none overflow-y-auto rounded-t-xl sm:bottom-6 sm:mx-auto sm:max-w-lg sm:rounded-xl",
   image: "fixed inset-0 m-auto h-fit w-[calc(100%-2rem)] max-w-2xl border-none bg-transparent p-0 shadow-none",
 };
 
