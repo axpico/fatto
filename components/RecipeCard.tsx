@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Clock, Star, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
+import { buttonClasses } from "@/components/ui/Button";
 import { TiltCard } from "@/components/motion/TiltCard";
 import { UploadedImage } from "@/components/UploadedImage";
 import { FavoriteButton } from "@/components/FavoriteButton";
@@ -45,7 +46,7 @@ function DotList({ items, light }: { items: string[]; light?: boolean }) {
 }
 
 const overlayFavoriteClasses =
-  "absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50";
+  buttonClasses("overlay", "icon", "absolute right-3 top-3 z-10");
 
 const linkClasses =
   "block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";

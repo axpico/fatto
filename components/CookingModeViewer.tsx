@@ -29,7 +29,7 @@ import { useCookLog } from "@/lib/useCookLog";
 import { useCookSession } from "@/lib/useCookSession";
 import { clearCheckedIngredients } from "@/lib/useCheckedIngredients";
 import { UploadedImage } from "@/components/UploadedImage";
-import { pressableTransition } from "@/components/ui/Button";
+import { buttonClasses, pressableTransition } from "@/components/ui/Button";
 
 // ssr:false must be called from a client component — this file is one.
 const CookAmbientScene = dynamic(
@@ -689,7 +689,7 @@ export function CookingModeViewer({
               type="button"
               onClick={() => ingredientsModalRef.current?.open()}
               aria-label="Mostra ingredienti"
-              className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className={buttonClasses("ghost", "icon")}
             >
               <List className="h-6 w-6" aria-hidden="true" />
             </button>
@@ -698,7 +698,7 @@ export function CookingModeViewer({
             type="button"
             onClick={() => stepsModalRef.current?.open()}
             aria-label="Tutti i passaggi"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className={buttonClasses("ghost", "icon")}
           >
             <ListChecks className="h-6 w-6" aria-hidden="true" />
           </button>
@@ -723,7 +723,7 @@ export function CookingModeViewer({
                 type="button"
                 onClick={() => voiceHelpModalRef.current?.open()}
                 aria-label="Comandi vocali disponibili"
-                className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className={buttonClasses("ghost", "icon")}
               >
                 <HelpCircle className="h-6 w-6" aria-hidden="true" />
               </button>
@@ -733,7 +733,7 @@ export function CookingModeViewer({
             type="button"
             onClick={handleExit}
             aria-label="Chiudi modalità cottura"
-            className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className={buttonClasses("ghost", "icon")}
           >
             <X className="h-6 w-6" aria-hidden="true" />
           </button>
@@ -789,7 +789,7 @@ export function CookingModeViewer({
                 type="button"
                 onClick={markCooked}
                 disabled={marking}
-                className={`rounded-full bg-primary py-4 text-lg font-medium ${pressableTransition} hover:bg-primary-hover disabled:opacity-50`}
+                className={`rounded-xl bg-primary py-4 text-lg font-medium text-primary-foreground ${pressableTransition} hover:bg-primary-hover disabled:opacity-50`}
               >
                 Segna come cucinata
               </button>
@@ -874,7 +874,7 @@ export function CookingModeViewer({
                 <button
                   type="button"
                   onClick={handleStartTimer}
-                  className={`rounded-full bg-primary px-6 py-4 text-lg font-medium ${pressableTransition} hover:bg-primary-hover`}
+                  className={`rounded-xl bg-primary px-6 py-4 text-lg font-medium text-primary-foreground ${pressableTransition} hover:bg-primary-hover`}
                 >
                   Avvia timer {step.timerMinutes} min
                 </button>
@@ -899,7 +899,7 @@ export function CookingModeViewer({
           <button
             type="button"
             onClick={next}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium ${pressableTransition} hover:bg-primary-hover`}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary py-6 text-xl font-medium text-primary-foreground ${pressableTransition} hover:bg-primary-hover`}
           >
             Avanti <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </button>

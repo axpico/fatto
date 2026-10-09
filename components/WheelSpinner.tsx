@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { SectionIntro } from "@/components/ui/SectionIntro";
-import { Button } from "@/components/ui/Button";
+import { Button, buttonClasses } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson } from "@/lib/clientFetch";
 
@@ -160,7 +160,7 @@ export function WheelSpinner() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.96 }}
                       transition={{ duration: 0.25 }}
-                      className="absolute inset-0 overflow-hidden rounded-2xl bg-surface-secondary shadow-[var(--shadow-md)] ring-4 ring-border-strong/60"
+                      className="absolute inset-0 overflow-hidden rounded-xl bg-surface-secondary shadow-md ring-4 ring-border-strong/60"
                     >
                       {winner.photoUrl ? (
                         <UploadedImage
@@ -177,7 +177,7 @@ export function WheelSpinner() {
                       <FavoriteButton
                         recipeId={winner.id}
                         initialFavorite={winner.favorite}
-                        className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
+                        className={buttonClasses("overlay", "icon", "absolute right-3 top-3 z-10")}
                       />
                     </motion.div>
                   ) : (
@@ -189,7 +189,7 @@ export function WheelSpinner() {
                       transition={{ duration: 0.25 }}
                       className="absolute inset-0"
                     >
-                      <div className="absolute inset-0 rounded-full bg-surface-secondary shadow-[var(--shadow-md)] ring-4 ring-border-strong/60" />
+                      <div className="absolute inset-0 rounded-full bg-surface-secondary shadow-md ring-4 ring-border-strong/60" />
 
                       <svg
                         viewBox={`0 0 ${SIZE} ${SIZE}`}
@@ -225,7 +225,8 @@ export function WheelSpinner() {
                               y={CENTER - RADIUS * 0.62}
                               textAnchor="middle"
                               transform={`rotate(${mid} ${CENTER} ${CENTER})`}
-                              className="fill-primary-foreground text-[13px] font-semibold"
+                              fontSize={13}
+                              className="fill-primary-foreground font-semibold"
                             >
                               {truncate(r.title)}
                             </text>

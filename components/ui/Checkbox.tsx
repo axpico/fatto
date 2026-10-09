@@ -10,7 +10,7 @@ export const Checkbox = forwardRef<HTMLInputElement, Props>(
         id={id}
         type="checkbox"
         className={[
-          "h-4 w-4 rounded border-border accent-primary transition-transform duration-150 checked:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+          "h-4 w-4 rounded-sm border-border accent-primary transition-transform duration-150 checked:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           className,
         ]
           .filter(Boolean)

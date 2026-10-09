@@ -1,7 +1,7 @@
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 
-type Variant = "primary" | "secondary" | "destructive" | "ghost";
-type Size = "sm" | "md" | "lg";
+type Variant = "primary" | "secondary" | "destructive" | "ghost" | "overlay";
+type Size = "sm" | "md" | "lg" | "icon";
 
 // Shared with hand-rolled buttons (e.g. CookingModeViewer's large touch-friendly CTAs) that don't
 // fit the sm/md/lg size scale but still want the same press/hover feel as ui/Button.
@@ -16,12 +16,16 @@ const variants: Record<Variant, string> = {
     "border border-border bg-surface text-foreground shadow-sm hover:border-border-strong hover:bg-surface-secondary",
   destructive: "border border-destructive/30 bg-surface text-destructive hover:bg-destructive/10",
   ghost: "text-muted-foreground hover:bg-surface-secondary hover:text-foreground",
+  /** controls sitting on a photo */
+  overlay: "bg-scrim text-white backdrop-blur-sm hover:brightness-125",
 };
 
 const sizes: Record<Size, string> = {
   sm: "min-h-9 px-3 text-sm",
   md: "px-4 text-sm",
   lg: "min-h-12 px-5 text-base",
+  /** 44px square touch target, round */
+  icon: "min-h-11 min-w-11 shrink-0 rounded-full p-0",
 };
 
 export function buttonClasses(variant: Variant = "primary", size: Size = "md", className = "") {

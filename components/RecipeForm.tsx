@@ -85,7 +85,7 @@ const SECTIONS = [
 ];
 
 const fileInputClasses =
-  "block w-full text-sm text-muted-foreground file:mr-3 file:min-h-10 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-primary-hover";
+  "block w-full text-sm text-muted-foreground file:mr-3 file:min-h-10 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary-hover";
 
 export function RecipeForm({
   recipeId,
@@ -344,7 +344,7 @@ export function RecipeForm({
                     className="h-24 w-24 rounded-lg object-cover"
                   />
                   {index === 0 && (
-                    <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white">
+                    <span className="absolute left-2 top-2 rounded-full bg-scrim px-2 py-0.5 text-xs font-medium text-white">
                       Copertina
                     </span>
                   )}
@@ -352,7 +352,7 @@ export function RecipeForm({
                     type="button"
                     onClick={() => removePhoto(index)}
                     aria-label="Rimuovi foto"
-                    className="absolute -right-1 -top-1 flex min-h-9 min-w-9 items-center justify-center rounded-full bg-destructive text-white"
+                    className="absolute -right-1 -top-1 flex min-h-9 min-w-9 items-center justify-center rounded-full bg-destructive text-primary-foreground shadow-sm"
                   >
                     <X className="h-4 w-4" aria-hidden="true" />
                   </button>
@@ -362,7 +362,7 @@ export function RecipeForm({
                       onClick={() => movePhoto(index, -1)}
                       disabled={index === 0}
                       aria-label="Sposta foto a sinistra"
-                      className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
+                      className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow-sm disabled:opacity-30"
                     >
                       <ChevronLeft className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -371,7 +371,7 @@ export function RecipeForm({
                       onClick={() => movePhoto(index, 1)}
                       disabled={index === form.photos.length - 1}
                       aria-label="Sposta foto a destra"
-                      className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow disabled:opacity-30"
+                      className="flex min-h-9 min-w-9 items-center justify-center rounded-full bg-surface text-foreground shadow-sm disabled:opacity-30"
                     >
                       <ChevronRight className="h-4 w-4" aria-hidden="true" />
                     </button>

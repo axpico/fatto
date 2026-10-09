@@ -3,6 +3,7 @@
 import { useState, type MouseEvent } from "react";
 import { Star } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { buttonClasses } from "@/components/ui/Button";
 import { reportIfFailed } from "@/lib/clientFetch";
 
 export function FavoriteButton({
@@ -43,10 +44,7 @@ export function FavoriteButton({
       disabled={pending}
       aria-pressed={favorite}
       aria-label={favorite ? "Rimuovi dai preferiti" : "Aggiungi ai preferiti"}
-      className={
-        className ??
-        "flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground"
-      }
+      className={className ?? buttonClasses("ghost", "icon")}
     >
       <Star
         className={`h-4 w-4 ${favorite ? "fill-primary text-primary" : ""} ${pulse ? "favorite-pulse" : ""}`}

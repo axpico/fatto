@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Modal, type ModalHandle } from "@/components/ui/Modal";
 import { UploadedImage } from "@/components/UploadedImage";
+import { buttonClasses } from "@/components/ui/Button";
 
 const SWIPE_THRESHOLD_PX = 50;
 
@@ -59,7 +60,7 @@ export function RecipePhotoCarousel({ photos, title }: { photos: string[]; title
       </div>
 
       {photos.length > 1 && (
-        <div className="absolute right-4 top-4 flex rounded-full bg-black/40 px-1">
+        <div className="absolute right-4 top-4 flex rounded-full bg-scrim px-1">
           {photos.map((filename, index) => (
             // 32px hit area around an 8px dot
             <button
@@ -100,7 +101,7 @@ export function RecipePhotoCarousel({ photos, title }: { photos: string[]; title
                 type="button"
                 onClick={() => zoomStep(-1)}
                 aria-label="Foto precedente"
-                className="absolute left-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                className={buttonClasses("overlay", "icon", "absolute left-2 top-1/2 -translate-y-1/2")}
               >
                 <ChevronLeft className="h-5 w-5" aria-hidden="true" />
               </button>
@@ -108,7 +109,7 @@ export function RecipePhotoCarousel({ photos, title }: { photos: string[]; title
                 type="button"
                 onClick={() => zoomStep(1)}
                 aria-label="Foto successiva"
-                className="absolute right-2 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+                className={buttonClasses("overlay", "icon", "absolute right-2 top-1/2 -translate-y-1/2")}
               >
                 <ChevronRight className="h-5 w-5" aria-hidden="true" />
               </button>

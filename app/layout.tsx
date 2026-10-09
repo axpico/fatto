@@ -35,7 +35,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#14110d",
+  // browser chrome follows the OS scheme (an in-app theme override can't reach this meta tag)
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f2e9" },
+    { media: "(prefers-color-scheme: dark)", color: "#14110d" },
+  ],
   viewportFit: "cover" as const,
 };
 

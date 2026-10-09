@@ -19,10 +19,8 @@
   --destructive: #dc2626;
   --destructive-hover: #b91c1c;
 
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
+  /* photo overlays (controls on images) and modal backdrops */
+  --scrim: rgb(20 14 8 / 0.45);
 
   /* Named e1/e2 so @theme can point shadow-sm/shadow-md at them without a
      circular self-reference. Theme blocks override these values. */
@@ -52,6 +50,13 @@
   --color-warning: var(--warning);
   --color-destructive: var(--destructive);
   --color-destructive-hover: var(--destructive-hover);
+  --color-scrim: var(--scrim);
+  /* in @theme (not :root) so Tailwind's rounded-* utilities own the scale; rounded-2xl is
+     unused on purpose: xl is the largest radius in this app */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-display: var(--font-fraunces);
@@ -79,6 +84,7 @@
   --warning: #e0a53c;
   --destructive: #f2635a;
   --destructive-hover: #ef4444;
+  --scrim: rgb(0 0 0 / 0.55);
 
   --shadow-e1: 0 1px 2px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.35);
   --shadow-e2: 0 14px 44px rgb(0 0 0 / 0.55);

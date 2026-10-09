@@ -2,6 +2,7 @@
 
 import { forwardRef, useImperativeHandle, useRef, type ReactNode } from "react";
 import { X } from "lucide-react";
+import { buttonClasses } from "@/components/ui/Button";
 
 export type ModalHandle = { open: () => void; close: () => void };
 
@@ -48,7 +49,7 @@ export const Modal = forwardRef<ModalHandle, Props>(
         aria-label="Chiudi"
         className={
           variant === "image"
-            ? "absolute right-2 top-2 flex min-h-11 min-w-11 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70"
+            ? buttonClasses("overlay", "icon", "absolute right-2 top-2")
             : "-mr-2 flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
         }
       >
@@ -66,7 +67,7 @@ export const Modal = forwardRef<ModalHandle, Props>(
           if (e.target === dialogRef.current) close();
         }}
         aria-labelledby={titleId}
-        className={`dialog-surface border border-border bg-surface p-5 text-foreground shadow-md backdrop:bg-black/40 ${variantClasses[variant]} ${className ?? ""}`}
+        className={`dialog-surface border border-border bg-surface p-5 text-foreground shadow-md backdrop:bg-scrim ${variantClasses[variant]} ${className ?? ""}`}
       >
         {variant === "image" ? (
           closeButton

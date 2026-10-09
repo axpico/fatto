@@ -65,7 +65,7 @@ export function StepRows({
           />
           <div className="flex items-center gap-2">
             {row.imageFilename && !row.imageFile && (
-              <UploadedImage filename={row.imageFilename} alt="" className="h-10 w-10 rounded object-cover" />
+              <UploadedImage filename={row.imageFilename} alt="" className="h-10 w-10 rounded-sm object-cover" />
             )}
             <input
               type="file"
