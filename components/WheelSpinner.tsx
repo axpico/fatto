@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Clock, Dices } from "lucide-react";
-import { type RecipeCardData } from "@/components/RecipeCard";
+import { Dices } from "lucide-react";
+import { Overlay, type RecipeCardData } from "@/components/RecipeCard";
 import { UploadedImage } from "@/components/UploadedImage";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Card } from "@/components/ui/Card";
@@ -51,7 +51,7 @@ function polarToXY(angleDeg: number): [number, number] {
   return [CENTER + RADIUS * Math.cos(a), CENTER + RADIUS * Math.sin(a)];
 }
 
-function truncate(title: string, max = 18): string {
+function truncate(title: string, max = 16): string {
   return title.length > max ? `${title.slice(0, max - 1)}…` : title;
 }
 
@@ -60,11 +60,6 @@ function pickSegments(pool: RecipeCardData[]): { segments: RecipeCardData[]; win
   const segments = [...pool].sort(() => Math.random() - 0.5).slice(0, n);
   const winnerIdx = Math.floor(Math.random() * n);
   return { segments, winnerIdx };
-}
-
-function recipeMeta(recipe: RecipeCardData): { totalTime: number; tags: string[] } {
-  const totalTime = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
-  return { totalTime, tags: recipe.tags.slice(0, 3).map((t) => t.name) };
 }
 
 export function WheelSpinner() {
@@ -124,7 +119,6 @@ export function WheelSpinner() {
   }
 
   const litColor = highlightIdx >= 0 ? SLICE_COLORS[highlightIdx % SLICE_COLORS.length] : "var(--primary)";
-  const { totalTime, tags } = winner ? recipeMeta(winner) : { totalTime: 0, tags: [] as string[] };
 
   return (
     <div className="page-shell max-w-md space-y-6">
@@ -179,29 +173,12 @@ export function WheelSpinner() {
                           <Dices className="h-12 w-12" aria-hidden="true" />
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                      <Overlay recipe={winner} big />
                       <FavoriteButton
                         recipeId={winner.id}
                         initialFavorite={winner.favorite}
                         className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm transition-colors hover:bg-black/50"
                       />
-                      <div className="absolute inset-x-0 bottom-0 p-4">
-                        <p className="font-display text-2xl font-semibold text-white drop-shadow-sm">
-                          {winner.title}
-                        </p>
-                        {(totalTime > 0 || tags.length > 0) && (
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-white/80">
-                            {totalTime > 0 && (
-                              <span className="inline-flex items-center gap-1">
-                                <Clock className="h-3.5 w-3.5" aria-hidden="true" /> {totalTime} min
-                              </span>
-                            )}
-                            {tags.map((t) => (
-                              <span key={t}>#{t}</span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
                     </motion.div>
                   ) : (
                     <motion.div
@@ -248,7 +225,7 @@ export function WheelSpinner() {
                               y={CENTER - RADIUS * 0.62}
                               textAnchor="middle"
                               transform={`rotate(${mid} ${CENTER} ${CENTER})`}
-                              className="fill-primary-foreground text-[11px] font-medium"
+                              className="fill-primary-foreground text-[13px] font-semibold"
                             >
                               {truncate(r.title)}
                             </text>

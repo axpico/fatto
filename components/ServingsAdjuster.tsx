@@ -1,6 +1,7 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { useState } from "react";
+import { Minus, Plus, RotateCcw } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
@@ -47,13 +48,7 @@ function ServingsStepperCore({
       >
         <Minus className="h-4 w-4" aria-hidden="true" />
       </Button>
-      <input
-        type="number"
-        min={1}
-        value={servings}
-        onChange={(e) => onChange(Math.max(1, Number(e.target.value) || 1))}
-        className={`${inputClassName} ${inputClasses}`}
-      />
+      <ServingsInput servings={servings} onChange={onChange} className={`${inputClassName} ${inputClasses}`} />
       <Button
         type="button"
         variant="secondary"
@@ -65,6 +60,36 @@ function ServingsStepperCore({
         <Plus className="h-4 w-4" aria-hidden="true" />
       </Button>
     </>
+  );
+}
+
+// typing keeps the raw text (clearing the field to type "12" no longer snaps to 1); valid values
+// apply live, the field is clamped back to a valid number on blur
+function ServingsInput({
+  servings,
+  onChange,
+  className,
+}: {
+  servings: number;
+  onChange: (servings: number) => void;
+  className: string;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      min={1}
+      aria-label="Porzioni"
+      value={draft ?? servings}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        const n = Math.floor(Number(e.target.value));
+        if (n >= 1) onChange(n);
+      }}
+      onBlur={() => setDraft(null)}
+      className={className}
+    />
   );
 }
 
@@ -94,6 +119,18 @@ export function ServingsAdjuster({
             onChange={setServings}
             inputClassName="h-11 w-14 py-1 text-center font-semibold tabular-nums"
           />
+          {servings !== baseServings && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setServings(baseServings)}
+              aria-label={`Ripristina ${baseServings} porzioni`}
+              className="h-11 w-11 px-0"
+            >
+              <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
         </div>
         <UnitToggle />
       </div>

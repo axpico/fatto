@@ -36,7 +36,7 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
             aria-label={label}
             aria-pressed={view === value}
             onClick={() => select(value)}
-            className={`flex h-8 w-8 items-center justify-center rounded-md transition-colors ${
+            className={`flex h-10 w-10 items-center justify-center rounded-md transition-colors ${
               view === value ? "bg-accent text-primary" : "text-muted-foreground hover:bg-surface-secondary"
             }`}
           >
