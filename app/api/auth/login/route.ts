@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { verifyPassword, createSession } from "@/lib/auth";
-import { isRateLimited, recordAttempt, clearRateLimit } from "@/lib/rateLimit";
+import { isRateLimited, recordAttempt, clearRateLimit, retryAfterSeconds } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -28,10 +28,16 @@ export async function POST(request: Request) {
 
   const { email, password } = parsed.data;
   const key = `login:${email}`;
-  if (isRateLimited(key, MAX_FAILS, LOCKOUT_MS) || isRateLimited(GLOBAL_KEY, GLOBAL_MAX_FAILS, GLOBAL_WINDOW_MS)) {
+  const limitedKey = isRateLimited(key, MAX_FAILS, LOCKOUT_MS)
+    ? key
+    : isRateLimited(GLOBAL_KEY, GLOBAL_MAX_FAILS, GLOBAL_WINDOW_MS)
+      ? GLOBAL_KEY
+      : null;
+  if (limitedKey) {
+    const seconds = Math.max(1, retryAfterSeconds(limitedKey));
     return Response.json(
-      { error: "Troppi tentativi falliti. Riprova tra qualche secondo." },
-      { status: 429 },
+      { error: `Troppi tentativi falliti. Riprova tra ${seconds} secondi.` },
+      { status: 429, headers: { "Retry-After": String(seconds) } },
     );
   }
 

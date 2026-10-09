@@ -4,6 +4,7 @@ import { LayoutGrid, List as ListIcon } from "lucide-react";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
+import { useHiddenRecipes } from "@/lib/pendingDeletes";
 
 export const VIEW_STORAGE_KEY = "fatto-recipe-view";
 export const VIEW_EVENT = "fatto-recipe-view-change";
@@ -15,6 +16,8 @@ export function resolveRecipeView(stored: string | null): View {
 
 export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
   const [view, setView] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView, "list");
+  const hidden = useHiddenRecipes();
+  const visible = hidden.size ? recipes.filter((r) => !hidden.has(r.id)) : recipes;
 
   function select(next: View) {
     setView(next);
@@ -42,7 +45,7 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
         ))}
       </div>
       <div className={view === "grid" ? "tilt-grid grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
-        {recipes.map((recipe, index) => (
+        {visible.map((recipe, index) => (
           <Reveal key={recipe.id} delay={Math.min(index, 8) * 40}>
             <RecipeCard recipe={recipe} variant={view} />
           </Reveal>

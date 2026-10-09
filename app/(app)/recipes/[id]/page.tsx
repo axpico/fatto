@@ -82,9 +82,9 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <Link href={`/recipes/${recipe.id}/edit`} className={buttonClasses("secondary", "md")} aria-label="Modifica">
           <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Modifica</span>
         </Link>
-        <div className="ml-auto flex items-center gap-2 sm:border-l sm:border-border sm:pl-3">
-          <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorites.length > 0} />
-          <DeleteRecipeButton recipeId={recipe.id} />
+        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorites.length > 0} />
+        <div className="ml-auto sm:border-l sm:border-border sm:pl-3">
+          <DeleteRecipeButton recipeId={recipe.id} title={recipe.title} />
         </div>
       </div>
 

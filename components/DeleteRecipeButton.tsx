@@ -1,37 +1,48 @@
 "use client";
 
-import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
-import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/components/ui/Toast";
 import { reportIfFailed } from "@/lib/clientFetch";
+import { deferCommit } from "@/lib/deferCommit";
+import { hideRecipe, unhideRecipe } from "@/lib/pendingDeletes";
 
-export function DeleteRecipeButton({ recipeId }: { recipeId: string }) {
+const UNDO_WINDOW_MS = 6000;
+
+// No confirm dialog: deletion is undoable from the toast for UNDO_WINDOW_MS, the DELETE is only
+// sent once that window closes (or on tab close).
+export function DeleteRecipeButton({ recipeId, title }: { recipeId: string; title: string }) {
   const router = useRouter();
   const toast = useToast();
-  const dialogRef = useRef<ConfirmDialogHandle>(null);
 
-  async function handleDelete() {
-    const confirmed = await dialogRef.current?.open();
-    if (!confirmed) return;
-    const res = await fetch(`/api/recipes/${recipeId}`, { method: "DELETE" });
-    if (await reportIfFailed(res, toast)) return;
+  function handleDelete() {
+    hideRecipe(recipeId);
+    const cancel = deferCommit(async () => {
+      const res = await fetch(`/api/recipes/${recipeId}`, { method: "DELETE", keepalive: true });
+      if (await reportIfFailed(res, toast)) {
+        unhideRecipe(recipeId);
+        return;
+      }
+      router.refresh();
+    }, UNDO_WINDOW_MS);
     router.push("/");
-    router.refresh();
+    toast.withAction(
+      `"${title}" eliminata`,
+      {
+        label: "Annulla",
+        onClick: () => {
+          cancel();
+          unhideRecipe(recipeId);
+          router.push(`/recipes/${recipeId}`);
+        },
+      },
+      { duration: UNDO_WINDOW_MS },
+    );
   }
 
   return (
-    <>
-      <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
-        Elimina
-      </Button>
-      <ConfirmDialog
-        ref={dialogRef}
-        title="Eliminare questa ricetta?"
-        description="L'operazione non è reversibile."
-        confirmLabel="Elimina"
-      />
-    </>
+    <Button type="button" variant="destructive" size="sm" onClick={handleDelete}>
+      Elimina
+    </Button>
   );
 }

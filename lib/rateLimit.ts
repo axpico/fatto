@@ -22,6 +22,12 @@ export function isRateLimited(key: string, max: number, windowMs: number): boole
   return getEntry(key, windowMs).count >= max;
 }
 
+/** Seconds until the key's window resets (0 if there is no active window). */
+export function retryAfterSeconds(key: string): number {
+  const entry = store.get(key);
+  return entry ? Math.max(0, Math.ceil((entry.resetAt - Date.now()) / 1000)) : 0;
+}
+
 export function recordAttempt(key: string, windowMs: number): void {
   getEntry(key, windowMs).count += 1;
 }

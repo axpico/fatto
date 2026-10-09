@@ -16,7 +16,7 @@ const fieldVariants = {
   show: { opacity: 1, y: 0 },
 };
 
-export function LoginForm() {
+export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
   const reducedMotion = useReducedMotion();
   const [email, setEmail] = useState("");
@@ -40,7 +40,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/");
+    router.push(next);
     router.refresh();
   }
 

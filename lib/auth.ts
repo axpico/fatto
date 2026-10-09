@@ -1,10 +1,11 @@
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { randomBytes, createHash } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
+import { loginHref } from "@/lib/loginRedirect";
 
 const SESSION_COOKIE = "session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 giorni
@@ -69,7 +70,7 @@ export const getCurrentUser = cache(async () => {
 
 export async function requireUser() {
   const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  if (!user) redirect(loginHref((await headers()).get("x-pathname")));
   return user;
 }
 
