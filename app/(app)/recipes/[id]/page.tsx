@@ -10,11 +10,8 @@ import { FavoriteButton } from "@/components/FavoriteButton";
 import { CookLogSection } from "@/components/CookLogSection";
 import { StepImageThumb } from "@/components/StepImageThumb";
 import { Badge } from "@/components/ui/Badge";
-import { Card } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
 import { formatDate, formatRelativeDate } from "@/lib/formatDate";
-import { Reveal } from "@/components/motion/Reveal";
-import { TiltCard } from "@/components/motion/TiltCard";
 import { RecipePhotoCarousel } from "@/components/RecipePhotoCarousel";
 import { NUTRITION_FIELDS as BASE_NUTRITION_FIELDS } from "@/lib/nutrition";
 import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
@@ -63,17 +60,17 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
         <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Torna alle ricette
       </Link>
       {photos.length > 0 ? (
-        <TiltCard className="relative mb-6 h-72 w-full overflow-hidden shadow-md sm:h-96">
+        <div className="relative mb-6 h-72 w-full overflow-hidden rounded-xl shadow-md sm:h-96">
           <RecipePhotoCarousel photos={photos} title={recipe.title} />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent p-5 sm:p-6">
-            <h1 className="max-w-3xl font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">{recipe.title}</h1>
+            <h1 className="font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">{recipe.title}</h1>
           </div>
-        </TiltCard>
+        </div>
       ) : (
-        <h1 className="mb-5 max-w-3xl font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">{recipe.title}</h1>
+        <h1 className="page-title mb-5">{recipe.title}</h1>
       )}
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
         <CookButton recipeId={recipe.id} />
         <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "md")} aria-label="Stampa">
           <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Stampa</span>
@@ -82,12 +79,12 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
           <Pencil className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Modifica</span>
         </Link>
         <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorites.length > 0} />
-        <div className="ml-auto sm:border-l sm:border-border sm:pl-3">
+        <div className="ml-auto">
           <DeleteRecipeButton recipeId={recipe.id} title={recipe.title} />
         </div>
       </div>
 
-      {recipe.description && <p className="mt-4 max-w-3xl leading-7 text-muted-foreground">{recipe.description}</p>}
+      {recipe.description && <p className="mt-5 leading-7 text-muted-foreground">{recipe.description}</p>}
 
       <div className="mt-3 flex flex-wrap gap-2">
         {recipe.tags.map((tag) => (
@@ -153,38 +150,31 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       </p>
 
       {recipe.equipment.length > 0 && (
-        <Reveal>
           <section className="mt-8">
-            <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Attrezzatura</h2>
+            <h2 className="section-title mb-3">Attrezzatura</h2>
             <div className="flex flex-wrap gap-2">
               {recipe.equipment.map((item) => (
                 <Badge key={item}>{item}</Badge>
               ))}
             </div>
           </section>
-        </Reveal>
       )}
 
-      <Reveal>
         <section className="mt-10">
-          <Card className="p-4 sm:p-5">
-            <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Ingredienti</h2>
-            <ServingsAdjuster
-              recipeId={recipe.id}
-              baseServings={recipe.servingsBase}
-              ingredients={recipe.ingredients}
-            />
-          </Card>
+          <h2 className="section-title mb-3">Ingredienti</h2>
+          <ServingsAdjuster
+            recipeId={recipe.id}
+            baseServings={recipe.servingsBase}
+            ingredients={recipe.ingredients}
+          />
         </section>
-      </Reveal>
 
-      <Reveal>
         <section className="mt-10">
-          <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Passaggi</h2>
-          <ol className="space-y-3">
+          <h2 className="section-title mb-3">Passaggi</h2>
+          <ol className="divide-y divide-border">
             {recipe.steps.map((step) => (
-              <li key={step.id} className="flex gap-3 rounded-lg border border-border bg-surface px-4 py-4 text-foreground shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-secondary text-sm font-semibold text-muted-foreground">{step.sortOrder + 1}</span>
+              <li key={step.id} className="flex gap-4 py-4 text-foreground first:pt-0">
+                <span className="w-6 shrink-0 font-display text-xl font-semibold leading-7 text-primary">{step.sortOrder + 1}</span>
                 {step.imageFilename && (
                   <StepImageThumb filename={step.imageFilename} alt={`Passaggio ${step.sortOrder + 1}`} />
                 )}
@@ -205,12 +195,10 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
             ))}
           </ol>
         </section>
-      </Reveal>
 
       {recipe.nutrition && (
-        <Reveal>
           <section className="mt-10">
-            <h2 className="mb-3 font-display text-xl font-semibold text-foreground">Valori nutrizionali <span className="font-sans text-sm font-normal text-muted-foreground">per porzione</span></h2>
+            <h2 className="section-title mb-3">Valori nutrizionali <span className="font-sans text-sm font-normal text-muted-foreground">per porzione</span></h2>
             <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
               {NUTRITION_FIELDS.map(({ key, label, unit }) => {
                 const value = recipe.nutrition![key];
@@ -227,10 +215,8 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
               })}
             </dl>
           </section>
-        </Reveal>
       )}
 
-      <Reveal>
         <CookLogSection
           recipeId={recipe.id}
           initialLogs={recipe.cookLogs.map((log) => ({
@@ -241,7 +227,6 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
             user: { name: log.user.name },
           }))}
         />
-      </Reveal>
     </div>
   );
 }

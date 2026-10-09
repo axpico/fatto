@@ -7,7 +7,6 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Card } from "@/components/ui/Card";
 import { ConfirmDialog, type ConfirmDialogHandle } from "@/components/ui/ConfirmDialog";
 import { StarRating } from "@/components/ui/StarRating";
 import { useCookLog } from "@/lib/useCookLog";
@@ -67,7 +66,7 @@ export function CookLogSection({
   return (
     <section className="mt-10 border-t border-border pt-8">
       <div className="relative mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-xl font-semibold text-foreground">
+        <h2 className="section-title">
           Storico{" "}
           {logs.length > 0 && (
             <span key={logs.length} className="value-pulse inline-block text-muted-foreground">
@@ -84,7 +83,7 @@ export function CookLogSection({
       {logs.length === 0 ? (
         <EmptyState title="Non ancora cucinata" />
       ) : (
-        <ul className="space-y-3">
+        <ul className="divide-y divide-border">
           <AnimatePresence initial={false}>
             {logs.map((log) => (
               <motion.li
@@ -94,8 +93,9 @@ export function CookLogSection({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.96 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
+                className="py-4 first:pt-0"
               >
-                <Card className="p-4">
+                <div>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-muted-foreground">
                       {formatDate(log.cookedAt)} · {log.user.name}
@@ -111,7 +111,7 @@ export function CookLogSection({
                       <X className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </div>
-                  <div className="mt-3">
+                  <div className="mt-1">
                     <StarRating value={log.rating} onChange={(rating) => patchLog(log.id, { rating })} />
                   </div>
                   <textarea
@@ -120,9 +120,9 @@ export function CookLogSection({
                     defaultValue={log.notes ?? ""}
                     onBlur={(e) => patchLog(log.id, { notes: e.target.value || null })}
                     rows={1}
-                    className={`mt-3 w-full text-sm ${inputClasses}`}
+                    className={`mt-2 w-full text-sm ${inputClasses}`}
                   />
-                </Card>
+                </div>
               </motion.li>
             ))}
           </AnimatePresence>
