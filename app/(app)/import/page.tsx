@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link2, Image as ImageIcon, Video, Music2, Upload, CheckCircle2, TriangleAlert, FileText } from "lucide-react";
 import { RecipeForm, type RecipeFormData } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/ai/schema";
@@ -15,6 +15,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
 import { SectionIntro } from "@/components/ui/SectionIntro";
+import { readErrorMessage } from "@/lib/clientFetch";
 
 const LANGUAGES = [
   { code: "italiano", label: "Italiano" },
@@ -175,6 +176,28 @@ export default function ImportPage() {
   const [translating, setTranslating] = useState(false);
   const [formKey, setFormKey] = useState(0);
   const abortControllerRef = useRef<AbortController | null>(null);
+  // latest RecipeForm state: translation works on what the user has edited, not the raw extraction
+  const currentFormRef = useRef<RecipeFormData | null>(null);
+  const handleFormChange = useCallback((form: RecipeFormData) => {
+    currentFormRef.current = form;
+  }, []);
+
+  useEffect(() => {
+    if (!loading) return;
+    function handleBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [loading]);
+
+  function backToImport() {
+    setExtracted(null);
+    setManual(false);
+    setError(null);
+    setWarnings([]);
+    currentFormRef.current = null;
+  }
 
   async function importFromUrl(e: React.FormEvent) {
     e.preventDefault();
@@ -305,43 +328,49 @@ export default function ImportPage() {
   }
 
   async function translate() {
-    if (!extracted) return;
+    const current = currentFormRef.current ?? extracted;
+    if (!current) return;
     setTranslating(true);
     setError(null);
-    const ingredients = extracted.ingredients ?? [];
-    const steps = extracted.steps ?? [];
-    const equipment = extracted.equipment ?? [];
-    const tags = extracted.tags ?? [];
-    const res = await fetch("/api/import/translate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: extracted.title ?? "",
-        description: extracted.description || null,
-        ingredientNames: ingredients.map((i) => i.name),
-        stepInstructions: steps.map((s) => s.instruction),
-        equipment,
-        tags,
-        targetLanguage,
-      }),
-    });
-    const data = await res.json();
-    setTranslating(false);
-    if (!res.ok) {
-      setError(data.error ?? "Traduzione non riuscita");
-      return;
+    const ingredients = current.ingredients ?? [];
+    const steps = current.steps ?? [];
+    try {
+      const res = await fetch("/api/import/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: current.title ?? "",
+          description: current.description || null,
+          ingredientNames: ingredients.map((i) => i.name),
+          stepInstructions: steps.map((s) => s.instruction),
+          equipment: current.equipment ?? [],
+          tags: current.tags ?? [],
+          targetLanguage,
+        }),
+      });
+      if (!res.ok) {
+        setError(await readErrorMessage(res, "Traduzione non riuscita"));
+        return;
+      }
+      const data = await res.json();
+      setProvider(data.provider ?? null);
+      // remount the form on the translated copy of the *edited* state; the form stays
+      // "unsaved" via unsavedFromStart, so the leave-guard still holds after the remount
+      setExtracted({
+        ...current,
+        title: data.title,
+        description: data.description ?? "",
+        ingredients: ingredients.map((ing, i) => ({ ...ing, name: data.ingredientNames[i] })),
+        steps: steps.map((step, i) => ({ ...step, instruction: data.stepInstructions[i] })),
+        equipment: data.equipment,
+        tags: data.tags,
+      });
+      setFormKey((k) => k + 1);
+    } catch {
+      setError("Connessione assente: traduzione non riuscita, riprova");
+    } finally {
+      setTranslating(false);
     }
-    setProvider(data.provider ?? null);
-    setExtracted({
-      ...extracted,
-      title: data.title,
-      description: data.description ?? "",
-      ingredients: ingredients.map((ing, i) => ({ ...ing, name: data.ingredientNames[i] })),
-      steps: steps.map((step, i) => ({ ...step, instruction: data.stepInstructions[i] })),
-      equipment: data.equipment,
-      tags: data.tags,
-    });
-    setFormKey((k) => k + 1);
   }
 
   if (extracted || manual) {
@@ -400,7 +429,14 @@ export default function ImportPage() {
         )}
         {error && <ErrorBanner className="mt-3">{error}</ErrorBanner>}
         <div className="mt-6">
-          <RecipeForm key={formKey} initialData={extracted ?? undefined} />
+          <RecipeForm
+            key={formKey}
+            initialData={extracted ?? undefined}
+            unsavedFromStart={!!extracted}
+            onFormChange={handleFormChange}
+            backLabel="Torna all'import"
+            onBack={backToImport}
+          />
         </div>
       </div>
     );

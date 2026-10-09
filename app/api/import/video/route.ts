@@ -27,13 +27,14 @@ export async function POST(request: Request) {
     return Response.json({ error: "Link non valido" }, { status: 400 });
   }
 
-  return streamNdjson(async (write) => {
+  return streamNdjson(request.signal, async (write, signal) => {
     try {
       const { recipe, provider, galleryFilenames, photoUrl, warnings } = await importFromVideo(
         parsed.data.url,
         parsed.data.notes,
         parsed.data.platform,
         (stage) => write({ stage }),
+        signal,
       );
       write({ done: true, ...recipe, provider, galleryFilenames, photoUrl, warnings });
     } catch (err) {

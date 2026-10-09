@@ -35,12 +35,12 @@ export async function POST(request: Request) {
     return Response.json({ error: "Link non valido" }, { status: 400 });
   }
 
-  return streamNdjson(async (write) => {
+  return streamNdjson(request.signal, async (write, signal) => {
     try {
       write({ stage: "Scaricando pagina..." });
       let html: string;
       try {
-        const res = await fetchPublic(parsed.data.url, { signal: AbortSignal.timeout(10000) });
+        const res = await fetchPublic(parsed.data.url, { signal: AbortSignal.any([signal, AbortSignal.timeout(10000)]) });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         html = await res.text();
       } catch (err) {

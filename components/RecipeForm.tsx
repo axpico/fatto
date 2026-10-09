@@ -91,10 +91,20 @@ export function RecipeForm({
   recipeId,
   initialData,
   backHref = "/",
+  backLabel,
+  onBack,
+  unsavedFromStart = false,
+  onFormChange,
 }: {
   recipeId?: string;
   initialData?: Partial<RecipeFormData>;
   backHref?: string;
+  backLabel?: string;
+  /** Replaces navigation to backHref (e.g. the import page going back to its own input step). */
+  onBack?: () => void;
+  /** Treat the form as unsaved even before any edit (an AI import not yet saved). */
+  unsavedFromStart?: boolean;
+  onFormChange?: (form: RecipeFormData) => void;
 }) {
   const router = useRouter();
   const [form, setForm] = useState<RecipeFormData>({ ...EMPTY, ...initialData });
@@ -113,20 +123,21 @@ export function RecipeForm({
   const formRef = useRef(form);
   useEffect(() => {
     formRef.current = form;
-  }, [form]);
-  const isDirty = JSON.stringify(form) !== JSON.stringify(initialForm);
+    onFormChange?.(form);
+  }, [form, onFormChange]);
+  const isDirty = unsavedFromStart || JSON.stringify(form) !== JSON.stringify(initialForm);
 
   useEffect(() => {
     // ponytail: only guards browser unload, not in-app navigation (see
     // handleBackClick below for the in-app case, via ConfirmDialog)
     function handleBeforeUnload(e: BeforeUnloadEvent) {
-      if (JSON.stringify(formRef.current) !== JSON.stringify(initialForm)) {
+      if (unsavedFromStart || JSON.stringify(formRef.current) !== JSON.stringify(initialForm)) {
         e.preventDefault();
       }
     }
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [initialForm]);
+  }, [initialForm, unsavedFromStart]);
 
   // tabs unmount inactive panels, so switching to "base" on validation failure
   // needs a tick before the title input exists in the DOM to focus
@@ -138,10 +149,20 @@ export function RecipeForm({
   }, [activeSection]);
 
   async function handleBackClick(e: React.MouseEvent<HTMLAnchorElement>) {
-    if (!isDirty) return;
+    if (!isDirty && !onBack) return;
     e.preventDefault();
-    const confirmed = await backDialogRef.current?.open();
-    if (confirmed) router.push(backHref);
+    if (isDirty && !(await backDialogRef.current?.open())) return;
+    if (onBack) onBack();
+    else router.push(backHref);
+  }
+
+  // Enter in a single-line field would submit the whole recipe mid-edit (mobile "Invio"):
+  // only textareas (newline) and buttons keep their default Enter behavior
+  function handleFormKeyDown(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.key !== "Enter") return;
+    const target = e.target as HTMLElement;
+    if (target instanceof HTMLTextAreaElement || target instanceof HTMLButtonElement) return;
+    e.preventDefault();
   }
 
   function set<K extends keyof RecipeFormData>(key: K, value: RecipeFormData[K]) {
@@ -231,10 +252,17 @@ export function RecipeForm({
       if (item.kind === "new") body.append("galleryPhotos", item.file);
     }
 
-    const res = await fetch(recipeId ? `/api/recipes/${recipeId}` : "/api/recipes", {
-      method: recipeId ? "PATCH" : "POST",
-      body,
-    });
+    let res: Response;
+    try {
+      res = await fetch(recipeId ? `/api/recipes/${recipeId}` : "/api/recipes", {
+        method: recipeId ? "PATCH" : "POST",
+        body,
+      });
+    } catch {
+      setError("Connessione assente: la ricetta non è stata salvata, riprova");
+      setSaving(false);
+      return;
+    }
 
     if (!res.ok) {
       setError(await readErrorMessage(res, "Errore durante il salvataggio"));
@@ -248,13 +276,13 @@ export function RecipeForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 pb-24">
+    <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="space-y-5 pb-24">
       <Link
         href={backHref}
         onClick={handleBackClick}
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {recipeId ? "Torna alla ricetta" : "Torna alle ricette"}
+        <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {backLabel ?? (recipeId ? "Torna alla ricetta" : "Torna alle ricette")}
       </Link>
       <ConfirmDialog
         ref={backDialogRef}

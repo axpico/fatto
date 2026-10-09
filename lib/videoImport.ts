@@ -129,6 +129,7 @@ export async function importFromVideo(
   notes: string | undefined,
   platform: VideoPlatform,
   onProgress?: (stage: string) => void,
+  signal?: AbortSignal,
 ): Promise<VideoImportResult> {
   if (!isValidVideoUrl(platform, url)) {
     throw new VideoImportError(PLATFORM_INVALID_URL_MESSAGE[platform]);
@@ -156,7 +157,7 @@ export async function importFromVideo(
           "-S",
           "res:480",
         ],
-        { cwd: dir, timeout: YT_DLP_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
+        { cwd: dir, timeout: YT_DLP_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024, signal },
       );
       meta = JSON.parse(stdout);
       videoFile = (await readdir(dir)).find((f) => f.startsWith("video.")) ?? null;
@@ -165,6 +166,7 @@ export async function importFromVideo(
       downloadError = err;
     }
 
+    signal?.throwIfAborted();
     if (!videoFile) {
       if (!trimmedNotes) {
         throw new VideoImportError(`${classifyYtDlpError(downloadError)} Aggiungi le note manuali e riprova.`);
@@ -197,12 +199,12 @@ export async function importFromVideo(
       await run(
         "ffmpeg",
         ["-i", videoPath, "-vn", "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", audioPath],
-        { timeout: FFMPEG_AUDIO_TIMEOUT_MS },
+        { timeout: FFMPEG_AUDIO_TIMEOUT_MS, signal },
       );
       const { stdout } = await run(
         "whisper-cli",
         ["-m", WHISPER_MODEL_PATH, "-f", audioPath, "-l", "auto", "-nt", "-t", String(os.availableParallelism())],
-        { timeout: WHISPER_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024 },
+        { timeout: WHISPER_TIMEOUT_MS, maxBuffer: 10 * 1024 * 1024, signal },
       );
       transcript = stdout.trim();
     } catch (err) {
@@ -210,6 +212,7 @@ export async function importFromVideo(
       console.error("[video] trascrizione audio non disponibile:", err);
     }
 
+    signal?.throwIfAborted();
     onProgress?.("Estraendo fotogrammi...");
     const frames = await extractFrames(dir, videoPath);
 
@@ -221,6 +224,7 @@ export async function importFromVideo(
       warnings.push("Non è stato possibile estrarre fotogrammi dal video.");
     }
 
+    signal?.throwIfAborted();
     onProgress?.("Estraendo ricetta...");
     const { recipe, provider } = await extractRecipe(
       buildText({ transcript, caption, comments, notes: trimmedNotes }),

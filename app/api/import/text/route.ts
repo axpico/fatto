@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Testo non valido" }, { status: 400 });
   }
 
-  return streamNdjson(async (write) => {
+  return streamNdjson(request.signal, async (write) => {
     try {
       write({ stage: "Estraendo ricetta..." });
       const { recipe, provider } = await extractRecipe(parsed.data.text);

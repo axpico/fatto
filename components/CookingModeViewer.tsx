@@ -42,6 +42,8 @@ type Step = {
   optional: boolean;
   imageFilename: string | null;
 };
+const NOTES_AUTOSAVE_MS = 800;
+
 type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null; optional: boolean };
 
 const VOICE_COMMANDS_HELP: { phrase: string; description: string }[] = [
@@ -346,6 +348,8 @@ export function CookingModeViewer({
   const [marking, setMarking] = useState(false);
   const [cookLogId, setCookLogId] = useState<string | null>(null);
   const [rating, setRating] = useState<number | null>(null);
+  const [logSaved, setLogSaved] = useState(false);
+  const notesTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragX, setDragX] = useState(0);
   const touchStartX = useRef<number | null>(null);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -453,7 +457,21 @@ export function CookingModeViewer({
   async function patchCookLog(patch: { rating?: number | null; notes?: string | null }) {
     if (!cookLogId) return;
     const ok = await cookLog.patchCookLog(cookLogId, patch);
-    if (ok) toast.success("Salvato");
+    // inline "Salvato" instead of a toast: every star tap / pause in typing would stack one
+    if (ok) setLogSaved(true);
+  }
+
+  // notes autosave while typing (blur alone can be lost on mobile navigation)
+  function handleNotesChange(notes: string) {
+    setLogSaved(false);
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+    notesTimerRef.current = setTimeout(() => patchCookLog({ notes: notes || null }), NOTES_AUTOSAVE_MS);
+  }
+
+  function flushNotes(notes: string) {
+    if (notesTimerRef.current) clearTimeout(notesTimerRef.current);
+    notesTimerRef.current = null;
+    patchCookLog({ notes: notes || null });
   }
 
   const voice = useVoiceControl({
@@ -640,13 +658,18 @@ export function CookingModeViewer({
                 value={rating}
                 onChange={(n) => {
                   setRating(n);
+                  setLogSaved(false);
                   patchCookLog({ rating: n });
                 }}
               />
+              <p aria-live="polite" className="h-4 text-xs text-muted-foreground">
+                {logSaved ? "Salvato" : ""}
+              </p>
               <textarea
                 placeholder="Note (opzionale)"
                 aria-label="Note"
-                onBlur={(e) => patchCookLog({ notes: e.target.value || null })}
+                onChange={(e) => handleNotesChange(e.target.value)}
+                onBlur={(e) => flushNotes(e.target.value)}
                 rows={2}
                 className="w-full rounded-xl border border-border bg-surface p-3 text-sm text-foreground"
               />

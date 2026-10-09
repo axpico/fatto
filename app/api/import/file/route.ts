@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  return streamNdjson(async (write) => {
+  return streamNdjson(request.signal, async (write) => {
     try {
       write({ stage: "Leggendo il file..." });
       let rawText: string;

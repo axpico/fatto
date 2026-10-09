@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Plus, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -32,6 +32,15 @@ export function ReorderableRows<T>({
   renderIndex?: (index: number) => ReactNode;
 }) {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // set by add(): the new row only exists in the DOM after the parent re-renders with it
+  const focusNewRowRef = useRef(false);
+  useEffect(() => {
+    if (!focusNewRowRef.current) return;
+    focusNewRowRef.current = false;
+    const rows = containerRef.current?.querySelectorAll("[data-row]");
+    rows?.[rows.length - 1]?.querySelector<HTMLElement>("input, textarea")?.focus();
+  }, [items.length]);
 
   // Rows carry no stable id and update() spreads a fresh object on every keystroke, so neither
   // index nor object identity is a safe React key for the FLIP reorder animation below. We keep a
@@ -59,17 +68,19 @@ export function ReorderableRows<T>({
   }
 
   function add() {
+    focusNewRowRef.current = true;
     onChange([...items, onAdd()]);
     setKeys((k) => [...k, newKey()]);
   }
 
   return (
-    <div className="space-y-2">
+    <div ref={containerRef} className="space-y-2">
       <AnimatePresence initial={false}>
         {items.map((row, index) => (
           <motion.div
             key={keys[index] ?? index}
             layout
+            data-row
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

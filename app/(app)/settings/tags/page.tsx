@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Merge } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -9,13 +9,13 @@ import { Spinner } from "@/components/ui/Spinner";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson, reportIfFailed } from "@/lib/clientFetch";
 import type { DuplicatePair } from "@/lib/tagDedupe";
+import { deferCommit } from "@/lib/deferCommit";
 
 const UNDO_WINDOW_MS = 5000;
 
 export default function TagDuplicatesPage() {
   const toast = useToast();
   const [pairs, setPairs] = useState<DuplicatePair[] | null>(null);
-  const pendingMerges = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
   function load() {
     loadJson<DuplicatePair[]>("/api/tags/duplicates", toast, setPairs);
@@ -24,38 +24,27 @@ export default function TagDuplicatesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is stable, omitted to avoid re-running the load on every render
   useEffect(load, []);
 
-  useEffect(() => {
-    const pending = pendingMerges.current;
-    return () => {
-      pending.forEach((timeout) => clearTimeout(timeout));
-    };
-  }, []);
-
   function merge(pair: DuplicatePair, keepId: string, mergeId: string, keepName: string, mergeName: string, key: string) {
     setPairs((prev) => (prev ? prev.filter((p) => `${p.aId}-${p.bId}` !== key) : prev));
 
-    const timeout = setTimeout(async () => {
-      pendingMerges.current.delete(key);
+    // not cancelled on unmount: leaving the page within the undo window still merges
+    const cancel = deferCommit(async () => {
       const res = await fetch("/api/tags/merge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ keepId, mergeId }),
+        keepalive: true,
       });
       if (await reportIfFailed(res, toast)) return;
       toast.success("Tag uniti");
     }, UNDO_WINDOW_MS);
-    pendingMerges.current.set(key, timeout);
 
     toast.withAction(
       `"${mergeName}" unito con "${keepName}"`,
       {
         label: "Annulla",
         onClick: () => {
-          const pending = pendingMerges.current.get(key);
-          if (pending) {
-            clearTimeout(pending);
-            pendingMerges.current.delete(key);
-          }
+          cancel();
           setPairs((prev) => (prev ? [pair, ...prev] : prev));
         },
       },
