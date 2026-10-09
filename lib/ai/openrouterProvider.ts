@@ -13,7 +13,8 @@ export class OpenRouterAuthError extends Error {}
 
 interface OpenRouterModel {
   id: string;
-  pricing: { prompt: string; completion: string };
+  // absent on some models in the live list
+  pricing?: { prompt: string; completion: string };
   context_length: number;
   created: number;
   supported_parameters?: string[];
@@ -28,7 +29,7 @@ const negativeCache = new BoundedMap<string, number>(200);
 
 export function rankFreeModels(models: OpenRouterModel[], opts?: { vision?: boolean }): string[] {
   return models
-    .filter((m) => m.pricing.prompt === "0" && m.pricing.completion === "0")
+    .filter((m) => m.pricing?.prompt === "0" && m.pricing?.completion === "0")
     .filter((m) => m.supported_parameters?.includes("structured_outputs"))
     .filter((m) => !opts?.vision || (m.architecture?.input_modalities?.includes("image") ?? false))
     .sort((a, b) => b.context_length - a.context_length || b.created - a.created)

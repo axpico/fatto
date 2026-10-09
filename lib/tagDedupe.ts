@@ -9,7 +9,9 @@ export function pickBestMatch(candidates: { name: string; sim: number }[], thres
   return best && best.sim >= threshold ? best.name : null;
 }
 
-// Riusa un tag esistente vicino invece di crearne uno quasi-duplicato ("dolce" vs "dolci").
+// Riusa un tag esistente molto vicino invece di crearne uno quasi-duplicato ("primi piatti" vs
+// "primo piatto"). Coppie corte come "dolce"/"dolci" hanno similarità 0.5, sotto la soglia di
+// creazione apposta: quelle le propone la pagina admin "Tag simili", dove si conferma a mano.
 export async function resolveTagNames(names: string[]): Promise<string[]> {
   const resolved = await Promise.all(
     names.map(async (name) => {

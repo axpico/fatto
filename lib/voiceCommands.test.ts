@@ -30,3 +30,9 @@ describe("matchVoiceCommand", () => {
     expect(matchVoiceCommand("vai al passaggio cinque")).toEqual({ type: "jump", step: 5 });
   });
 });
+
+describe("next synonyms", () => {
+  it.each(["successivo", "passaggio successivo", "dopo"])("%s → next", (phrase) => {
+    expect(matchVoiceCommand(phrase)).toEqual({ type: "next" });
+  });
+});

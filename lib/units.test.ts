@@ -107,3 +107,13 @@ describe("applyUnitPreference", () => {
     });
   });
 });
+
+describe("aliases added for Italian/English spellings", () => {
+  it("handles decilitres, millilitri and English gram/kilogram", () => {
+    expect(convert(2, "dl", "ml")).toBe(200);
+    expect(convert(1, "decilitri", "ml")).toBe(100);
+    expect(convert(250, "millilitri", "l")).toBe(0.25);
+    expect(convert(500, "grams", "kg")).toBe(0.5);
+    expect(convert(1, "kilogram", "g")).toBe(1000);
+  });
+});

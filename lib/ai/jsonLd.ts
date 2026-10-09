@@ -21,7 +21,8 @@ type JsonLdRecipeData = {
 function parseNum(value: unknown): number | null {
   if (typeof value === "number") return Number.isFinite(value) ? value : null;
   if (typeof value !== "string") return null;
-  const match = value.match(/[\d.]+/);
+  // "approx. 200 kcal" must not match the lone "."; Italian sites write "1,5 g"
+  const match = value.replace(",", ".").match(/\d+(?:\.\d+)?/);
   return match ? Number(match[0]) : null;
 }
 
@@ -73,11 +74,12 @@ function parseImage(image: unknown): string | null {
   return null;
 }
 
-// HowToSection (passaggi raggruppati sotto titoli) non è gestita — caso meno comune, ricade su
-// null come il resto di questo parser best-effort
+// HowToSection (passaggi raggruppati sotto titoli) non è gestita: una sezione non è un passaggio,
+// quindi le immagini finirebbero sui passaggi sbagliati — null, così scatta il fallback
 function parseStepImages(recipeInstructions: unknown): (string | null)[] | null {
   if (!Array.isArray(recipeInstructions) || recipeInstructions.length === 0) return null;
   if (recipeInstructions.some((item) => typeof item !== "object" || item === null)) return null;
+  if (recipeInstructions.some((item) => (item as Record<string, unknown>)["@type"] === "HowToSection")) return null;
   return recipeInstructions.map((item) => parseImage((item as Record<string, unknown>).image));
 }
 

@@ -116,3 +116,27 @@ describe("parseServings", () => {
     expect(extractJsonLdRecipe(html)?.servings).toBe(4);
   });
 });
+
+describe("nutrition and step parsing edge cases", () => {
+  function page(recipe: object) {
+    return `<script type="application/ld+json">${JSON.stringify({ "@type": "Recipe", ...recipe })}</script>`;
+  }
+
+  it("ignores a stray dot and reads Italian decimal commas", () => {
+    const data = extractJsonLdRecipe(page({ nutrition: { calories: "approx. 200 kcal", fatContent: "1,5 g" } }));
+    expect(data?.nutrition?.calories).toBe(200);
+    expect(data?.nutrition?.fat_g).toBe(1.5);
+  });
+
+  it("does not map HowToSection groups onto steps", () => {
+    const data = extractJsonLdRecipe(
+      page({
+        recipeInstructions: [
+          { "@type": "HowToSection", name: "Impasto", image: "https://x/a.jpg", itemListElement: [] },
+          { "@type": "HowToSection", name: "Farcitura", image: "https://x/b.jpg", itemListElement: [] },
+        ],
+      }),
+    );
+    expect(data?.stepImageUrls).toBeNull();
+  });
+});
