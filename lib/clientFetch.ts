@@ -1,5 +1,7 @@
 type ToastLike = { error: (message: string) => void };
 
+export const NETWORK_ERROR = "Connessione assente, riprova.";
+
 /** Estrae `{ error }` dal body di una risposta fallita, con fallback se non è JSON valido. */
 export async function readErrorMessage(res: Response, fallback: string): Promise<string> {
   const data = await res.json().catch(() => ({}));

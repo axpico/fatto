@@ -1,5 +1,5 @@
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/clientFetch";
+import { NETWORK_ERROR, reportIfFailed } from "@/lib/clientFetch";
 
 type CookLogPatch = { rating?: number | null; notes?: string | null };
 
@@ -9,24 +9,33 @@ type CookLogPatch = { rating?: number | null; notes?: string | null };
 export function useCookLog(recipeId: string) {
   const toast = useToast();
 
+  // network errors resolve to null/false like HTTP errors, so callers' "pending" flags always reset
+  async function send(url: string, init: RequestInit): Promise<Response | null> {
+    try {
+      const res = await fetch(url, init);
+      return (await reportIfFailed(res, toast)) ? null : res;
+    } catch {
+      toast.error(NETWORK_ERROR);
+      return null;
+    }
+  }
+
   async function markCooked<T>(): Promise<T | null> {
-    const res = await fetch(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
-    if (await reportIfFailed(res, toast)) return null;
-    return res.json();
+    const res = await send(`/api/recipes/${recipeId}/cook-log`, { method: "POST" });
+    return res ? res.json() : null;
   }
 
   async function patchCookLog(id: string, patch: CookLogPatch): Promise<boolean> {
-    const res = await fetch(`/api/cook-logs/${id}`, {
+    const res = await send(`/api/cook-logs/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
-    return !(await reportIfFailed(res, toast));
+    return res !== null;
   }
 
   async function deleteCookLog(id: string): Promise<boolean> {
-    const res = await fetch(`/api/cook-logs/${id}`, { method: "DELETE" });
-    return !(await reportIfFailed(res, toast));
+    return (await send(`/api/cook-logs/${id}`, { method: "DELETE" })) !== null;
   }
 
   return { markCooked, patchCookLog, deleteCookLog };

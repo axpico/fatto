@@ -218,11 +218,12 @@ export function RecipeForm({
       }
     }
     // blank rows (added and never filled) are dropped; a quantity without a name is a mistake
-    const ingredients = form.ingredients.filter((i) => i.name.trim() || i.quantity != null || i.unit?.trim());
-    const namelessIndex = ingredients.findIndex((i) => !i.name.trim());
+    const isBlank = (i: RecipeFormData["ingredients"][number]) => !i.name.trim() && i.quantity == null && !i.unit?.trim();
+    const ingredients = form.ingredients.filter((i) => !isBlank(i));
+    // index in the visible list (blank rows included) so the number matches what the user sees
+    const namelessIndex = form.ingredients.findIndex((i) => !isBlank(i) && !i.name.trim());
     if (namelessIndex !== -1) {
-      setError(`Manca il nome dell'ingrediente n. ${namelessIndex + 1}`);
-      setActiveSection("ingredienti");
+      failValidation(`Manca il nome dell'ingrediente n. ${namelessIndex + 1}`, "ingredienti", `ingredient-name-${namelessIndex}`);
       return;
     }
     const steps = form.steps.filter((s) => s.instruction.trim() || s.imageFile || s.imageFilename);

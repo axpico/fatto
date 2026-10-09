@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { CookingModeViewer } from "@/components/CookingModeViewer";
+import { CookingModeClient } from "@/components/CookingModeClient";
 import { orderedIngredientsAndSteps } from "@/lib/recipeInclude";
 
 export default async function CookModePage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,7 +13,7 @@ export default async function CookModePage({ params }: { params: Promise<{ id: s
   if (!recipe) notFound();
 
   return (
-    <CookingModeViewer
+    <CookingModeClient
       recipeId={recipe.id}
       title={recipe.title}
       steps={recipe.steps}

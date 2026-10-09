@@ -73,6 +73,7 @@ type SpeechRecognitionLike = {
   interimResults: boolean;
   onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onend: (() => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
   start: () => void;
   stop: () => void;
 };
@@ -104,7 +105,7 @@ function useVoiceControl(actions: {
   repeat: () => void;
   jump: (step: number) => void;
   timeLeft: () => void;
-}) {
+}, onUnavailable: () => void) {
   const [supported] = useState(() => getSpeechRecognitionCtor() !== null);
   const [listening, setListening] = useState(false);
   const [notUnderstood, setNotUnderstood] = useState(false);
@@ -114,9 +115,11 @@ function useVoiceControl(actions: {
   const wantListeningRef = useRef(false);
   const notUnderstoodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionsRef = useRef(actions);
+  const onUnavailableRef = useRef(onUnavailable);
 
   useEffect(() => {
     actionsRef.current = actions;
+    onUnavailableRef.current = onUnavailable;
   });
 
   useEffect(() => {
@@ -182,6 +185,13 @@ function useVoiceControl(actions: {
           break;
       }
     };
+    recognition.onerror = (event) => {
+      // permission denied / no mic: stop, or onend would restart (and fail) in a loop
+      if (["not-allowed", "service-not-allowed", "audio-capture"].includes(event.error)) {
+        wantListeningRef.current = false;
+        onUnavailableRef.current();
+      }
+    };
     recognition.onend = () => {
       if (!wantListeningRef.current) {
         setListening(false);
@@ -203,9 +213,33 @@ function useVoiceControl(actions: {
   return { supported, listening, notUnderstood, toggle };
 }
 
+// Android Chrome forbids `new Notification()` (TypeError "Illegal constructor"): pages must go
+// through the service worker registration. Never throws: a missing notification must not take
+// down cook mode mid-timer.
+function showSystemNotification(title: string, options: NotificationOptions) {
+  try {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((registration) => registration.showNotification(title, options))
+        .catch(() => {});
+      return;
+    }
+    new Notification(title, options);
+  } catch {
+    // unsupported here: the in-page banner and beep still fire
+  }
+}
+
+// one context for the page's lifetime: browsers (iOS Safari especially) cap how many can be open,
+// and the repeating timer alarm would otherwise create a new one every few seconds
+let beepContext: AudioContext | null = null;
+
 function playBeep() {
   const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-  const ctx = new Ctx();
+  beepContext ??= new Ctx();
+  const ctx = beepContext;
+  if (ctx.state === "suspended") ctx.resume().catch(() => {});
   const oscillator = ctx.createOscillator();
   const gain = ctx.createGain();
   oscillator.frequency.value = 880;
@@ -407,8 +441,8 @@ export function CookingModeViewer({
   function handleTimerFinish(stepIndex: number) {
     setAnnouncement(stepIndex === index ? "Timer terminato" : `Timer del passaggio ${stepIndex + 1} terminato`);
     setRinging((r) => (r.includes(stepIndex) ? r : [...r, stepIndex]));
-    if (document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") {
-      new Notification(`Timer passaggio ${stepIndex + 1} terminato`, { body: title, tag: `timer-${recipeId}-${stepIndex}` });
+    if (document.visibilityState !== "visible") {
+      showSystemNotification(`Timer passaggio ${stepIndex + 1} terminato`, { body: title, tag: `timer-${recipeId}-${stepIndex}` });
     }
   }
   function acknowledge(stepIndex: number) {
@@ -493,7 +527,8 @@ export function CookingModeViewer({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if ((e.target as HTMLElement | null)?.closest("input, textarea, dialog")) return;
+      // Space/arrows on a focused control must keep their native meaning (press the button)
+      if ((e.target as HTMLElement | null)?.closest("input, textarea, select, button, a, dialog")) return;
       if (e.key === "ArrowRight") next();
       else if (e.key === "ArrowLeft") prev();
       else if (e.key === " " && step) {
@@ -549,7 +584,7 @@ export function CookingModeViewer({
       if (remaining === null) speak("Nessun timer attivo");
       else speak(`Mancano ${Math.ceil(remaining / 60)} minuti`);
     },
-  });
+  }, () => toast.error("Microfono non disponibile: controlla i permessi del browser."));
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;

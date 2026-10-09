@@ -246,11 +246,15 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
   }
 
   async function importLink(skipDuplicateCheck = false) {
+    if (loading) return;
     const target = url.trim();
     if (!skipDuplicateCheck) {
+      // loading already during the check: a double tap must not start two imports
+      setLoading(true);
       const dup = await findDuplicate(target);
       if (dup) {
         setDuplicate(dup);
+        setLoading(false);
         return;
       }
     }
@@ -488,7 +492,7 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
                   <Link href={`/recipes/${duplicate.id}`} className="font-medium underline">
                     Apri ricetta
                   </Link>
-                  <button type="button" onClick={() => importLink(true)} className="font-medium underline">
+                  <button type="button" onClick={() => importLink(true)} disabled={loading} className="font-medium underline disabled:opacity-50">
                     Importa comunque
                   </button>
                 </div>

@@ -33,9 +33,10 @@ export function IngredientRows({
         itemLabel="ingrediente"
         addLabel="Aggiungi ingrediente"
         onAdd={() => ({ name: "", quantity: null, unit: null, optional: false })}
-        renderFields={(row, _index, update) => (
+        renderFields={(row, index, update) => (
           <>
             <input
+              id={`ingredient-name-${index}`}
               type="text"
               list="ingredient-suggestions"
               placeholder="Ingrediente"

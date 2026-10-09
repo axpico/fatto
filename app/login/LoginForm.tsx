@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { reportIfFailed } from "@/lib/clientFetch";
+import { NETWORK_ERROR, reportIfFailed } from "@/lib/clientFetch";
 
 export function LoginForm({ next }: { next: string }) {
   const router = useRouter();
@@ -20,11 +20,18 @@ export function LoginForm({ next }: { next: string }) {
     setLoading(true);
     setError(null);
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+    } catch {
+      setError(NETWORK_ERROR);
+      setLoading(false);
+      return;
+    }
 
     if (await reportIfFailed(res, { error: setError })) {
       setLoading(false);

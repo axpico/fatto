@@ -2,7 +2,7 @@ import Link from "next/link";
 import { BookOpen, Plus, Search } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { RecipeCard } from "@/components/RecipeCard";
+import { FeaturedRecipe } from "@/components/FeaturedRecipe";
 import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
@@ -77,12 +77,7 @@ export default async function HomePage({
         </form>
       </div>
 
-      {highlight && (
-        <section className="space-y-3">
-          <h2 className="section-title">Sorpresa del giorno</h2>
-          <RecipeCard recipe={highlight} variant="featured" />
-        </section>
-      )}
+      {highlight && <FeaturedRecipe recipe={highlight} />}
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between gap-3">

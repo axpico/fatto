@@ -13,8 +13,13 @@ export function useLocalStorageSync<T>(
     return () => window.removeEventListener(event, callback);
   }
 
+  // storage can throw (blocked cookies/site data, some private modes): fall back, never crash
   function getSnapshot(): T {
-    return resolve(localStorage.getItem(key));
+    try {
+      return resolve(localStorage.getItem(key));
+    } catch {
+      return serverValue;
+    }
   }
 
   function getServerSnapshot(): T {
@@ -22,7 +27,11 @@ export function useLocalStorageSync<T>(
   }
 
   function set(raw: string) {
-    localStorage.setItem(key, raw);
+    try {
+      localStorage.setItem(key, raw);
+    } catch {
+      return;
+    }
     window.dispatchEvent(new Event(event));
   }
 

@@ -4,7 +4,7 @@ import { useState, type MouseEvent } from "react";
 import { Star } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 import { buttonClasses } from "@/components/ui/Button";
-import { reportIfFailed } from "@/lib/clientFetch";
+import { NETWORK_ERROR, reportIfFailed } from "@/lib/clientFetch";
 
 export function FavoriteButton({
   recipeId,
@@ -28,13 +28,19 @@ export function FavoriteButton({
     setFavorite(next);
     setPulse(true);
     setPending(true);
-    const res = await fetch(`/api/recipes/${recipeId}/favorite`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ favorite: next }),
-    });
-    setPending(false);
-    if (await reportIfFailed(res, toast)) setFavorite(!next);
+    try {
+      const res = await fetch(`/api/recipes/${recipeId}/favorite`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ favorite: next }),
+      });
+      if (await reportIfFailed(res, toast)) setFavorite(!next);
+    } catch {
+      setFavorite(!next);
+      toast.error(NETWORK_ERROR);
+    } finally {
+      setPending(false);
+    }
   }
 
   return (

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
-import { reportIfFailed } from "@/lib/clientFetch";
+import { NETWORK_ERROR, reportIfFailed } from "@/lib/clientFetch";
 import { deferCommit } from "@/lib/deferCommit";
 import { hideRecipe, unhideRecipe } from "@/lib/pendingDeletes";
 
@@ -18,12 +18,17 @@ export function DeleteRecipeButton({ recipeId, title }: { recipeId: string; titl
   function handleDelete() {
     hideRecipe(recipeId);
     const cancel = deferCommit(async () => {
-      const res = await fetch(`/api/recipes/${recipeId}`, { method: "DELETE", keepalive: true });
-      if (await reportIfFailed(res, toast)) {
+      try {
+        const res = await fetch(`/api/recipes/${recipeId}`, { method: "DELETE", keepalive: true });
+        if (await reportIfFailed(res, toast)) {
+          unhideRecipe(recipeId);
+          return;
+        }
+        router.refresh();
+      } catch {
         unhideRecipe(recipeId);
-        return;
+        toast.error(`"${title}" non è stata eliminata: ${NETWORK_ERROR}`);
       }
-      router.refresh();
     }, UNDO_WINDOW_MS);
     router.push("/");
     toast.withAction(

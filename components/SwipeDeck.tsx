@@ -116,6 +116,7 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
   const tagWeight = useRef(new Map<string, number>());
   const timeWeight = useRef(new Map<TimeBucket, number>());
   const activeCardRef = useRef<SwipeCardHandle>(null);
+  const dealIdRef = useRef(0);
   const filtersModalRef = useRef<ModalHandle>(null);
   const detailsModalRef = useRef<ModalHandle>(null);
 
@@ -156,13 +157,16 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
   }
 
   async function deal(filters: DeckFilters) {
+    // overlapping deals (filters applied / unlock pressed mid-load): only the latest may land
+    const dealId = ++dealIdRef.current;
     setPhase("loading");
     let loaded = false;
     await loadJson<RecipeCardData[]>(`/api/swipe/deck?${deckFiltersToParams(filters)}`, toast, (recipes) => {
+      if (dealId !== dealIdRef.current) return;
       loaded = true;
       beginSession(recipes);
     });
-    if (!loaded) setPhase("noMatches"); // loadJson already toasted the error
+    if (!loaded && dealId === dealIdRef.current) setPhase("noMatches"); // loadJson already toasted the error
   }
 
   function applyFilters() {
@@ -196,6 +200,8 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
         body: JSON.stringify({ recipeId: rejectedId }),
         keepalive: true,
       }).catch(() => toast.error("Scarto non salvato, riprova più tardi."));
+      // sent: undoing it now would only restore the card locally while the server keeps it paused
+      setLastReject((last) => (last?.cancel === cancel ? null : last));
     }, REJECT_UNDO_MS);
     setLastReject({ deck, weights: [new Map(tagWeight.current), new Map(timeWeight.current)], cancel });
 
