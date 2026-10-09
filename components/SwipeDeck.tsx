@@ -303,8 +303,8 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
   );
 
   const toolbar = (
-    <div className="flex items-center justify-between gap-2">
-      <h1 className="font-display text-xl font-semibold text-foreground">Decidi cosa cucinare</h1>
+    <div className="page-header">
+      <h1 className="page-title">Decidi</h1>
       <Button type="button" variant="secondary" size="sm" onClick={openFilters}>
         <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
         Filtri{filterCount > 0 ? ` (${filterCount})` : ""}
@@ -314,7 +314,7 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
 
   if (phase === "loading") {
     return (
-      <div className="page-shell max-w-md space-y-6">
+      <div className="page-shell page-shell-narrow space-y-6">
         {toolbar}
         <div className="flex aspect-[3/4] w-full items-center justify-center">
           <Spinner />
@@ -326,7 +326,7 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
 
   if (phase === "noMatches" || phase === "exhausted") {
     return (
-      <div className="page-shell max-w-md space-y-6">
+      <div className="page-shell page-shell-narrow space-y-6">
         {toolbar}
         <EmptyState
           title={phase === "noMatches" ? (filterCount > 0 ? "Nessuna ricetta con questi filtri" : "Nessuna ricetta da proporre") : "Finite per oggi"}
@@ -359,7 +359,7 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
   }
 
   return (
-    <div className="page-shell max-w-md space-y-6">
+    <div className="page-shell page-shell-narrow space-y-6">
       {toolbar}
       <div className="relative mx-auto aspect-[3/4] w-full max-w-sm">
         {afterNext && <SwipeCard key={afterNext.id} recipe={afterNext} active={false} stackIndex={2} onExited={() => {}} />}
@@ -402,7 +402,6 @@ export function SwipeDeck({ initialFilters }: { initialFilters: DeckFilters }) {
           <ChefHat className="h-5 w-5" aria-hidden="true" />
         </Button>
       </div>
-      <p className="text-center text-xs text-muted-foreground">Tocca la carta per i dettagli</p>
       {current && (
         <Modal ref={detailsModalRef} variant="sheet" title={current.title}>
           <div className="space-y-4">

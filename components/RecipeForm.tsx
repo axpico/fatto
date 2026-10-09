@@ -493,7 +493,7 @@ export function RecipeForm({
       </Card>
 
       <div className="fixed inset-x-0 bottom-16 z-10 border-t border-border bg-surface/95 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] backdrop-blur md:bottom-0">
-        <div className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto w-full max-w-3xl">
           <Button type="submit" size="lg" disabled={saving} className="w-full">
             {saving ? "Salvataggio..." : "Salva ricetta"}
           </Button>

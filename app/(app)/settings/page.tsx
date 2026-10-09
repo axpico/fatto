@@ -5,65 +5,59 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { UnitToggle } from "@/components/UnitToggle";
 import { LogoutButton } from "@/components/LogoutButton";
 
+const groupTitle = "mb-2 px-1 text-sm font-medium text-muted-foreground";
+// one card per group, rows separated by dividers (instead of a bordered panel per row)
+const group = "divide-y divide-border overflow-hidden rounded-xl border border-border bg-surface shadow-sm";
+const row = "flex min-h-14 items-center justify-between gap-4 px-4 py-3";
+
 export default async function SettingsPage() {
   const user = await requireUser();
 
   return (
-    <div className="page-shell max-w-lg space-y-6">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Impostazioni</h1>
-          <p className="page-description">Account e preferenze dell&apos;app.</p>
-        </div>
-      </div>
+    <div className="page-shell page-shell-narrow space-y-6">
+      <h1 className="page-title">Impostazioni</h1>
 
       <section>
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Account</h2>
-        <div className="panel flex items-center justify-between gap-4">
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-foreground">{user.name}</p>
-            <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+        <h2 className={groupTitle}>Account</h2>
+        <div className={group}>
+          <div className={row}>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">{user.name}</p>
+              <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+            </div>
+            <LogoutButton />
           </div>
-          <LogoutButton />
         </div>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Preferenze</h2>
-        <div className="panel flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Aspetto</p>
-            <p className="text-sm text-muted-foreground">Passa dal tema chiaro a quello scuro.</p>
+      <section>
+        <h2 className={groupTitle}>Preferenze</h2>
+        <div className={group}>
+          <div className={row}>
+            <p className="text-sm font-medium text-foreground">Tema</p>
+            <ThemeToggle />
           </div>
-          <ThemeToggle />
-        </div>
-
-        <div className="panel flex items-center justify-between gap-4">
-          <div>
-            <p className="font-medium text-foreground">Unità di misura</p>
-            <p className="text-sm text-muted-foreground">Converti le quantità in grammi e millilitri.</p>
+          <div className={row}>
+            <p className="text-sm font-medium text-foreground">Unità di misura</p>
+            <UnitToggle size="md" />
           </div>
-          <UnitToggle size="md" />
         </div>
       </section>
 
       {user.isAdmin && (
-        <section className="space-y-3">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">Amministrazione</h2>
-          <Link href="/settings/tags" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
-            <div>
-              <p className="font-medium text-foreground">Tag simili</p>
-              <p className="text-sm text-muted-foreground">Unisci i tag quasi-duplicati.</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </Link>
-          <Link href="/settings/users" className="panel flex items-center justify-between gap-4 hover:bg-surface-secondary active:bg-surface-secondary">
-            <div>
-              <p className="font-medium text-foreground">Utenti</p>
-              <p className="text-sm text-muted-foreground">Crea nuovi account per la famiglia.</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          </Link>
+        <section>
+          <h2 className={groupTitle}>Amministrazione</h2>
+          <div className={group}>
+            {([
+              ["/settings/tags", "Tag simili"],
+              ["/settings/users", "Utenti"],
+            ] as const).map(([href, label]) => (
+              <Link key={href} href={href} className={`${row} hover:bg-surface-secondary active:bg-surface-secondary`}>
+                <span className="text-sm font-medium text-foreground">{label}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              </Link>
+            ))}
+          </div>
         </section>
       )}
     </div>

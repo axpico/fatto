@@ -19,12 +19,7 @@ export default async function EditRecipePage({ params }: { params: Promise<{ id:
 
   return (
     <div className="page-shell pb-0">
-      <div className="page-header mb-2">
-        <div>
-          <h1 className="page-title">Modifica ricetta</h1>
-          <p className="page-description">Aggiorna i dettagli e salva quando hai finito.</p>
-        </div>
-      </div>
+      <h1 className="page-title mb-4">Modifica ricetta</h1>
       <RecipeForm
         recipeId={recipe.id}
         backHref={`/recipes/${recipe.id}`}

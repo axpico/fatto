@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown, ChevronUp, Clock, Search, SlidersHorizontal, Sparkles, Star, Users, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Clock, Search, SlidersHorizontal, Star, Users, X } from "lucide-react";
 import { type RecipeCardData } from "@/components/RecipeCard";
 import { RecipeList, VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView } from "@/components/RecipeList";
 import { TagFilterPanel } from "@/components/TagFilterPanel";
@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Badge, pillButtonClasses } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionIntro } from "@/components/ui/SectionIntro";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Spinner } from "@/components/ui/Spinner";
 import { Button } from "@/components/ui/Button";
@@ -190,13 +189,9 @@ function SearchPageContent() {
   ];
 
   return (
-    <div className="page-shell max-w-3xl space-y-6">
-      <div className="page-header rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
-        <div>
-          <p className="eyebrow mb-2"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> Scopri cosa cucinare</p>
-          <h1 className="page-title">Cerca ricette</h1>
-          <p className="page-description">Trova una ricetta o parti dagli ingredienti che hai già.</p>
-        </div>
+    <div className="page-shell space-y-6">
+      <div className="page-header">
+        <h1 className="page-title">Cerca</h1>
         {hasActiveFilters && (
           <Button type="button" variant="ghost" size="sm" onClick={clearFilters}>
             Cancella filtri
@@ -204,8 +199,7 @@ function SearchPageContent() {
         )}
       </div>
 
-      <Card className="space-y-5 p-4 sm:p-5">
-        <SectionIntro icon={SlidersHorizontal} title="Trova la ricetta giusta" description="Cerca per nome o restringi i risultati con i filtri." />
+      <div className="space-y-3">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
@@ -250,12 +244,13 @@ function SearchPageContent() {
           </div>
         )}
 
-        <button
+        <Button
           type="button"
+          variant="secondary"
           onClick={() => setFiltersOpen((o) => !o)}
           aria-expanded={filtersOpen}
           aria-controls="search-filters-panel"
-          className="flex w-full items-center justify-between rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground sm:hidden"
+          className="w-full justify-between sm:hidden"
         >
           <span className="flex items-center gap-1.5">
             <SlidersHorizontal className="h-4 w-4" aria-hidden="true" />
@@ -272,10 +267,11 @@ function SearchPageContent() {
             )}
           </span>
           {filtersOpen ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
-        </button>
+        </Button>
+      </div>
 
-      <div id="search-filters-panel" className={`space-y-5 ${filtersOpen ? "" : "hidden sm:block"}`}>
-      <div className="border-t border-border pt-4">
+      <Card id="search-filters-panel" className={`space-y-6 p-4 sm:p-5 ${filtersOpen ? "" : "hidden sm:block"}`}>
+      <div>
         <TagFilterPanel
           tags={tags}
           selectedTagIds={selectedTagIds}
@@ -285,7 +281,7 @@ function SearchPageContent() {
         />
       </div>
 
-      <div className="border-t border-border pt-4">
+      <div>
         <p className="text-sm font-medium text-foreground">Cosa posso cucinare?</p>
         <p className="mb-3 text-sm text-muted-foreground">Aggiungi gli ingredienti che hai già a disposizione.</p>
         <ChipInput
@@ -297,7 +293,7 @@ function SearchPageContent() {
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Prep. entro (min)
@@ -362,7 +358,7 @@ function SearchPageContent() {
         />
       </div>
 
-      <div className="border-t border-border pt-4">
+      <div>
         <p className="mb-2 text-sm font-medium text-foreground">Valutazione minima</p>
         <div className="flex flex-wrap gap-2">
           {RATING_OPTIONS.map((r) => (
@@ -390,12 +386,11 @@ function SearchPageContent() {
       <Button type="button" onClick={() => setFiltersOpen(false)} className="w-full sm:hidden">
         {status === "done" ? `Mostra ${results.length} ${results.length === 1 ? "ricetta" : "ricette"}` : "Mostra risultati"}
       </Button>
-      </div>
       </Card>
 
       <section aria-live="polite">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="font-display text-xl font-semibold text-foreground">Risultati</h2>
+          <h2 className="section-title">Risultati</h2>
           <div className="flex items-center gap-3">
             {status === "loading" && loadedOnce && <Spinner className="h-4 w-4" />}
             {loadedOnce && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}

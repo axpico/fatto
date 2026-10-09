@@ -20,7 +20,7 @@ export default async function AppLayout({
       </a>
       <div className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-20 border-b border-border bg-surface/90 px-4 py-3 backdrop-blur md:px-6">
-          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-4">
+          <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4">
             <Link href="/" className="font-display text-lg font-semibold tracking-tight text-foreground">Fatto</Link>
             <DesktopNav />
           </div>

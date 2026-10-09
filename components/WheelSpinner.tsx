@@ -8,10 +8,8 @@ import { Dices } from "lucide-react";
 import { Overlay, type RecipeCardData } from "@/components/RecipeCard";
 import { UploadedImage } from "@/components/UploadedImage";
 import { FavoriteButton } from "@/components/FavoriteButton";
-import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { SectionIntro } from "@/components/ui/SectionIntro";
 import { Button, buttonClasses } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { loadJson } from "@/lib/clientFetch";
@@ -121,23 +119,11 @@ export function WheelSpinner() {
   const litColor = highlightIdx >= 0 ? SLICE_COLORS[highlightIdx % SLICE_COLORS.length] : "var(--primary)";
 
   return (
-    <div className="page-shell max-w-md space-y-6">
-      <Card className="relative space-y-5 overflow-hidden p-4 sm:p-5">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute -inset-x-10 -top-28 h-72 rounded-full blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, color-mix(in oklab, var(--primary) 22%, transparent), transparent 70%)",
-          }}
-        />
-
-        <div className="relative space-y-5">
-          <SectionIntro
-            icon={Dices}
-            title="Ruota della fortuna"
-            description="Gira e lascia che sia il caso a decidere cosa cucinare stasera."
-          />
+    <div className="page-shell page-shell-narrow space-y-6">
+        <div>
+          <h1 className="page-title">Ruota</h1>
+          <p className="page-description">Lascia decidere al caso cosa cucinare stasera.</p>
+        </div>
 
           {pool === null && (
             <div className="flex justify-center py-10">
@@ -280,8 +266,6 @@ export function WheelSpinner() {
               )}
             </div>
           )}
-        </div>
-      </Card>
     </div>
   );
 }

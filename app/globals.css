@@ -176,17 +176,18 @@ body > * {
 }
 
 @layer components {
-  .page-shell { @apply mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-8; }
-  .page-header { @apply mb-6 flex flex-wrap items-end justify-between gap-3; }
+  /* one content width app-wide (matches the nav bar); narrow for single-column tools */
+  .page-shell { @apply mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-8; }
+  .page-shell-narrow { @apply max-w-md; }
+  /* the only page header pattern: h1.page-title + optional .page-description, action on the right */
+  .page-header { @apply flex flex-wrap items-end justify-between gap-3; }
+  .section-title { @apply font-display text-xl font-semibold text-foreground; }
   .page-title { @apply font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl; }
   .page-description { @apply mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground; }
   .panel { @apply rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5; }
   .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md; }
   .dialog-surface { animation: dialog-enter 180ms ease-out both; }
   .dialog-shake { animation: dialog-enter-shake 480ms ease-out both; }
-
-  /* Section eyebrow: small uppercase amber label used above page titles. */
-  .eyebrow { @apply flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-primary; }
 
   .reveal {
     opacity: 0;

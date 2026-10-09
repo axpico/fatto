@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Link2, Image as ImageIcon, Video, Upload, CheckCircle2, TriangleAlert, FileText, ClipboardPaste } from "lucide-react";
+import { Video, Upload, CheckCircle2, TriangleAlert, ClipboardPaste } from "lucide-react";
 import { RecipeForm, type RecipeFormData } from "@/components/RecipeForm";
 import type { ExtractedRecipe } from "@/lib/ai/schema";
 import { detectVideoPlatform, extractFirstUrl, type VideoPlatform } from "@/lib/videoPlatforms";
@@ -16,7 +16,6 @@ import { Card } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
-import { SectionIntro } from "@/components/ui/SectionIntro";
 import { readErrorMessage } from "@/lib/clientFetch";
 
 const LANGUAGES = [
@@ -362,22 +361,10 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
 
   if (extracted || manual) {
     return (
-      <div className="page-shell max-w-3xl pb-0">
-        <div className="rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
-          <div className="flex items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-              <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-            </span>
-            <div>
-              <p className="mb-1 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Ultimo passaggio</p>
-              <h1 className="page-title">{extracted ? "Rivedi e salva" : "Nuova ricetta"}</h1>
-              <p className="page-description">
-                {extracted
-                  ? "Controlla i dati estratti prima di salvare: l'AI può sbagliare."
-                  : "Compila i campi e salva."}
-              </p>
-            </div>
-          </div>
+      <div className="page-shell pb-0">
+        <div>
+          <h1 className="page-title">{extracted ? "Rivedi e salva" : "Nuova ricetta"}</h1>
+          {extracted && <p className="page-description">Controlla i dati estratti prima di salvare: l&apos;AI può sbagliare.</p>}
         </div>
         {(provider?.startsWith("openrouter") || provider === "groq") && extracted && (
           <ErrorBanner variant="warning" className="mt-4 flex items-start gap-2">
@@ -392,29 +379,24 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
           </ErrorBanner>
         ))}
         {extracted && (
-          <Card className="mt-4 border-primary/20 bg-accent/30 p-4">
-            <div className="mb-3">
-              <p className="font-medium text-foreground">Vuoi tradurla?</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">Le modifiche che hai già fatto vengono mantenute e tradotte.</p>
-            </div>
-            <div className="flex flex-wrap items-end gap-2">
-              <Select
-                label="Traduci in"
-                value={targetLanguage}
-                onChange={(e) => setTargetLanguage(e.target.value)}
-                className="min-w-44 flex-1"
-              >
-                {LANGUAGES.map((l) => (
-                  <option key={l.code} value={l.code}>
-                    {l.label}
-                  </option>
-                ))}
-              </Select>
-              <Button type="button" variant="secondary" disabled={translating} onClick={translate}>
-                {translating ? <Spinner /> : "Traduci"}
-              </Button>
-            </div>
-          </Card>
+          // compact inline row: translation keeps (and translates) the edits already made
+          <div className="mt-4 flex items-center gap-2">
+            <Select
+              aria-label="Lingua di traduzione"
+              value={targetLanguage}
+              onChange={(e) => setTargetLanguage(e.target.value)}
+              className="w-auto min-w-36"
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </Select>
+            <Button type="button" variant="secondary" disabled={translating} onClick={translate}>
+              {translating ? <Spinner /> : "Traduci"}
+            </Button>
+          </div>
         )}
         {error && <ErrorBanner className="mt-3">{error}</ErrorBanner>}
         <div className="mt-6">
@@ -432,11 +414,10 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
   }
 
   return (
-    <div className="page-shell max-w-3xl space-y-6">
-      <div className="rounded-xl border border-border bg-surface-secondary/70 p-5 sm:p-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-[0.12em] text-primary">Aggiungi una ricetta</p>
-        <h1 className="page-title">Importa ricetta</h1>
-        <p className="page-description">Estrai una ricetta da un link, un video (Instagram, YouTube, TikTok), un file o un testo, quindi rivedila prima di salvarla.</p>
+    <div className="page-shell space-y-6">
+      <div>
+        <h1 className="page-title">Importa</h1>
+        <p className="page-description">Da un sito, un video Instagram/YouTube/TikTok, uno screenshot o un testo. La rivedi prima di salvarla.</p>
       </div>
 
       {error && (
@@ -448,27 +429,15 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
         </ErrorBanner>
       )}
 
-      <div className="rounded-xl border border-border bg-surface p-2 shadow-sm">
-        <Tabs
-          tabs={IMPORT_TABS.map((tab) => ({ ...tab, disabled: loading && tab.value !== activeTab }))}
-          value={activeTab}
-          onChange={setActiveTab}
-          aria-label="Metodo di importazione"
-        />
-      </div>
+      <Tabs
+        tabs={IMPORT_TABS.map((tab) => ({ ...tab, disabled: loading && tab.value !== activeTab }))}
+        value={activeTab}
+        onChange={setActiveTab}
+        aria-label="Metodo di importazione"
+      />
 
       <div role="tabpanel" id="panel-link" aria-labelledby="tab-link" hidden={activeTab !== "link"}>
-        <Card className="p-5 sm:p-6">
-          <SectionIntro
-            icon={videoPlatform ? Video : Link2}
-            size="lg"
-            title={videoPlatform ? VIDEO_PLATFORM_LABEL[videoPlatform] : "Da un link o un video"}
-            description={
-              videoPlatform
-                ? "Scaricheremo il video, trascriveremo l'audio e leggeremo didascalia e commenti. Può richiedere qualche minuto."
-                : "Incolla l'URL di una ricetta online, o di un video Instagram, YouTube o TikTok."
-            }
-          />
+        <Card className="p-4 sm:p-5">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -495,6 +464,12 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
                 <span className="hidden sm:inline">Incolla</span>
               </Button>
             </div>
+            {videoPlatform && (
+              <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Video className="h-4 w-4 shrink-0" aria-hidden="true" />
+                {VIDEO_PLATFORM_LABEL[videoPlatform]}: trascriviamo l&apos;audio, può richiedere qualche minuto.
+              </p>
+            )}
             {videoPlatform && (
               <Textarea
                 placeholder="Note aggiuntive (facoltativo): ingredienti o passaggi che sai già dai commenti/descrizione"
@@ -528,13 +503,8 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
       </div>
 
       <div role="tabpanel" id="panel-file" aria-labelledby="tab-file" hidden={activeTab !== "file"}>
-        <Card className="p-5 sm:p-6">
-          <SectionIntro
-            icon={ImageIcon}
-            size="lg"
-            title="Da un file"
-            description="Carica uno screenshot o un PDF (max 8MB): leggeremo il testo della ricetta per te."
-          />
+        <Card className="p-4 sm:p-5">
+          <p className="mb-3 text-sm text-muted-foreground">Screenshot o PDF, max 8MB.</p>
           <label
             htmlFor="import-file"
             className={buttonClasses(
@@ -572,13 +542,7 @@ export function ImportPage({ sharedUrl, sharedText }: { sharedUrl: string; share
       </div>
 
       <div role="tabpanel" id="panel-text" aria-labelledby="tab-text" hidden={activeTab !== "text"}>
-        <Card className="p-5 sm:p-6">
-          <SectionIntro
-            icon={FileText}
-            size="lg"
-            title="Da un testo incollato"
-            description="Incolla il testo di una ricetta (da un sito, una chat, un file markdown) e la estrarremo per te."
-          />
+        <Card className="p-4 sm:p-5">
           <form onSubmit={importFromText} className="space-y-3">
             <Textarea
               required

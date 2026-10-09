@@ -53,7 +53,7 @@ export default function TagDuplicatesPage() {
   }
 
   return (
-    <div className="page-shell max-w-lg space-y-6">
+    <div className="page-shell page-shell-narrow space-y-6">
       <div className="page-header">
         <div>
           <h1 className="page-title">Tag simili</h1>
