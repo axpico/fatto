@@ -19,13 +19,7 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (request.method !== "GET") return;
 
-  // Navigazioni pagina: network-first, fallback alla shell cache se offline (niente sync completo)
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request).then((res) => res ?? caches.match("/"))),
-    );
-    return;
-  }
+  // page navigations are left to the network: pages are per-user and never cached here
 
   // Asset statici della shell: cache-first
   if (SHELL_ASSETS.some((asset) => request.url.endsWith(asset))) {

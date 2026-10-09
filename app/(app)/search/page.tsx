@@ -295,9 +295,9 @@ function SearchPageContent() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Prep. entro (min)
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {TIME_OPTIONS.map((v) => (
               <button
@@ -313,16 +313,18 @@ function SearchPageContent() {
           </div>
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             placeholder="o minuti esatti"
+            aria-label="Prep. entro, minuti esatti"
             value={prepMax}
             onChange={(e) => setPrepMax(e.target.value)}
           />
         </div>
         <div className="space-y-1.5">
-          <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+          <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
             <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Cottura entro (min)
-          </label>
+          </p>
           <div className="flex flex-wrap gap-2">
             {TIME_OPTIONS.map((v) => (
               <button
@@ -338,8 +340,10 @@ function SearchPageContent() {
           </div>
           <Input
             type="number"
+            inputMode="numeric"
             min={0}
             placeholder="o minuti esatti"
+            aria-label="Cottura entro, minuti esatti"
             value={cookMax}
             onChange={(e) => setCookMax(e.target.value)}
           />
@@ -388,12 +392,12 @@ function SearchPageContent() {
       </Button>
       </Card>
 
-      <section aria-live="polite">
+      <section>
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="section-title">Risultati</h2>
           <div className="flex items-center gap-3">
             {status === "loading" && loadedOnce && <Spinner className="h-4 w-4" />}
-            {loadedOnce && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
+            {loadedOnce && <span aria-live="polite" className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
             <Select
               aria-label="Ordina per"
               value={sort}

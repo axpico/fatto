@@ -47,8 +47,18 @@ function DotList({ items, light }: { items: string[]; light?: boolean }) {
 const overlayFavoriteClasses =
   buttonClasses("overlay", "icon", "absolute right-3 top-3 z-10");
 
-const linkClasses =
-  "block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+// The whole card is clickable through a stretched link laid over it; the favorite button sits
+// above it (z-10) as a sibling — a <button> nested inside an <a> is invalid HTML and confuses
+// screen readers.
+function CardLink({ recipe }: { recipe: RecipeCardData }) {
+  return (
+    <Link
+      href={`/recipes/${recipe.id}`}
+      aria-label={recipe.title}
+      className="absolute inset-0 z-[1] rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+    />
+  );
+}
 
 function metaLine(recipe: RecipeCardData, max = 2) {
   const totalTime = (recipe.prepTimeMinutes ?? 0) + (recipe.cookTimeMinutes ?? 0);
@@ -134,7 +144,6 @@ export function RecipeCard({
 }) {
   if (variant === "featured") {
     return (
-      <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
           <Card className="relative aspect-[2/1] overflow-hidden transition-shadow duration-200 hover:shadow-md sm:aspect-[21/9]">
             {recipe.photoUrl ? (
               <>
@@ -144,15 +153,14 @@ export function RecipeCard({
             ) : (
               <NoPhoto recipe={recipe} tall big />
             )}
+            <CardLink recipe={recipe} />
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
-      </Link>
     );
   }
 
   if (variant === "grid") {
     return (
-      <Link href={`/recipes/${recipe.id}`} className={`${linkClasses} h-full`}>
           <Card className="relative aspect-[4/5] h-full overflow-hidden transition-shadow duration-200 hover:shadow-md">
             {recipe.photoUrl ? (
               <>
@@ -162,9 +170,9 @@ export function RecipeCard({
             ) : (
               <NoPhoto recipe={recipe} tall />
             )}
+            <CardLink recipe={recipe} />
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
-      </Link>
     );
   }
 
@@ -172,8 +180,7 @@ export function RecipeCard({
   const { totalTime, parts } = metaLine(recipe);
   const cookParts = cookStatsParts(recipe);
   return (
-    <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
-      <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
+      <Card className="relative flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
         {recipe.photoUrl ? (
           <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
         ) : (
@@ -202,8 +209,8 @@ export function RecipeCard({
             </div>
           )}
         </div>
-        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className="flex h-10 w-10 shrink-0 items-center justify-center self-center rounded-full text-muted-foreground transition-colors hover:bg-surface-secondary hover:text-foreground" />
+        <CardLink recipe={recipe} />
+        <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={buttonClasses("ghost", "icon", "relative z-10 self-center")} />
       </Card>
-    </Link>
   );
 }
