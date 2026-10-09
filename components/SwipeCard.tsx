@@ -4,7 +4,6 @@ import { forwardRef, useImperativeHandle } from "react";
 import { motion, useMotionValue, useTransform, animate, type PanInfo } from "framer-motion";
 import { ChefHat, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
-import { TiltCard } from "@/components/motion/TiltCard";
 import { UploadedImage } from "@/components/UploadedImage";
 import { Overlay, NoPhoto, type RecipeCardData } from "@/components/RecipeCard";
 
@@ -104,12 +103,10 @@ export const SwipeCard = forwardRef<SwipeCardHandle, {
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >
       {active ? (
-        <TiltCard className="h-full w-full">
-          <Card className="relative aspect-[3/4] h-full w-full overflow-hidden">
-            {cardBody}
-            {stamps}
-          </Card>
-        </TiltCard>
+        <Card className="relative aspect-[3/4] h-full w-full overflow-hidden">
+          {cardBody}
+          {stamps}
+        </Card>
       ) : (
         <Card
           className="relative aspect-[3/4] h-full w-full overflow-hidden"

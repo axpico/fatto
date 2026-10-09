@@ -2,7 +2,6 @@ import Link from "next/link";
 import { Clock, Star, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { buttonClasses } from "@/components/ui/Button";
-import { TiltCard } from "@/components/motion/TiltCard";
 import { UploadedImage } from "@/components/UploadedImage";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { formatRelativeDate } from "@/lib/formatDate";
@@ -136,8 +135,7 @@ export function RecipeCard({
   if (variant === "featured") {
     return (
       <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
-        <TiltCard>
-          <Card className="relative aspect-[2/1] overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md sm:aspect-[21/9]">
+          <Card className="relative aspect-[2/1] overflow-hidden transition-shadow duration-200 hover:shadow-md sm:aspect-[21/9]">
             {recipe.photoUrl ? (
               <>
                 <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -148,7 +146,6 @@ export function RecipeCard({
             )}
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
-        </TiltCard>
       </Link>
     );
   }
@@ -156,8 +153,7 @@ export function RecipeCard({
   if (variant === "grid") {
     return (
       <Link href={`/recipes/${recipe.id}`} className={`${linkClasses} h-full`}>
-        <TiltCard className="h-full">
-          <Card className="relative aspect-[4/5] h-full overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md">
+          <Card className="relative aspect-[4/5] h-full overflow-hidden transition-shadow duration-200 hover:shadow-md">
             {recipe.photoUrl ? (
               <>
                 <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />
@@ -168,7 +164,6 @@ export function RecipeCard({
             )}
             <FavoriteButton recipeId={recipe.id} initialFavorite={recipe.favorite} className={overlayFavoriteClasses} />
           </Card>
-        </TiltCard>
       </Link>
     );
   }
@@ -178,7 +173,7 @@ export function RecipeCard({
   const cookParts = cookStatsParts(recipe);
   return (
     <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
-      <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow,transform] duration-200 hover:scale-[1.01] hover:border-border-strong hover:shadow-md">
+      <Card className="flex gap-4 overflow-hidden p-3 transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md">
         {recipe.photoUrl ? (
           <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="h-20 w-20 shrink-0 rounded-lg object-cover" />
         ) : (

@@ -2,7 +2,6 @@
 
 import { LayoutGrid, List as ListIcon } from "lucide-react";
 import { RecipeCard, type RecipeCardData } from "@/components/RecipeCard";
-import { Reveal } from "@/components/motion/Reveal";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
 import { useHiddenRecipes } from "@/lib/pendingDeletes";
 
@@ -44,11 +43,11 @@ export function RecipeList({ recipes }: { recipes: RecipeCardData[] }) {
           </button>
         ))}
       </div>
-      <div className={view === "grid" ? "tilt-grid grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
-        {visible.map((recipe, index) => (
-          <Reveal key={recipe.id} delay={Math.min(index, 8) * 40}>
+      <div className={view === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3" : "space-y-3"}>
+        {visible.map((recipe) => (
+          <div key={recipe.id}>
             <RecipeCard recipe={recipe} variant={view} />
-          </Reveal>
+          </div>
         ))}
       </div>
     </div>

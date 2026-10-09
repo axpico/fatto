@@ -185,28 +185,14 @@ body > * {
   .page-title { @apply font-display text-3xl font-semibold tracking-tight text-foreground sm:text-4xl; }
   .page-description { @apply mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground; }
   .panel { @apply rounded-xl border border-border bg-surface p-4 shadow-sm sm:p-5; }
-  .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-px hover:border-border-strong hover:shadow-md; }
+  .list-row { @apply rounded-lg border border-border bg-surface px-3 py-3 shadow-sm transition-[border-color,box-shadow] duration-200 hover:border-border-strong hover:shadow-md; }
   .dialog-surface { animation: dialog-enter 180ms ease-out both; }
   .dialog-shake { animation: dialog-enter-shake 480ms ease-out both; }
-
-  .reveal {
-    opacity: 0;
-    transform: translateY(14px);
-    transition: opacity 500ms ease-out, transform 500ms ease-out;
-  }
-  .reveal[data-visible="true"] {
-    opacity: 1;
-    transform: translateY(0);
-  }
 
   .favorite-pulse { animation: favorite-pop 320ms ease-out; }
   .value-pulse { animation: value-pulse 220ms ease-out; }
   .img-fade-in { animation: img-fade-in 400ms ease-out; }
 
-  /* Recede/lift for grid siblings: hovering any card in the grid nudges the
-     others back so the hovered one reads as lifted forward. */
-  .tilt-grid > * { transition: transform 200ms ease, opacity 200ms ease; }
-  .tilt-grid:hover > *:not(:hover) { transform: scale(0.97); opacity: 0.85; }
 }
 
 /* Scroll-linked depth on the recipe hero image; browsers without scroll-driven
@@ -243,16 +229,6 @@ body > * {
 
   body { background: #fff; color: #000; }
   body::before, body::after { display: none; }
-
-  .reveal {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
-
-  .tilt-card {
-    transform: none !important;
-  }
 
   .img-fade-in {
     animation: none !important;
