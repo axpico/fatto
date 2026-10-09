@@ -36,7 +36,9 @@ export const SwipeCard = forwardRef<SwipeCardHandle, {
   active: boolean;
   stackIndex: 0 | 1 | 2;
   onExited: (dir: "left" | "right") => void;
-}>(function SwipeCard({ recipe, active, stackIndex, onExited }, ref) {
+  /** Tap without dragging (framer's onTap ignores drags). */
+  onTap?: () => void;
+}>(function SwipeCard({ recipe, active, stackIndex, onExited, onTap }, ref) {
   const x = useMotionValue(0);
   const opacity = useMotionValue(1);
   const rotate = useTransform(x, [-300, 300], [-20, 20]);
@@ -97,6 +99,7 @@ export const SwipeCard = forwardRef<SwipeCardHandle, {
       dragElastic={0.9}
       dragConstraints={{ left: 0, right: 0 }}
       onDragEnd={handleDragEnd}
+      onTap={active ? onTap : undefined}
       animate={STACK_VISUALS[stackIndex]}
       transition={{ type: "spring", stiffness: 300, damping: 30 }}
     >

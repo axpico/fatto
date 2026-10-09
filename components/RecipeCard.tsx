@@ -136,7 +136,7 @@ export function RecipeCard({
     return (
       <Link href={`/recipes/${recipe.id}`} className={linkClasses}>
         <TiltCard>
-          <Card className="relative aspect-[16/9] overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md sm:aspect-[21/9]">
+          <Card className="relative aspect-[2/1] overflow-hidden transition-[box-shadow,transform] duration-200 hover:scale-[1.01] hover:shadow-md sm:aspect-[21/9]">
             {recipe.photoUrl ? (
               <>
                 <UploadedImage filename={recipe.photoUrl} alt={recipe.title} className="absolute inset-0 h-full w-full object-cover" />

@@ -20,7 +20,7 @@ import { loadJson, readErrorMessage } from "@/lib/clientFetch";
 import { RECIPE_SORTS, type RecipeSort } from "@/lib/recipeStats";
 import { useSuggestions } from "@/lib/useSuggestions";
 import { useLocalStorageSync } from "@/lib/useLocalStorageSync";
-import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
+import { ChipInput } from "@/components/ui/ChipInput";
 
 type Tag = { id: string; name: string };
 type TagMode = "all" | "any";
@@ -48,7 +48,6 @@ function SearchPageContent() {
     () => searchParams.get("tags")?.split(",").filter(Boolean) ?? [],
   );
   const [tagMode, setTagMode] = useState<TagMode>(() => (searchParams.get("tagMode") === "any" ? "any" : "all"));
-  const [ingredientInput, setIngredientInput] = useState("");
   const [ingredients, setIngredients] = useState<string[]>(
     () => searchParams.get("ingredients")?.split(",").filter(Boolean) ?? [],
   );
@@ -61,6 +60,8 @@ function SearchPageContent() {
   const [explicitSort, setExplicitSort] = useState<Sort | null>(() => (searchParams.get("sort") as Sort) ?? null);
   const [results, setResults] = useState<RecipeCardData[]>([]);
   const [status, setStatus] = useState<"loading" | "done">("loading");
+  // after the first load, refetches keep the previous results on screen (no skeleton flash per keystroke)
+  const [loadedOnce, setLoadedOnce] = useState(false);
   const [view] = useLocalStorageSync(VIEW_STORAGE_KEY, VIEW_EVENT, resolveRecipeView, "list");
   const queryInputRef = useRef<HTMLInputElement>(null);
 
@@ -97,11 +98,13 @@ function SearchPageContent() {
         .then((data) => {
           setResults(data);
           setStatus("done");
+          setLoadedOnce(true);
         })
         .catch((err) => {
           if (err.name === "AbortError") return;
           toast.error(err.message || "Ricerca non riuscita, riprova.");
           setStatus("done");
+          setLoadedOnce(true);
         });
     }, 200);
 
@@ -116,12 +119,11 @@ function SearchPageContent() {
     setSelectedTagIds((prev) => (prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]));
   }
 
-  function addIngredient() {
-    const term = ingredientInput.trim().toLowerCase();
-    if (!term || ingredients.includes(term)) return;
-    setIngredients((prev) => [...prev, term]);
-    setIngredientInput("");
-  }
+  // on a phone the keyboard would cover filters and results: autofocus only with a mouse
+  useEffect(() => {
+    if (!searchParams.get("q") && window.matchMedia("(pointer: fine)").matches) queryInputRef.current?.focus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount only
+  }, []);
 
   const hasActiveFilters =
     query.trim() !== "" ||
@@ -143,12 +145,12 @@ function SearchPageContent() {
     (favoritesOnly ? 1 : 0);
 
   // Riepilogo di tutti i filtri attivi (query esclusa: è già visibile/modificabile nel campo di
-  // ricerca) — sempre mostrato, indipendentemente dal fatto che il pannello filtri sia aperto,
-  // così su mobile si vede cosa è attivo senza doverlo riaprire.
+  // ricerca) — mostrato solo su mobile a pannello chiuso: così si vede cosa è attivo senza
+  // riaprirlo, senza duplicare i chip che il pannello aperto (sempre visibile su desktop) già mostra.
   const activeFilters: { key: string; label: string; onRemove: () => void }[] = [
     ...selectedTagIds.map((id) => ({
       key: `tag-${id}`,
-      label: tags.find((t) => t.id === id)?.name ?? id,
+      label: tags.find((t) => t.id === id)?.name ?? "…", // names load after the URL's ids
       onRemove: () => toggleTag(id),
     })),
     ...ingredients.map((term) => ({
@@ -173,7 +175,6 @@ function SearchPageContent() {
     setSelectedTagIds([]);
     setTagMode("all");
     setIngredients([]);
-    setIngredientInput("");
     setPrepMax("");
     setCookMax("");
     setServingsMin("");
@@ -210,7 +211,7 @@ function SearchPageContent() {
           <Input
             ref={queryInputRef}
             type="search"
-            autoFocus
+            enterKeyHint="search"
             placeholder="Cerca per titolo o descrizione"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -224,15 +225,15 @@ function SearchPageContent() {
                 queryInputRef.current?.focus();
               }}
               aria-label="Cancella ricerca"
-              className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
+              className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground hover:bg-surface-secondary hover:text-foreground"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
 
-        {activeFilters.length > 0 && (
-          <div className="flex flex-wrap gap-2">
+        {activeFilters.length > 0 && !filtersOpen && (
+          <div className="flex flex-wrap gap-2 sm:hidden">
             {activeFilters.map((f) => (
               <Badge key={f.key} variant="accent" size="md">
                 {f.label}
@@ -240,7 +241,7 @@ function SearchPageContent() {
                   type="button"
                   onClick={f.onRemove}
                   aria-label={`Rimuovi filtro ${f.label}`}
-                  className="text-primary/70 hover:text-primary"
+                  className="-my-2.5 -mr-2 flex min-h-10 min-w-10 items-center justify-center text-primary/70 hover:text-primary"
                 >
                   <X className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
@@ -287,36 +288,13 @@ function SearchPageContent() {
       <div className="border-t border-border pt-4">
         <p className="text-sm font-medium text-foreground">Cosa posso cucinare?</p>
         <p className="mb-3 text-sm text-muted-foreground">Aggiungi gli ingredienti che hai già a disposizione.</p>
-        <div className="mb-2 flex flex-wrap gap-2">
-          {ingredients.map((term) => (
-            <Badge key={term} variant="accent" size="md">
-              {term}
-              <button
-                type="button"
-                onClick={() => setIngredients((prev) => prev.filter((t) => t !== term))}
-                aria-label={`Rimuovi ${term}`}
-                className="text-primary/70 hover:text-primary"
-              >
-                <X className="h-3.5 w-3.5" aria-hidden="true" />
-              </button>
-            </Badge>
-          ))}
-        </div>
-        <Input
-          type="text"
-          list="search-ingredient-suggestions"
+        <ChipInput
+          value={ingredients}
+          onChange={setIngredients}
           placeholder="Es. pomodoro, poi invio"
-          value={ingredientInput}
-          onChange={(e) => setIngredientInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === ",") {
-              e.preventDefault();
-              addIngredient();
-            }
-          }}
-          onBlur={addIngredient}
+          normalize={(raw) => raw.trim().toLowerCase()}
+          suggestions={ingredientSuggestions}
         />
-        <SuggestionDatalist id="search-ingredient-suggestions" options={ingredientSuggestions} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 border-t border-border pt-4 sm:grid-cols-3">
@@ -419,7 +397,8 @@ function SearchPageContent() {
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-xl font-semibold text-foreground">Risultati</h2>
           <div className="flex items-center gap-3">
-            {status === "done" && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
+            {status === "loading" && loadedOnce && <Spinner className="h-4 w-4" />}
+            {loadedOnce && <span className="text-sm text-muted-foreground">{results.length} {results.length === 1 ? "ricetta" : "ricette"}</span>}
             <Select
               aria-label="Ordina per"
               value={sort}
@@ -435,21 +414,25 @@ function SearchPageContent() {
           </div>
         </div>
       <div>
-        {status === "loading" && view === "grid" && (
+        {!loadedOnce && view === "grid" && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="aspect-[4/5] border-transparent shadow-none" />
             ))}
           </div>
         )}
-        {status === "loading" && view === "list" && (
+        {!loadedOnce && view === "list" && (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
               <Skeleton key={i} className="list-row h-[88px] border-transparent shadow-none" />
             ))}
           </div>
         )}
-        {status === "done" && results.length > 0 && <RecipeList recipes={results} />}
+        {loadedOnce && results.length > 0 && (
+          <div className={`transition-opacity ${status === "loading" ? "opacity-60" : ""}`}>
+            <RecipeList recipes={results} />
+          </div>
+        )}
         {status === "done" && results.length === 0 && (
           <EmptyState
             title="Nessuna ricetta trovata"

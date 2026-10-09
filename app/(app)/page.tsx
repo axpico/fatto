@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { BookOpen, Plus, Shuffle, SlidersHorizontal, Sparkles } from "lucide-react";
+import { BookOpen, Gift, Plus, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { RecipeCard } from "@/components/RecipeCard";
 import { RecipeList } from "@/components/RecipeList";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { buttonClasses } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
 import { SectionIntro } from "@/components/ui/SectionIntro";
 import { SortFilterBar } from "@/components/SortFilterBar";
 import { Reveal } from "@/components/motion/Reveal";
@@ -67,10 +68,23 @@ export default async function HomePage({
         </Link>
       </div>
 
+      {/* plain GET form: lands on /search?q=..., where the full filters live */}
+      <form action="/search" role="search" className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <Input
+          type="search"
+          name="q"
+          enterKeyHint="search"
+          placeholder="Cerca una ricetta"
+          aria-label="Cerca una ricetta"
+          className="pl-10"
+        />
+      </form>
+
       {highlight && (
         <Reveal>
           <section>
-            <SectionIntro icon={Shuffle} title="Sorpresa del giorno" description="Una ricetta a caso dalla tua raccolta." />
+            <SectionIntro icon={Gift} title="Sorpresa del giorno" description="Una ricetta a caso dalla tua raccolta." />
             <RecipeCard recipe={highlight} variant="featured" />
           </section>
         </Reveal>
@@ -98,7 +112,11 @@ export default async function HomePage({
                 : 'Aggiungine una dalla tab "Importa" o crea una ricetta manualmente.'
             }
             action={
-              favoritesOnly ? undefined : (
+              favoritesOnly ? (
+                <Link href={homeHref(sort, false)} className={buttonClasses("secondary", "sm")}>
+                  Mostra tutte le ricette
+                </Link>
+              ) : (
                 <div className="flex flex-wrap justify-center gap-2">
                   <Link href="/import" className={buttonClasses("primary", "sm")}><BookOpen className="h-4 w-4" aria-hidden="true" /> Importa una ricetta</Link>
                   <Link href="/recipes/new" className={buttonClasses("secondary", "sm")}><Plus className="h-4 w-4" aria-hidden="true" /> Crea manualmente</Link>
