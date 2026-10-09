@@ -28,7 +28,9 @@ RUN apk add --no-cache curl && \
 # -DBUILD_SHARED_LIBS=OFF produce un unico binario statico, niente .so da inseguire tra gli stage.
 FROM alpine:3.20 AS whisper
 RUN apk add --no-cache build-base cmake git curl
-RUN git clone --depth 1 https://github.com/ggml-org/whisper.cpp /whisper
+# pinned release: an unpinned `main` made builds non-reproducible
+ARG WHISPER_CPP_VERSION=v1.9.5
+RUN git clone --depth 1 --branch ${WHISPER_CPP_VERSION} https://github.com/ggml-org/whisper.cpp /whisper
 RUN cmake -B /whisper/build -S /whisper -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF && \
     cmake --build /whisper/build -j --config Release --target whisper-cli
 RUN mkdir -p /models && \
@@ -48,7 +50,8 @@ RUN apk add --no-cache ffmpeg python3 py3-pip && \
     pip install --no-cache-dir --break-system-packages yt-dlp
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
-COPY --from=builder /app/.next ./.next
+# .next owned by the runtime user: next writes its cache there (images, fetch cache)
+COPY --from=builder --chown=node:node /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
@@ -58,5 +61,13 @@ ENV TESSDATA_PREFIX=/app/tessdata
 COPY --from=whisper /whisper/build/bin/whisper-cli /usr/local/bin/whisper-cli
 COPY --from=whisper /models/ggml-small-q5_1.bin /app/whisper-models/ggml-small-q5_1.bin
 
+# Non-root at runtime. Only .next and the uploads dir need to be writable; node_modules stays
+# root-owned and read-only. Upgrading from an image that ran as root: the existing uploads volume
+# is root-owned, fix it once with
+#   docker compose run --rm --user root app chown -R node:node /data/uploads
+RUN mkdir -p /data/uploads && chown node:node /data/uploads
+USER node
+
 EXPOSE 3000
-CMD sh -c "npx prisma migrate deploy && npm run start"
+# exec: next becomes PID 1's direct child target of SIGTERM, so `docker stop` shuts down promptly
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node_modules/.bin/next start"]

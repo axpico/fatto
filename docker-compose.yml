@@ -7,8 +7,9 @@ services:
       POSTGRES_DB: recipebook
     volumes:
       - pgdata:/var/lib/postgresql/data
+    # localhost only: reachable for local dev / backups on the host, not from the network
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U recipebook"]
       interval: 5s

@@ -9,6 +9,8 @@ Altre funzionalità:
 - **Decidi**: mazzo di ricette da scorrere per scegliere cosa cucinare.
 - **Unità di misura**: conversione metrico ↔ cup/tbsp/tsp; la preferenza è una sola, cambiabile da Impostazioni, dalla ricetta o dalla stampa.
 - **Import**: porzioni e valori nutrizionali letti dal JSON-LD delle pagine ricetta quando presenti; se le porzioni non si trovano il campo resta vuoto e va compilato prima di salvare.
+- **Elimina con annulla**: eliminare una ricetta mostra "Annulla" per qualche secondo prima di cancellarla davvero.
+- **Cottura ripresa**: la modalità cottura ricorda passaggio, timer e ingredienti spuntati; dalla ricetta compare "Riprendi". I timer finiti suonano finché non li confermi.
 - Attrezzatura richiesta, deduplica e merge dei tag (solo admin), pulizia automatica dei tag rimasti senza ricette, tema chiaro/scuro.
 
 ## Stack
@@ -54,13 +56,21 @@ Next.js (App Router) + TypeScript, PostgreSQL + Prisma, Tailwind CSS, Anthropic 
 
 4. Da telefono: apri l'app nel browser e usa "Aggiungi a schermata Home" per installarla come PWA.
 
-## Aggiungere un altro utente
+## Utenti
 
-Non c'è una pagina di registrazione pubblica (è un'app per uso familiare chiuso). Per aggiungere o resettare un utente:
+Non c'è una pagina di registrazione pubblica (è un'app per uso familiare chiuso). Un admin gestisce gli account da **Impostazioni → Utenti**: crea nuovi utenti, li promuove ad admin e reimposta le password (la nuova password viene generata e mostrata una sola volta, e l'utente viene disconnesso da tutti i dispositivi).
 
-1. Modifica `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` in `.env` con i dati del nuovo utente.
-2. Riavvia il container app: `docker compose up -d --force-recreate app`.
-3. Se vuoi mantenere anche l'utente precedente, ripeti il processo cambiando di nuovo le variabili — ogni riavvio fa solo un upsert per email, non tocca gli altri utenti.
+`ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` servono solo per il primo accesso (o per recuperare l'accesso admin): a ogni avvio del container quell'utente viene creato o aggiornato, senza toccare gli altri. Le email sono confrontate senza distinzione tra maiuscole e minuscole.
+
+## Aggiornare da una versione precedente
+
+Il container dell'app ora gira come utente non-root (`node`). Se il volume delle foto è stato creato da una versione precedente (che girava come root), sistemane i permessi una volta sola:
+
+```bash
+docker compose run --rm --user root app chown -R node:node /data/uploads
+```
+
+Postgres è esposto solo su `127.0.0.1:5432` (raggiungibile dall'host per sviluppo e backup, non dalla rete).
 
 ## Sviluppo locale (senza Docker)
 
@@ -80,17 +90,21 @@ Assicurati che `.env` punti al Postgres corretto (`DATABASE_URL`). Le chiavi AI 
 sudo docker run --rm -v fatto_uploads:/u -v "$PWD/data/uploads":/out alpine sh -c 'cp -n /u/* /out/ && chown 1000:1000 /out/*'
 ```
 
+## Migrazioni del database
+
+L'indice full-text (`search_vector`) e gli indici trigram vivono solo nelle migrazioni SQL scritte a mano, non in `schema.prisma`. **Non usare `prisma migrate dev` senza rivedere l'SQL generato**: Prisma proverebbe a eliminarli. Per una nuova migrazione, generala con `--create-only` e rimuovi eventuali `DROP` di quegli indici prima di applicarla.
+
 ## Test
 
 ```bash
 npm test
 ```
 
-Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili e full-text, conversione e preferenza delle unità di misura, deduplica dei tag, parsing dei comandi vocali, estrazione JSON-LD (nutrizione/porzioni/immagini) durante l'import da link, risoluzione delle immagini dei passaggi, ordinamenti e parsing dei filtri di ricerca, selezione del modello OpenRouter di fallback.
+Copre la logica non banale: scaling porzioni, ranking della ricerca per ingredienti disponibili e full-text, conversione e preferenza delle unità di misura, scelta del tag più simile, parsing dei comandi vocali, protezione SSRF sugli URL importati, redirect dopo il login, date in fuso italiano, estrazione JSON-LD (nutrizione/porzioni/immagini) durante l'import da link, risoluzione delle immagini dei passaggi, ordinamenti e parsing dei filtri di ricerca, selezione del modello OpenRouter di fallback.
 
 ## Import da video e traduzione
 
-Nella pagina di import, oltre a link e screenshot/PDF, ci sono le schede Instagram, YouTube e TikTok: incolla l'URL di un video pubblico e, opzionalmente, delle note manuali. Il server scarica il video (`yt-dlp`), ne trascrive l'audio (`whisper.cpp`, modello multilingua, rilevamento lingua automatico), estrae la caption e — se disponibili — i commenti, unisce tutto e lo passa alla stessa pipeline AI usata per link/screenshot/PDF, insieme ad alcuni fotogrammi: diventano le foto della ricetta (l'ultimo, di solito il piatto finito, è la copertina) e le immagini dei passaggi. Le note manuali sono sempre incluse e sono l'unico modo per procedere se il download del video fallisce (video privato, rimosso, o non raggiungibile) — in quel caso appare un errore chiaro e si può comunque proseguire scrivendo a mano cosa ricordi dalla descrizione/commenti.
+Nella pagina di import, la scheda "Link o video" riconosce da sola i link Instagram, YouTube e TikTok: incolla l'URL di un video pubblico e, opzionalmente, delle note manuali (il campo compare appena il link è riconosciuto come video). Dal telefono puoi anche usare "Condividi → Fatto" da un'altra app, se Fatto è installata come PWA. Il server scarica il video (`yt-dlp`), ne trascrive l'audio (`whisper.cpp`, modello multilingua, rilevamento lingua automatico), estrae la caption e — se disponibili — i commenti, unisce tutto e lo passa alla stessa pipeline AI usata per link/screenshot/PDF, insieme ad alcuni fotogrammi: diventano le foto della ricetta (l'ultimo, di solito il piatto finito, è la copertina) e le immagini dei passaggi. Le note manuali sono sempre incluse e sono l'unico modo per procedere se il download del video fallisce (video privato, rimosso, o non raggiungibile) — in quel caso appare un errore chiaro e si può comunque proseguire scrivendo a mano cosa ricordi dalla descrizione/commenti.
 
 Nella schermata "Rivedi e salva" (per qualunque metodo di import) c'è anche un selettore lingua + bottone "Traduci": traduce titolo, descrizione, nomi ingredienti e passaggi nella lingua scelta, lasciando invariati quantità/unità/porzioni/tempi (che non vengono mai inviati all'AI di traduzione). È un'azione esplicita, mai automatica.
 
