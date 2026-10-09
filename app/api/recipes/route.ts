@@ -15,6 +15,16 @@ export async function GET(request: Request) {
   if (unauthorized) return unauthorized;
 
   const { searchParams } = new URL(request.url);
+  // duplicate check before importing a link: is this source already saved?
+  const sourceUrl = searchParams.get("sourceUrl")?.trim();
+  if (sourceUrl) {
+    const existing = await prisma.recipe.findMany({
+      where: { OR: [{ sourceUrl }, { videoUrl: sourceUrl }] },
+      select: { id: true, title: true },
+      take: 1,
+    });
+    return Response.json(existing);
+  }
   const q = searchParams.get("q")?.trim();
   const { tagIds, tagMode, ingredientTerms, prepMax, cookMax, servingsMin, ratingMin, favoritesOnly } =
     parseRecipeFilters(searchParams);

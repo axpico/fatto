@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isValidVideoUrl } from "./videoImport";
+import { isValidVideoUrl } from "./videoPlatforms";
 import { resolveStepImages, type ExtractedRecipe } from "@/lib/ai/schema";
 
 function step(instruction: string, image_index: number | null): ExtractedRecipe["steps"][number] {

@@ -45,6 +45,7 @@ export function StepRows({
           <div className="flex flex-col items-start gap-1">
             <input
               type="number"
+              inputMode="numeric"
               placeholder="Min"
               aria-label="Minuti timer"
               value={row.timerMinutes ?? ""}

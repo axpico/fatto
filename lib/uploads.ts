@@ -6,7 +6,9 @@ import { env } from "@/lib/env";
 import { fetchPublic } from "@/lib/urlSafety";
 
 const MAX_WIDTH = 1600;
-export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+import { MAX_UPLOAD_BYTES } from "@/lib/uploadLimits";
+
+export { MAX_UPLOAD_BYTES };
 
 export class UploadError extends Error {}
 

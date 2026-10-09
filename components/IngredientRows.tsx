@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { inputClasses } from "@/components/ui/Input";
 import { Checkbox } from "@/components/ui/Checkbox";
 import { ReorderableRows } from "@/components/ui/ReorderableRows";
 import { SuggestionDatalist } from "@/components/ui/SuggestionDatalist";
 import { CANONICAL_UNITS } from "@/lib/units";
 import { useSuggestions } from "@/lib/useSuggestions";
+import { parseDecimal } from "@/lib/parseDecimal";
 
 export type IngredientRow = {
   name: string;
@@ -42,15 +44,7 @@ export function IngredientRows({
               onChange={(e) => update({ name: e.target.value })}
               className={`w-full sm:w-auto sm:flex-1 ${inputClasses}`}
             />
-            <input
-              type="number"
-              step="any"
-              placeholder="Qtà"
-              aria-label="Quantità"
-              value={row.quantity ?? ""}
-              onChange={(e) => update({ quantity: e.target.value ? Number(e.target.value) : null })}
-              className={`w-20 ${inputClasses}`}
-            />
+            <QuantityInput value={row.quantity} onChange={(quantity) => update({ quantity })} />
             <input
               type="text"
               list="unit-suggestions"
@@ -73,5 +67,27 @@ export function IngredientRows({
       <SuggestionDatalist id="ingredient-suggestions" options={suggestions} />
       <SuggestionDatalist id="unit-suggestions" options={CANONICAL_UNITS} />
     </>
+  );
+}
+
+// text + inputMode="decimal" instead of type="number": accepts the Italian comma ("0,5"), and
+// keeps the raw text while typing so "1," isn't snapped back to "1" mid-edit
+function QuantityInput({ value, onChange }: { value: number | null; onChange: (value: number | null) => void }) {
+  const [text, setText] = useState(() => (value == null ? "" : String(value).replace(".", ",")));
+  const invalid = text.trim() !== "" && parseDecimal(text) === null;
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      placeholder="Qtà"
+      aria-label="Quantità"
+      aria-invalid={invalid}
+      value={text}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(parseDecimal(e.target.value));
+      }}
+      className={`w-20 ${inputClasses} ${invalid ? "border-destructive" : ""}`}
+    />
   );
 }

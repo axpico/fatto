@@ -7,28 +7,18 @@ import path from "node:path";
 import { extractRecipe } from "@/lib/ai/extractRecipe";
 import { saveUpload } from "@/lib/uploads";
 import type { VisionImage } from "@/lib/ai/visionImage";
+import { isValidVideoUrl, type VideoPlatform } from "@/lib/videoPlatforms";
 import { resolveStepImages, type ExtractedRecipe, type StepWithImage } from "@/lib/ai/schema";
 
 const run = promisify(execFile);
 
-export type VideoPlatform = "instagram" | "youtube" | "tiktok";
-
-// Solo post/video pubblici singoli: niente Stories, niente caroselli multi-immagine (fuori scope).
-const PLATFORM_PATTERNS: Record<VideoPlatform, RegExp> = {
-  instagram: /^https:\/\/(www\.)?instagram\.com\/(p|reel)\/[A-Za-z0-9_-]+\/?/i,
-  youtube: /^https:\/\/(www\.)?(youtube\.com\/(watch\?v=[\w-]+|shorts\/[\w-]+)|youtu\.be\/[\w-]+)/i,
-  tiktok: /^https:\/\/(www\.|vm\.|vt\.)?tiktok\.com\/.+/i,
-};
+export type { VideoPlatform };
 
 const PLATFORM_INVALID_URL_MESSAGE: Record<VideoPlatform, string> = {
   instagram: "Il link non sembra un Reel Instagram valido (instagram.com/reel/... o /p/...)",
   youtube: "Il link non sembra un video YouTube valido (youtube.com/watch?v=... o /shorts/...)",
   tiktok: "Il link non sembra un video TikTok valido (tiktok.com/@utente/video/...)",
 };
-
-export function isValidVideoUrl(platform: VideoPlatform, url: string): boolean {
-  return PLATFORM_PATTERNS[platform].test(url);
-}
 
 const WHISPER_MODEL_PATH = "/app/whisper-models/ggml-small-q5_1.bin";
 
