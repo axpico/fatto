@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Minus, Plus } from "lucide-react";
 import { scaleQuantity } from "@/lib/scaling";
 import { applyUnitPreference } from "@/lib/units";
 import { useUnitPreference } from "@/lib/unitPreference";
 import { useRecipeServings } from "@/lib/useRecipeServings";
+import { useCheckedIngredients } from "@/lib/useCheckedIngredients";
 import { Button } from "@/components/ui/Button";
 import { inputClasses } from "@/components/ui/Input";
 import { Badge } from "@/components/ui/Badge";
@@ -78,17 +78,8 @@ export function ServingsAdjuster({
   ingredients: Ingredient[];
 }) {
   const [servings, setServings] = useRecipeServings(recipeId, baseServings);
-  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  const [checkedIds, toggleChecked] = useCheckedIngredients(recipeId);
   const [useMetric] = useUnitPreference();
-
-  function toggleChecked(id: string) {
-    setCheckedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
 
   return (
     <div className="space-y-4">

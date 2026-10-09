@@ -16,6 +16,7 @@ import {
   Pause,
   Play,
   Square,
+  BellRing,
 } from "lucide-react";
 import { matchVoiceCommand } from "@/lib/voiceCommands";
 import { Modal, type ModalHandle } from "@/components/ui/Modal";
@@ -26,6 +27,7 @@ import { StarRating } from "@/components/ui/StarRating";
 import { useToast } from "@/components/ui/Toast";
 import { useCookLog } from "@/lib/useCookLog";
 import { useCookSession } from "@/lib/useCookSession";
+import { clearCheckedIngredients } from "@/lib/useCheckedIngredients";
 import { UploadedImage } from "@/components/UploadedImage";
 import { pressableTransition } from "@/components/ui/Button";
 
@@ -43,6 +45,8 @@ type Step = {
   imageFilename: string | null;
 };
 const NOTES_AUTOSAVE_MS = 800;
+const NOT_UNDERSTOOD_MS = 2000;
+const RING_INTERVAL_MS = 3000;
 
 type Ingredient = { id: string; name: string; quantity: number | null; unit: string | null; optional: boolean };
 
@@ -103,7 +107,12 @@ function useVoiceControl(actions: {
 }) {
   const [supported] = useState(() => getSpeechRecognitionCtor() !== null);
   const [listening, setListening] = useState(false);
+  const [notUnderstood, setNotUnderstood] = useState(false);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  // the user's intent, separate from the engine state: Chrome ends continuous recognition on its
+  // own after a stretch of silence, and we restart it as long as the user hasn't turned it off
+  const wantListeningRef = useRef(false);
+  const notUnderstoodTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const actionsRef = useRef(actions);
 
   useEffect(() => {
@@ -111,11 +120,22 @@ function useVoiceControl(actions: {
   });
 
   useEffect(() => {
-    return () => recognitionRef.current?.stop();
+    return () => {
+      wantListeningRef.current = false;
+      recognitionRef.current?.stop();
+      if (notUnderstoodTimerRef.current) clearTimeout(notUnderstoodTimerRef.current);
+    };
   }, []);
+
+  function flagNotUnderstood() {
+    setNotUnderstood(true);
+    if (notUnderstoodTimerRef.current) clearTimeout(notUnderstoodTimerRef.current);
+    notUnderstoodTimerRef.current = setTimeout(() => setNotUnderstood(false), NOT_UNDERSTOOD_MS);
+  }
 
   function toggle() {
     if (listening) {
+      wantListeningRef.current = false;
       recognitionRef.current?.stop();
       setListening(false);
       return;
@@ -130,7 +150,11 @@ function useVoiceControl(actions: {
       const results = event.results;
       const transcript = results[results.length - 1][0].transcript;
       const command = matchVoiceCommand(transcript);
-      if (!command) return;
+      if (!command) {
+        flagNotUnderstood();
+        return;
+      }
+      setNotUnderstood(false);
       switch (command.type) {
         case "next":
           actionsRef.current.next();
@@ -158,13 +182,25 @@ function useVoiceControl(actions: {
           break;
       }
     };
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      if (!wantListeningRef.current) {
+        setListening(false);
+        return;
+      }
+      try {
+        recognition.start();
+      } catch {
+        wantListeningRef.current = false;
+        setListening(false);
+      }
+    };
+    wantListeningRef.current = true;
     recognition.start();
     recognitionRef.current = recognition;
     setListening(true);
   }
 
-  return { supported, listening, toggle };
+  return { supported, listening, notUnderstood, toggle };
 }
 
 function playBeep() {
@@ -192,6 +228,9 @@ function useWakeLock(onUnavailable?: () => void) {
     }
 
     async function acquire() {
+      // the lock is released automatically when the page is hidden, and requesting it while
+      // hidden always fails: only (re)acquire on the way back to visible
+      if (document.visibilityState !== "visible") return;
       if (!("wakeLock" in navigator)) {
         notifyOnce();
         return;
@@ -363,9 +402,26 @@ export function CookingModeViewer({
   const step = steps[index];
   const isDone = index === steps.length;
 
+  // finished timers keep beeping (and stay in the banner) until acknowledged
+  const [ringing, setRinging] = useState<number[]>([]);
   function handleTimerFinish(stepIndex: number) {
     setAnnouncement(stepIndex === index ? "Timer terminato" : `Timer del passaggio ${stepIndex + 1} terminato`);
+    setRinging((r) => (r.includes(stepIndex) ? r : [...r, stepIndex]));
+    if (document.visibilityState !== "visible" && "Notification" in window && Notification.permission === "granted") {
+      new Notification(`Timer passaggio ${stepIndex + 1} terminato`, { body: title, tag: `timer-${recipeId}-${stepIndex}` });
+    }
   }
+  function acknowledge(stepIndex: number) {
+    setRinging((r) => r.filter((i) => i !== stepIndex));
+  }
+  useEffect(() => {
+    if (ringing.length === 0) return;
+    const id = setInterval(() => {
+      playBeep();
+      navigator.vibrate?.(300);
+    }, RING_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [ringing.length]);
   const cookTimers = useCookTimers(session.restored?.timers ?? {}, handleTimerFinish);
   const remaining = cookTimers.remainingFor(index);
   const timerPaused = cookTimers.isPaused(index);
@@ -403,6 +459,11 @@ export function CookingModeViewer({
   function handleStartTimer() {
     if (!step || step.timerMinutes === null) return;
     cookTimers.start(index, step.timerMinutes);
+    acknowledge(index);
+    // asked once, on the first timer: the moment the user can see why it's useful
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission().catch(() => {});
+    }
     setAnnouncement(`Timer avviato: ${step.timerMinutes} minuti`);
   }
   function handleTogglePause() {
@@ -412,20 +473,21 @@ export function CookingModeViewer({
   }
   function handleCancelTimer() {
     cookTimers.cancel(index);
+    acknowledge(index);
     setAnnouncement("Timer annullato");
   }
 
   async function handleExit() {
-    if (cookTimers.active.length > 0) {
+    if (index > 0 || cookTimers.active.length > 0) {
       const confirmed = await exitDialogRef.current?.open();
       if (!confirmed) return;
     }
-    session.clear();
-    router.push(`/recipes/${recipeId}`);
+    exitNow();
   }
 
   function exitNow() {
     session.clear();
+    clearCheckedIngredients(recipeId);
     router.push(`/recipes/${recipeId}`);
   }
 
@@ -451,6 +513,7 @@ export function CookingModeViewer({
     if (!log) return;
     setCookLogId(log.id);
     session.clear();
+    clearCheckedIngredients(recipeId);
     toast.success("Ricetta segnata come cucinata.");
   }
 
@@ -554,6 +617,45 @@ export function CookingModeViewer({
           </div>
         )}
       </div>
+
+      {ringing.length > 0 && (
+        <div className="relative z-10 space-y-2 px-4 pt-2" role="alert">
+          {ringing.map((stepIndex) => (
+            <div
+              key={stepIndex}
+              className="flex items-center gap-2 rounded-xl border border-primary bg-accent px-4 py-3 shadow-md"
+            >
+              <BellRing className="h-5 w-5 shrink-0 animate-pulse text-primary" aria-hidden="true" />
+              <span className="flex-1 text-sm font-medium">Timer passaggio {stepIndex + 1} terminato</span>
+              {stepIndex !== index && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    acknowledge(stepIndex);
+                    jumpTo(stepIndex + 1);
+                  }}
+                  className="min-h-11 rounded-full px-3 text-sm font-medium text-primary hover:bg-surface"
+                >
+                  Vai
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => acknowledge(stepIndex)}
+                className="min-h-11 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground"
+              >
+                OK
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {voice.notUnderstood && (
+        <p className="relative z-10 px-4 pt-2 text-center text-sm text-muted-foreground" aria-live="polite">
+          Non ho capito: tocca <HelpCircle className="inline h-3.5 w-3.5" aria-hidden="true" /> per i comandi
+        </p>
+      )}
 
       {otherActiveTimers.length > 0 && (
         <div className="relative z-10 flex gap-2 overflow-x-auto px-4 pt-2" role="group" aria-label="Timer attivi">
@@ -718,9 +820,18 @@ export function CookingModeViewer({
             />
           )}
           {step.optional && (
-            <Badge variant="neutral" size="sm">
-              facoltativo
-            </Badge>
+            <div className="flex items-center gap-2">
+              <Badge variant="neutral" size="sm">
+                facoltativo
+              </Badge>
+              <button
+                type="button"
+                onClick={next}
+                className="min-h-11 rounded-full px-3 text-sm font-medium text-muted-foreground underline hover:text-foreground"
+              >
+                Salta
+              </button>
+            </div>
           )}
           <p className="font-display text-2xl font-medium leading-snug sm:text-3xl">{step.instruction}</p>
 
@@ -852,8 +963,12 @@ export function CookingModeViewer({
 
       <ConfirmDialog
         ref={exitDialogRef}
-        title="Un timer è in corso"
-        description="Uscire adesso lo interrompe."
+        title="Interrompere la cottura?"
+        description={
+          cookTimers.active.length > 0
+            ? "Il passaggio raggiunto e i timer in corso andranno persi."
+            : "Il passaggio raggiunto andrà perso."
+        }
         confirmLabel="Esci"
       />
     </div>

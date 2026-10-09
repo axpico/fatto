@@ -4,6 +4,7 @@ import { ArrowLeft, ChefHat, Printer, Pencil, Clock, ExternalLink, Star, Video }
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
 import { ServingsAdjuster } from "@/components/ServingsAdjuster";
+import { CookButton } from "@/components/CookButton";
 import { DeleteRecipeButton } from "@/components/DeleteRecipeButton";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { CookLogSection } from "@/components/CookLogSection";
@@ -73,9 +74,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
       )}
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface p-3 shadow-sm">
-        <Link href={`/recipes/${recipe.id}/cook`} className={buttonClasses("primary", "md")}>
-          <ChefHat className="h-4 w-4" aria-hidden="true" /> Cucina
-        </Link>
+        <CookButton recipeId={recipe.id} />
         <Link href={`/recipes/${recipe.id}/print`} className={buttonClasses("secondary", "md")} aria-label="Stampa">
           <Printer className="h-4 w-4" aria-hidden="true" /> <span className="hidden sm:inline">Stampa</span>
         </Link>
