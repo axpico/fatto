@@ -1,6 +1,8 @@
 import { z } from "zod";
 import { recipeInputSchema, uploadFilenameSchema, type RecipeInput } from "@/lib/recipeSchema";
 
+const MAX_NEW_GALLERY_PHOTOS = 20;
+
 function toNumberOrNull(value: FormDataEntryValue | null) {
   if (value === null || value === "") return null;
   const n = Number(value);
@@ -23,6 +25,9 @@ export function parseRecipeFormData(formData: FormData):
   const galleryPhotos = formData
     .getAll("galleryPhotos")
     .filter((f): f is File => f instanceof File && f.size > 0);
+  if (galleryPhotos.length > MAX_NEW_GALLERY_PHOTOS) {
+    return { error: `Troppe foto in una volta (max ${MAX_NEW_GALLERY_PHOTOS})` };
+  }
 
   let ingredients: unknown;
   let steps: unknown;

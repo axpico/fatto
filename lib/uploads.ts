@@ -26,11 +26,17 @@ export async function saveUpload(file: File): Promise<string> {
 
   const filename = `${randomUUID()}.jpg`;
   const original = Buffer.from(await file.arrayBuffer());
-  const resized = await sharp(original)
-    .rotate()
-    .resize({ width: MAX_WIDTH, withoutEnlargement: true })
-    .jpeg({ quality: 82 })
-    .toBuffer();
+  let resized: Buffer;
+  try {
+    resized = await sharp(original)
+      .rotate()
+      .resize({ width: MAX_WIDTH, withoutEnlargement: true })
+      .jpeg({ quality: 82 })
+      .toBuffer();
+  } catch {
+    // the MIME type is client-declared: corrupt/non-image data is a 400, not a server error
+    throw new UploadError("Immagine non valida o danneggiata");
+  }
   await writeFile(path.join(env.UPLOAD_DIR, filename), resized);
 
   return filename;
@@ -50,7 +56,7 @@ export async function deleteUpload(filename: string | null | undefined) {
 // best-effort, qualsiasi fallimento viene ignorato silenziosamente, non deve mai far fallire l'import
 export async function fetchImageBuffer(url: string): Promise<{ buffer: Buffer; contentType: string } | null> {
   try {
-    const res = await fetchPublic(url, { signal: AbortSignal.timeout(5000) });
+    const res = await fetchPublic(url, { signal: AbortSignal.timeout(5000), maxBytes: MAX_UPLOAD_BYTES });
     if (!res.ok) {
       console.error(`[uploads] fetchImageBuffer: HTTP ${res.status} per ${url}`);
       return null;

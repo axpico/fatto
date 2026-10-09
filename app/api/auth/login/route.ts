@@ -1,11 +1,11 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { verifyPassword, createSession } from "@/lib/auth";
+import { verifyPassword, createSession, hashPassword } from "@/lib/auth";
 import { isRateLimited, recordAttempt, clearRateLimit, retryAfterSeconds } from "@/lib/rateLimit";
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(1),
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(1).max(200),
 });
 
 const MAX_FAILS = 5;
@@ -13,11 +13,18 @@ const LOCKOUT_MS = 30_000;
 
 // Oltre al limite per-email: senza reverse proxy garantito davanti all'app (vedi README, il deploy
 // può girare anche in solo-LAN), un IP client non è affidabile da leggere qui — un contatore
-// globale sui fallimenti impedisce comunque a un attaccante di aggirare il lockout per-email
-// distribuendo i tentativi su tante email diverse in parallelo.
+// globale impedisce di aggirare il lockout per-email distribuendo i tentativi su tante email.
+// Conta solo i tentativi su email inesistenti (lo spraying): le password sbagliate su account veri
+// restano limitate per-email, così un estraneo non può bloccare il login di tutta la famiglia.
 const GLOBAL_KEY = "login:__global__";
 const GLOBAL_MAX_FAILS = 20;
 const GLOBAL_WINDOW_MS = 60_000;
+
+let dummyHashPromise: Promise<string> | null = null;
+function dummyHash(): Promise<string> {
+  dummyHashPromise ??= hashPassword("timing-equaliser-not-a-real-password");
+  return dummyHashPromise;
+}
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -41,12 +48,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  const valid = user ? await verifyPassword(password, user.passwordHash) : false;
+  const user = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
+  // bcrypt runs either way: answering faster for unknown emails would reveal which accounts exist
+  const valid = await verifyPassword(password, user?.passwordHash ?? (await dummyHash()));
 
   if (!user || !valid) {
     recordAttempt(key, LOCKOUT_MS);
-    recordAttempt(GLOBAL_KEY, GLOBAL_WINDOW_MS);
+    if (!user) recordAttempt(GLOBAL_KEY, GLOBAL_WINDOW_MS);
     return Response.json({ error: "Email o password errati" }, { status: 401 });
   }
 

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { saveUpload } from "@/lib/uploads";
+import { deleteUpload, saveUpload } from "@/lib/uploads";
 import { resolveTagNames } from "@/lib/tagDedupe";
 import type { RecipeInput } from "@/lib/recipeSchema";
 
@@ -13,12 +13,46 @@ export async function uploadRecipeImages(
   steps: RecipeInput["steps"],
   stepImages: (File | null)[],
 ) {
-  const photoUrl = photo ? await saveUpload(photo) : fallbackPhotoUrl;
-  const galleryFilenames = await Promise.all(galleryPhotos.map((f) => saveUpload(f)));
-  const stepImageFilenames = await Promise.all(
-    steps.map((step, i) => (stepImages[i] ? saveUpload(stepImages[i]!) : Promise.resolve(step.imageFilename))),
-  );
-  return { photoUrl, galleryFilenames, stepImageFilenames };
+  // every file written by this call, so the caller can remove them if the DB write fails
+  const saved: string[] = [];
+  async function save(file: File) {
+    const filename = await saveUpload(file);
+    saved.push(filename);
+    return filename;
+  }
+  // allSettled, not all: on a failure every sibling write must have finished before cleanup,
+  // otherwise a late one would land on disk after the cleanup ran
+  async function settleAll<T>(promises: Promise<T>[]): Promise<T[]> {
+    const results = await Promise.allSettled(promises);
+    const failed = results.find((r) => r.status === "rejected");
+    if (failed) throw failed.reason;
+    return results.map((r) => (r as PromiseFulfilledResult<T>).value);
+  }
+  try {
+    const photoUrl = photo ? await save(photo) : fallbackPhotoUrl;
+    const galleryFilenames = await settleAll(galleryPhotos.map(save));
+    const stepImageFilenames = await settleAll(
+      steps.map((step, i) => (stepImages[i] ? save(stepImages[i]!) : Promise.resolve(step.imageFilename))),
+    );
+    return { photoUrl, galleryFilenames, stepImageFilenames, saved };
+  } catch (err) {
+    await Promise.all(saved.map(deleteUpload));
+    throw err;
+  }
+}
+
+/** Removes files from disk unless another recipe still references them (a cover, gallery image
+ * or step image can be shared, e.g. when a client re-submits filenames from another recipe). */
+export async function deleteUnreferencedUploads(filenames: string[], exceptRecipeId: string) {
+  if (filenames.length === 0) return;
+  const notThis = { not: exceptRecipeId };
+  const [covers, images, steps] = await Promise.all([
+    prisma.recipe.findMany({ where: { id: notThis, photoUrl: { in: filenames } }, select: { photoUrl: true } }),
+    prisma.recipeImage.findMany({ where: { recipeId: notThis, filename: { in: filenames } }, select: { filename: true } }),
+    prisma.step.findMany({ where: { recipeId: notThis, imageFilename: { in: filenames } }, select: { imageFilename: true } }),
+  ]);
+  const shared = new Set([...covers.map((r) => r.photoUrl), ...images.map((i) => i.filename), ...steps.map((s) => s.imageFilename)]);
+  await Promise.all(filenames.filter((f) => !shared.has(f)).map(deleteUpload));
 }
 
 /** Tag dedupe + flag nutrizione presente, condivisi tra create e update della ricetta. */

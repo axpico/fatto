@@ -15,11 +15,14 @@ export async function seedAdminUser() {
 
   const passwordHash = await hashPassword(password);
 
-  await prisma.user.upsert({
-    where: { email },
-    create: { email, passwordHash, name, isAdmin: true },
-    update: { passwordHash, name, isAdmin: true },
-  });
+  // emails are stored lowercase; case-insensitive lookup so an older mixed-case row is updated
+  // instead of duplicated
+  const existing = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
+  if (existing) {
+    await prisma.user.update({ where: { id: existing.id }, data: { passwordHash, name, isAdmin: true } });
+  } else {
+    await prisma.user.create({ data: { email: email.trim().toLowerCase(), passwordHash, name, isAdmin: true } });
+  }
 
   console.log(`[seed] Utente pronto: ${email}`);
 }

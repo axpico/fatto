@@ -7,7 +7,7 @@ type Params = RouteParams<{ id: string }>;
 
 const patchSchema = z.object({
   rating: z.number().int().min(1).max(5).nullable().optional(),
-  notes: z.string().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
 });
 
 export async function PATCH(request: Request, { params }: Params) {

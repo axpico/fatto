@@ -7,11 +7,14 @@ import {
   resolveRecipeWriteFields,
   recipeFilenames,
   deleteOrphanTags,
+  deleteUnreferencedUploads,
 } from "@/lib/recipeUpsert";
 import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
 type Params = RouteParams<{ id: string }>;
 
+// Shared editing is intentional (family cookbook): any signed-in user may edit or delete any
+// recipe, not only its creator.
 export async function PATCH(request: Request, { params }: Params) {
   const { unauthorized } = await requireApiUser();
   if (unauthorized) return unauthorized;
@@ -37,8 +40,9 @@ export async function PATCH(request: Request, { params }: Params) {
   let photoUrl: string | null;
   let newFilenames: string[];
   let stepImageFilenames: (string | null)[];
+  let saved: string[];
   try {
-    ({ photoUrl, galleryFilenames: newFilenames, stepImageFilenames } = await uploadRecipeImages(
+    ({ photoUrl, galleryFilenames: newFilenames, stepImageFilenames, saved } = await uploadRecipeImages(
       photo,
       existingPhotoUrl,
       galleryPhotos,
@@ -52,54 +56,64 @@ export async function PATCH(request: Request, { params }: Params) {
   // ponytail: le foto già caricate restano prima delle nuove; un ordine misto va riordinato dopo il salvataggio
   const orderedFilenames = [...galleryExisting, ...newFilenames];
 
-  const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
+  let recipe;
+  try {
+    const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
 
-  const recipe = await prisma.recipe.update({
-    where: { id },
-    data: {
-      title: data.title,
-      description: data.description,
-      servingsBase: data.servingsBase,
-      prepTimeMinutes: data.prepTimeMinutes,
-      cookTimeMinutes: data.cookTimeMinutes,
-      sourceUrl: data.sourceUrl,
-      videoUrl: data.videoUrl,
-      equipment: data.equipment,
-      photoUrl,
-      ingredients: {
-        deleteMany: {},
-        create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
+    recipe = await prisma.recipe.update({
+      where: { id },
+      data: {
+        title: data.title,
+        description: data.description,
+        servingsBase: data.servingsBase,
+        prepTimeMinutes: data.prepTimeMinutes,
+        cookTimeMinutes: data.cookTimeMinutes,
+        sourceUrl: data.sourceUrl,
+        videoUrl: data.videoUrl,
+        equipment: data.equipment,
+        photoUrl,
+        ingredients: {
+          deleteMany: {},
+          create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
+        },
+        steps: {
+          deleteMany: {},
+          create: data.steps.map((step, index) => ({
+            ...step,
+            imageFilename: stepImageFilenames[index],
+            sortOrder: index,
+          })),
+        },
+        tags: {
+          set: [],
+          connectOrCreate: resolvedTagNames.map((name) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
+        images: {
+          deleteMany: {},
+          create: orderedFilenames.map((filename, index) => ({ filename, sortOrder: index })),
+        },
+        nutrition: hasNutrition
+          ? { upsert: { create: data.nutrition, update: data.nutrition } }
+          : existing.nutrition
+            ? { delete: true }
+            : undefined,
       },
-      steps: {
-        deleteMany: {},
-        create: data.steps.map((step, index) => ({
-          ...step,
-          imageFilename: stepImageFilenames[index],
-          sortOrder: index,
-        })),
-      },
-      tags: {
-        set: [],
-        connectOrCreate: resolvedTagNames.map((name) => ({
-          where: { name },
-          create: { name },
-        })),
-      },
-      images: {
-        deleteMany: {},
-        create: orderedFilenames.map((filename, index) => ({ filename, sortOrder: index })),
-      },
-      nutrition: hasNutrition
-        ? { upsert: { create: data.nutrition, update: data.nutrition } }
-        : existing.nutrition
-          ? { delete: true }
-          : undefined,
-    },
-  });
+    });
+  } catch (err) {
+    // DB write failed: the files just written are referenced by nothing, remove them
+    await Promise.all(saved.map(deleteUpload));
+    throw err;
+  }
 
   // file cancellati solo dopo l'update riuscito: se il DB fallisce, nessun file referenziato sparisce
   const stillReferenced = new Set([photoUrl, ...orderedFilenames, ...stepImageFilenames]);
-  await Promise.all(recipeFilenames(existing).filter((f) => !stillReferenced.has(f)).map(deleteUpload));
+  await deleteUnreferencedUploads(
+    recipeFilenames(existing).filter((f) => !stillReferenced.has(f)),
+    id,
+  );
   await deleteOrphanTags();
 
   return Response.json(recipe);
@@ -117,7 +131,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (notFound) return notFound;
 
   await prisma.recipe.delete({ where: { id } });
-  await Promise.all(recipeFilenames(existing).map(deleteUpload));
+  await deleteUnreferencedUploads(recipeFilenames(existing), id);
   await deleteOrphanTags();
 
   return Response.json({ ok: true });

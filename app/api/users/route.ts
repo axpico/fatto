@@ -4,9 +4,9 @@ import { hashPassword, requireApiAdmin } from "@/lib/auth";
 import { userSelect } from "@/lib/users";
 
 const createUserSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-  name: z.string().min(1),
+  email: z.string().trim().toLowerCase().email().max(254),
+  password: z.string().min(8).max(200),
+  name: z.string().trim().min(1).max(100),
 });
 
 export async function GET() {
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
   }
   const { email, password, name } = parsed.data;
 
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findFirst({ where: { email: { equals: email, mode: "insensitive" } } });
   if (existing) {
     return Response.json({ error: "Email già in uso" }, { status: 409 });
   }

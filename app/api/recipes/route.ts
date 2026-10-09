@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
-import { UploadError } from "@/lib/uploads";
+import { deleteUpload, UploadError } from "@/lib/uploads";
 import { parseRecipeFormData } from "@/lib/parseRecipeFormData";
 import { buildRecipeWhere, parseRecipeFilters, rankByIngredients, searchRecipesByText } from "@/lib/recipeSearch";
 import { compareBySort, computeCookStats, parseRecipeSort, type RecipeSort } from "@/lib/recipeStats";
@@ -103,8 +103,9 @@ export async function POST(request: Request) {
   let photoUrl: string | null;
   let galleryFilenames: string[];
   let stepImageFilenames: (string | null)[];
+  let saved: string[];
   try {
-    ({ photoUrl, galleryFilenames, stepImageFilenames } = await uploadRecipeImages(
+    ({ photoUrl, galleryFilenames, stepImageFilenames, saved } = await uploadRecipeImages(
       photo,
       existingPhotoUrl,
       galleryPhotos,
@@ -115,43 +116,50 @@ export async function POST(request: Request) {
     if (err instanceof UploadError) return Response.json({ error: err.message }, { status: 400 });
     throw err;
   }
-  const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
+  let recipe;
+  try {
+    const { hasNutrition, resolvedTagNames } = await resolveRecipeWriteFields(data);
 
-  const recipe = await prisma.recipe.create({
-    data: {
-      title: data.title,
-      description: data.description,
-      servingsBase: data.servingsBase,
-      prepTimeMinutes: data.prepTimeMinutes,
-      cookTimeMinutes: data.cookTimeMinutes,
-      sourceUrl: data.sourceUrl,
-      videoUrl: data.videoUrl,
-      equipment: data.equipment,
-      photoUrl,
-      createdById: user.id,
-      ingredients: {
-        create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
+    recipe = await prisma.recipe.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        servingsBase: data.servingsBase,
+        prepTimeMinutes: data.prepTimeMinutes,
+        cookTimeMinutes: data.cookTimeMinutes,
+        sourceUrl: data.sourceUrl,
+        videoUrl: data.videoUrl,
+        equipment: data.equipment,
+        photoUrl,
+        createdById: user.id,
+        ingredients: {
+          create: data.ingredients.map((ing, index) => ({ ...ing, sortOrder: index })),
+        },
+        steps: {
+          create: data.steps.map((step, index) => ({
+            ...step,
+            imageFilename: stepImageFilenames[index],
+            sortOrder: index,
+          })),
+        },
+        tags: {
+          connectOrCreate: resolvedTagNames.map((name) => ({
+            where: { name },
+            create: { name },
+          })),
+        },
+        images: {
+          create: [...galleryExisting, ...galleryFilenames].map((filename, index) => ({ filename, sortOrder: index })),
+        },
+        ...(hasNutrition && { nutrition: { create: data.nutrition } }),
       },
-      steps: {
-        create: data.steps.map((step, index) => ({
-          ...step,
-          imageFilename: stepImageFilenames[index],
-          sortOrder: index,
-        })),
-      },
-      tags: {
-        connectOrCreate: resolvedTagNames.map((name) => ({
-          where: { name },
-          create: { name },
-        })),
-      },
-      images: {
-        create: [...galleryExisting, ...galleryFilenames].map((filename, index) => ({ filename, sortOrder: index })),
-      },
-      ...(hasNutrition && { nutrition: { create: data.nutrition } }),
-    },
-  });
-
+    });
+  } catch (err) {
+    // the DB write failed (e.g. a concurrent save racing on a new tag name): the files written
+    // above are referenced by nothing, remove them instead of leaving them on disk forever
+    await Promise.all(saved.map(deleteUpload));
+    throw err;
+  }
 
   return Response.json(recipe, { status: 201 });
 }

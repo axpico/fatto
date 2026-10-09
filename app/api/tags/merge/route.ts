@@ -21,6 +21,8 @@ export async function POST(request: Request) {
     "Tag non trovato",
   );
   if (notFound) return notFound;
+  const keepTag = await prisma.tag.findUnique({ where: { id: keepId }, select: { id: true } });
+  if (!keepTag) return Response.json({ error: "Tag non trovato" }, { status: 404 });
 
   await prisma.$transaction([
     ...mergeTag.recipes.map((recipe) =>

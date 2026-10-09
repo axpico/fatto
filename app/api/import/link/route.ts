@@ -11,7 +11,7 @@ import { streamNdjson, writeExtractionError } from "@/lib/ndjson";
 import { fetchPublic } from "@/lib/urlSafety";
 import { checkImportRateLimit } from "@/lib/rateLimit";
 
-const bodySchema = z.object({ url: z.string().url() });
+const bodySchema = z.object({ url: z.string().url().max(2000) });
 
 const VISION_MIME_TYPES = new Set<VisionImage["mediaType"]>([
   "image/jpeg",

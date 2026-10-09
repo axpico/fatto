@@ -7,7 +7,7 @@ import { checkImportRateLimit } from "@/lib/rateLimit";
 
 const bodySchema = z.object({
   url: z.string().url(),
-  notes: z.string().optional(),
+  notes: z.string().max(5000).optional(),
   platform: z.enum(["instagram", "youtube", "tiktok"]),
 });
 

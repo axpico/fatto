@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
 
-const rejectSchema = z.object({ recipeId: z.string() });
+const rejectSchema = z.object({ recipeId: z.string().min(1).max(64) });
 
 export async function POST(request: Request) {
   const { user, unauthorized } = await requireApiUser();
@@ -14,6 +14,9 @@ export async function POST(request: Request) {
   }
 
   const { recipeId } = parsed.data;
+  const recipe = await prisma.recipe.findUnique({ where: { id: recipeId }, select: { id: true } });
+  // already deleted (e.g. by another family member): nothing to pause
+  if (!recipe) return Response.json({ error: "Ricetta non trovata" }, { status: 404 });
   await prisma.swipeReject.upsert({
     where: { userId_recipeId: { userId: user.id, recipeId } },
     create: { userId: user.id, recipeId },
