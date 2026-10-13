@@ -38,7 +38,7 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
     include: {
       ...orderedIngredientsAndSteps,
       tags: true,
-      cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: true } },
+      cookLogs: { orderBy: { cookedAt: "desc" }, include: { user: { select: { name: true } } } },
       images: { orderBy: { sortOrder: "asc" } },
       nutrition: true,
       createdBy: { select: { name: true } },
@@ -219,11 +219,14 @@ export default async function RecipeDetailPage({ params }: { params: Promise<{ i
 
         <CookLogSection
           recipeId={recipe.id}
+          currentUserId={user.id}
           initialLogs={recipe.cookLogs.map((log) => ({
             id: log.id,
+            userId: log.userId,
             cookedAt: log.cookedAt.toISOString(),
             rating: log.rating,
             notes: log.notes,
+            photoFilename: log.photoFilename,
             user: { name: log.user.name },
           }))}
         />

@@ -125,13 +125,15 @@ export async function DELETE(_request: Request, { params }: Params) {
 
   const { id } = await params;
   const { record: existing, notFound } = await findOrNotFound(
-    () => prisma.recipe.findUnique({ where: { id }, include: { images: true, steps: true } }),
+    () => prisma.recipe.findUnique({ where: { id }, include: { images: true, steps: true, cookLogs: { select: { photoFilename: true } } } }),
     "Ricetta non trovata",
   );
   if (notFound) return notFound;
 
   await prisma.recipe.delete({ where: { id } });
   await deleteUnreferencedUploads(recipeFilenames(existing), id);
+  // foto delle cotture: sempre upload propri, mai condivisi
+  await Promise.all(existing.cookLogs.map((log) => deleteUpload(log.photoFilename)));
   await deleteOrphanTags();
 
   return Response.json({ ok: true });

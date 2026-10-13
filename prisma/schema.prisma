@@ -49,10 +49,10 @@ model Recipe {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  ingredients Ingredient[]
-  steps       Step[]
-  tags        Tag[]         @relation("RecipeTags")
-  cookLogs    CookLog[]
+  ingredients  Ingredient[]
+  steps        Step[]
+  tags         Tag[]         @relation("RecipeTags")
+  cookLogs     CookLog[]
   images       RecipeImage[]
   nutrition    Nutrition?
   favorites    Favorite[]
@@ -142,14 +142,15 @@ model Tag {
 }
 
 model CookLog {
-  id       String   @id @default(cuid())
-  recipeId String
-  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  userId   String
-  user     User     @relation(fields: [userId], references: [id])
-  cookedAt DateTime @default(now())
-  rating   Int?
-  notes    String?
+  id            String   @id @default(cuid())
+  recipeId      String
+  recipe        Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  cookedAt      DateTime @default(now())
+  rating        Int?
+  notes         String?
+  photoFilename String?
 
   @@index([recipeId])
   @@index([userId])

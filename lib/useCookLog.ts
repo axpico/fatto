@@ -38,5 +38,16 @@ export function useCookLog(recipeId: string) {
     return (await send(`/api/cook-logs/${id}`, { method: "DELETE" })) !== null;
   }
 
-  return { markCooked, patchCookLog, deleteCookLog };
+  async function uploadPhoto<T>(id: string, file: File): Promise<T | null> {
+    const body = new FormData();
+    body.append("photo", file);
+    const res = await send(`/api/cook-logs/${id}/photo`, { method: "POST", body });
+    return res ? res.json() : null;
+  }
+
+  async function removePhoto(id: string): Promise<boolean> {
+    return (await send(`/api/cook-logs/${id}/photo`, { method: "DELETE" })) !== null;
+  }
+
+  return { markCooked, patchCookLog, deleteCookLog, uploadPhoto, removePhoto };
 }

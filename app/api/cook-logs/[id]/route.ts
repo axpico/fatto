@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireApiUser } from "@/lib/auth";
+import { deleteUpload } from "@/lib/uploads";
 import { findOrNotFound, type RouteParams } from "@/lib/apiRoute";
 
 type Params = RouteParams<{ id: string }>;
@@ -36,12 +37,13 @@ export async function DELETE(_request: Request, { params }: Params) {
   if (unauthorized) return unauthorized;
 
   const { id } = await params;
-  const { notFound } = await findOrNotFound(
+  const { record: existing, notFound } = await findOrNotFound(
     () => prisma.cookLog.findUnique({ where: { id, userId: user.id } }),
     "Cottura non trovata",
   );
   if (notFound) return notFound;
 
   await prisma.cookLog.delete({ where: { id } });
+  await deleteUpload(existing.photoFilename);
   return Response.json({ ok: true });
 }
