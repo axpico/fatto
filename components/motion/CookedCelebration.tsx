@@ -47,7 +47,10 @@ export function CookedCelebration({
 
   return (
     <Canvas
-      className="pointer-events-none absolute inset-0"
+      className="pointer-events-none inset-0"
+      // Canvas sets an inline `position: relative` that beats a class: without this the canvas sits
+      // in the flow and pushes the layout down instead of overlaying it
+      style={{ position: "absolute" }}
       dpr={[1, 1.5]}
       camera={{ position: [0, 0, 6], fov: 45 }}
       gl={{ alpha: true, antialias: true }}
