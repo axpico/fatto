@@ -64,13 +64,9 @@ Non c'è una pagina di registrazione pubblica (è un'app per uso familiare chius
 
 ## Aggiornare da una versione precedente
 
-Il container dell'app ora gira come utente non-root (`node`). Se il volume delle foto è stato creato da una versione precedente (che girava come root), sistemane i permessi una volta sola:
+Il container dell'app gira come utente non-root (`node`). I permessi del volume delle foto (anche se creato da una versione precedente che girava come root) vengono sistemati automaticamente a ogni avvio dal servizio `uploads-init`: nessun passaggio manuale.
 
-```bash
-docker compose run --rm --user root app chown -R node:node /data/uploads
-```
-
-Postgres è esposto solo su `127.0.0.1:5432` (raggiungibile dall'host per sviluppo e backup, non dalla rete).
+Postgres è esposto solo su `127.0.0.1:5432` (raggiungibile dall'host per sviluppo e backup, non dalla rete). Se la porta è già occupata da un altro progetto, imposta `DB_PORT` (es. `DB_PORT=5433`) nel `.env`.
 
 ## Sviluppo locale (senza Docker)
 

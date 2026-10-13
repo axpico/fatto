@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: recipebook
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -9,19 +10,33 @@ services:
       - pgdata:/var/lib/postgresql/data
     # localhost only: reachable for local dev / backups on the host, not from the network
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U recipebook"]
       interval: 5s
       timeout: 5s
       retries: 10
 
+  # The app runs as non-root `node` (uid 1000); a volume created by an older root image (or by
+  # Docker itself) is root-owned and uploads fail with EACCES. Fixed on every start, so upgrades
+  # need no manual step.
+  uploads-init:
+    image: alpine:3.20
+    user: root
+    command: chown -R 1000:1000 /data/uploads
+    volumes:
+      - uploads:/data/uploads
+
   app:
     image: ghcr.io/axpico/fatto:latest
     build: .
+    # also covers losing the startup race with Postgres: a failed migrate just retries
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
+      uploads-init:
+        condition: service_completed_successfully
     environment:
       DATABASE_URL: postgresql://recipebook:${POSTGRES_PASSWORD}@db:5432/recipebook
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
